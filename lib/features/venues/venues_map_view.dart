@@ -31,7 +31,8 @@ class VenuesMapView extends StatefulWidget {
 }
 
 class _VenuesMapViewState extends State<VenuesMapView> {
-  final Completer<GoogleMapController> _controller = Completer<GoogleMapController>();
+  final Completer<GoogleMapController> _controller =
+      Completer<GoogleMapController>();
 
   static const CameraPosition _kFallback = CameraPosition(
     target: LatLng(27.7000, 85.3100),
@@ -63,7 +64,8 @@ class _VenuesMapViewState extends State<VenuesMapView> {
     try {
       final json = await rootBundle.loadString('assets/raw/maptheme.json');
       if (!mounted) return;
-      setState(() => _mapStyleJson = json.trim().isEmpty || json.trim() == '[]' ? null : json);
+      setState(() => _mapStyleJson =
+          json.trim().isEmpty || json.trim() == '[]' ? null : json);
     } catch (_) {
       if (!mounted) return;
       setState(() => _mapStyleJson = null);
@@ -99,7 +101,8 @@ class _VenuesMapViewState extends State<VenuesMapView> {
         Marker(
           markerId: MarkerId(id),
           position: pos,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          icon:
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
           infoWindow: InfoWindow(
             title: name,
             snippet: address.isNotEmpty ? '$address · ★ $rating' : '★ $rating',
@@ -186,13 +189,14 @@ class _VenuesMapViewState extends State<VenuesMapView> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.verified_rounded, size: 16, color: AppColors.green),
+                              Icon(Icons.verified_rounded,
+                                  size: 16, color: AppColors.green),
                               const SizedBox(width: 4),
                               Text(
                                 'Verified',
                                 style: AppText.label.copyWith(
                                   color: AppColors.green,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: AppTextStyles.semiBold,
                                 ),
                               ),
                             ],
@@ -204,12 +208,14 @@ class _VenuesMapViewState extends State<VenuesMapView> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.place_outlined, size: 18, color: AppColors.txtDisabled),
+                      Icon(Icons.place_outlined,
+                          size: 18, color: AppColors.txtDisabled),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           venue['address'] as String? ?? '',
-                          style: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+                          style: AppText.bodySm
+                              .copyWith(color: AppColors.txtDisabled),
                         ),
                       ),
                     ],
@@ -217,15 +223,18 @@ class _VenuesMapViewState extends State<VenuesMapView> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Icon(Icons.star_rounded, size: 20, color: AppColors.ratingStar),
+                      const Icon(Icons.star_rounded,
+                          size: 20, color: AppColors.ratingStar),
                       const SizedBox(width: 4),
                       Text(
                         rating.toStringAsFixed(1),
-                        style: AppText.body.copyWith(fontWeight: FontWeight.w700),
+                        style: AppText.body
+                            .copyWith(fontWeight: AppTextStyles.semiBold),
                       ),
                       Text(
                         ' ($reviewCount) · $courts courts',
-                        style: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+                        style: AppText.bodySm
+                            .copyWith(color: AppColors.txtDisabled),
                       ),
                     ],
                   ),
@@ -242,8 +251,8 @@ class _VenuesMapViewState extends State<VenuesMapView> {
                           label: const Text('Directions'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.txtPrimary,
-                            padding:
-                                const EdgeInsets.symmetric(vertical: AppSpacing.xs2),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.xs2),
                             side: BorderSide(color: AppColors.borderClr),
                           ),
                         ),
@@ -253,15 +262,17 @@ class _VenuesMapViewState extends State<VenuesMapView> {
                         child: ElevatedButton.icon(
                           onPressed: () {
                             Navigator.pop(ctx);
-                            Navigator.pushNamed(context, '/venue-detail', arguments: venue);
+                            Navigator.pushNamed(context, '/venue-detail',
+                                arguments: venue);
                           },
-                          icon: const Icon(Icons.sports_soccer_rounded, size: 20),
+                          icon:
+                              const Icon(Icons.sports_soccer_rounded, size: 20),
                           label: const Text('View venue'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.green,
                             foregroundColor: AppColors.bgPrimary,
-                            padding:
-                                const EdgeInsets.symmetric(vertical: AppSpacing.xs2),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: AppSpacing.xs2),
                             elevation: 0,
                           ),
                         ),
@@ -313,7 +324,8 @@ class _VenuesMapViewState extends State<VenuesMapView> {
     }
     final sw = LatLng(minLat, minLng);
     final ne = LatLng(maxLat, maxLng);
-    await c.animateCamera(CameraUpdate.newLatLngBounds(LatLngBounds(southwest: sw, northeast: ne), 72));
+    await c.animateCamera(CameraUpdate.newLatLngBounds(
+        LatLngBounds(southwest: sw, northeast: ne), 72));
   }
 
   @override
@@ -326,11 +338,13 @@ class _VenuesMapViewState extends State<VenuesMapView> {
         color: AppColors.bgPrimary,
         child: Center(
           child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.map_outlined, size: 56, color: AppColors.txtDisabled.withValues(alpha: 0.7)),
+                Icon(Icons.map_outlined,
+                    size: 56,
+                    color: AppColors.txtDisabled.withValues(alpha: 0.7)),
                 const SizedBox(height: 12),
                 Text(
                   'No venues on the map',
