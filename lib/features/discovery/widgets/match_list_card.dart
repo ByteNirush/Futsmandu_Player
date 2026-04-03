@@ -36,7 +36,7 @@ class MatchListCard extends StatelessWidget {
         : spotsLeft <= 3
             ? AppColors.warning
             : AppColors.success;
-            
+
     final friendsCount = match['friendsIn'] as int? ?? 0;
 
     return TweenAnimationBuilder<double>(
@@ -53,14 +53,16 @@ class MatchListCard extends StatelessWidget {
         );
       },
       child: FutsCard(
-        onTap: () => Navigator.pushNamed(context, '/match-detail', arguments: match),
+        onTap: () =>
+            Navigator.pushNamed(context, '/match-detail', arguments: match),
         // Use default FutsCard padding instead of incorrectly overriding it
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Venue Image
             Hero(
-              tag: 'match_image_${match['id'] ?? index}', // Ideal to have unique match ID
+              tag:
+                  'match_image_${match['id'] ?? index}', // Ideal to have unique match ID
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: CachedNetworkImage(
@@ -72,13 +74,15 @@ class MatchListCard extends StatelessWidget {
                     width: 90,
                     height: 90,
                     color: AppColors.bgElevated,
-                    child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                    child: const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2)),
                   ),
                   errorWidget: (context, url, error) => Container(
                     width: 90,
                     height: 90,
                     color: AppColors.bgElevated,
-                    child: Icon(Icons.image_not_supported, color: AppColors.txtDisabled),
+                    child: Icon(Icons.image_not_supported,
+                        color: AppColors.txtDisabled),
                   ),
                 ),
               ),
@@ -94,7 +98,8 @@ class MatchListCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           match['venueName'] ?? 'Unknown Venue',
-                          style: AppText.h3.copyWith(fontSize: 16, fontWeight: FontWeight.w600),
+                          style: AppText.h3.copyWith(
+                              fontSize: 16, fontWeight: FontWeight.w600),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -108,22 +113,26 @@ class MatchListCard extends StatelessWidget {
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
                     match['courtName'] ?? '',
-                    style: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+                    style:
+                        AppText.bodySm.copyWith(color: AppColors.txtDisabled),
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  
+
                   // Info Chips
                   Wrap(
                     spacing: 16,
                     runSpacing: 8,
                     children: [
-                      _InfoChip(Icons.access_time_outlined, match['time'] ?? ''),
-                      _InfoChip(Icons.location_on_outlined, match['distance'] ?? ''),
-                      _InfoChip(Icons.bolt_rounded, match['skillLevel'] ?? '', color: skillColor),
+                      _InfoChip(
+                          Icons.access_time_outlined, match['time'] ?? ''),
+                      _InfoChip(
+                          Icons.location_on_outlined, match['distance'] ?? ''),
+                      _InfoChip(Icons.bolt_rounded, match['skillLevel'] ?? '',
+                          color: skillColor),
                     ],
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  
+
                   // Footer Row: Friends Profile + Price
                   Row(
                     children: [
@@ -134,13 +143,16 @@ class MatchListCard extends StatelessWidget {
                               ...List.generate(
                                 math.min(2, friendsCount),
                                 (i) => Align(
-                                  alignment: Alignment.centerLeft, // Fixes left-overflow of avatars
+                                  alignment: Alignment
+                                      .centerLeft, // Fixes left-overflow of avatars
                                   widthFactor: 0.65,
                                   child: CircleAvatar(
                                     radius: 10,
                                     backgroundColor: AppColors.bgElevated,
                                     child: Text(
-                                      MockData.friends.length > i ? MockData.friends[i]['name'][0] : '?',
+                                      MockData.friends.length > i
+                                          ? MockData.friends[i]['name'][0]
+                                          : '?',
                                       style: GoogleFonts.barlow(
                                         fontSize: 10,
                                         color: AppColors.txtDisabled,
@@ -171,7 +183,7 @@ class MatchListCard extends StatelessWidget {
                         style: GoogleFonts.barlow(
                           fontSize: 16,
                           color: AppColors.success,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: AppTextStyles.semiBold,
                         ),
                       ),
                     ],
@@ -198,9 +210,9 @@ class _InfoChip extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-         Icon(icon, size: 14, color: color ?? AppColors.txtDisabled),
-         const SizedBox(width: 4),
-         Text(text, style: AppText.label.copyWith(color: color)),
+        Icon(icon, size: 14, color: color ?? AppColors.txtDisabled),
+        const SizedBox(width: 4),
+        Text(text, style: AppText.label.copyWith(color: color)),
       ],
     );
   }
