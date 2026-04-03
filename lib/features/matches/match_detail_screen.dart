@@ -23,7 +23,9 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final match = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
+    final match =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ??
+            {};
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -58,7 +60,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                 bottom: 14,
                 end: 16,
               ),
-              title: Text(match['venueName'] ?? '', style: AppText.h3.copyWith(fontSize: 18)),
+              title: Text(match['venueName'] ?? '',
+                  style: AppText.h3.copyWith(fontSize: 18)),
               background: Stack(
                 children: [
                   Container(
@@ -68,7 +71,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                   ),
                   CustomPaint(
                     painter: FootballFieldPainter(),
-                    child: const SizedBox(width: double.infinity, height: double.infinity),
+                    child: const SizedBox(
+                        width: double.infinity, height: double.infinity),
                   ),
                   Center(
                     child: Column(
@@ -77,7 +81,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                         Text('Match Group', style: AppText.bodySm),
                         const SizedBox(height: 6),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm),
                           child: Text(
                             match['venueName'] ?? '',
                             style: AppText.h1,
@@ -114,7 +119,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                           child: Row(
                             children: [
                               _StatCol(
-                                value: '${match['spotsLeft']}/${match['maxPlayers']}',
+                                value:
+                                    '${match['spotsLeft']}/${match['maxPlayers']}',
                                 label: 'Spots Left',
                                 color: AppColors.green,
                               ),
@@ -142,7 +148,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Icon(Icons.location_on_outlined, size: 14, color: AppColors.txtDisabled),
+                            Icon(Icons.location_on_outlined,
+                                size: 14, color: AppColors.txtDisabled),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -151,8 +158,12 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                               ),
                             ),
                             StatusBadge(
-                              label: match['isOpen'] == true ? 'Open Match' : 'Private',
-                              color: match['isOpen'] == true ? AppColors.green : AppColors.txtDisabled,
+                              label: match['isOpen'] == true
+                                  ? 'Open Match'
+                                  : 'Private',
+                              color: match['isOpen'] == true
+                                  ? AppColors.green
+                                  : AppColors.txtDisabled,
                             ),
                           ],
                         ),
@@ -166,7 +177,9 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                     children: [
                       Text('Teams', style: AppText.h3),
                       const Spacer(),
-                      Text('${((match['members'] ?? []) as List).length}/${match['maxPlayers']} players', style: AppText.bodySm),
+                      Text(
+                          '${((match['members'] ?? []) as List).length}/${match['maxPlayers']} players',
+                          style: AppText.bodySm),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -179,7 +192,9 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                         child: _TeamColumn(
                           team: 'A',
                           color: AppColors.green,
-                          members: ((match['members'] ?? []) as List).where((m) => m['team'] == 'A').toList(),
+                          members: ((match['members'] ?? []) as List)
+                              .where((m) => m['team'] == 'A')
+                              .toList(),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -187,7 +202,9 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                         child: _TeamColumn(
                           team: 'B',
                           color: AppColors.blue,
-                          members: ((match['members'] ?? []) as List).where((m) => m['team'] == 'B').toList(),
+                          members: ((match['members'] ?? []) as List)
+                              .where((m) => m['team'] == 'B')
+                              .toList(),
                         ),
                       ),
                     ],
@@ -210,8 +227,11 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Share invite link', style: AppText.body.copyWith(fontWeight: FontWeight.w600)),
-                              Text('Valid for 48 hours · max 10 uses', style: AppText.bodySm),
+                              Text('Share invite link',
+                                  style: AppText.body
+                                      .copyWith(fontWeight: FontWeight.w600)),
+                              Text('Valid for 48 hours · max 10 uses',
+                                  style: AppText.bodySm),
                             ],
                           ),
                         ),
@@ -224,11 +244,16 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                           },
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(0, 38),
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.sm),
                             backgroundColor: AppColors.green,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(999)),
                           ),
-                          child: Text('Copy Link', style: TextStyle(color: AppColors.bgPrimary, fontWeight: FontWeight.w600)),
+                          child: Text('Copy Link',
+                              style: TextStyle(
+                                  color: AppColors.bgPrimary,
+                                  fontWeight: FontWeight.w600)),
                         ),
                       ],
                     ),
@@ -272,24 +297,31 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                               onTap: () => setState(() => _selectedPos = pos),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 180),
-                                margin: const EdgeInsets.only(right: AppSpacing.xs),
+                                margin:
+                                    const EdgeInsets.only(right: AppSpacing.xs),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: AppSpacing.sm,
                                   vertical: AppSpacing.xs,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: isSelected ? AppColors.green : AppColors.bgElevated,
+                                  color: isSelected
+                                      ? AppColors.green
+                                      : AppColors.bgElevated,
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: isSelected ? AppColors.green : AppColors.borderClr,
+                                    color: isSelected
+                                        ? AppColors.green
+                                        : AppColors.borderClr,
                                   ),
                                 ),
                                 child: Text(
                                   pos,
                                   style: GoogleFonts.barlow(
                                     fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: isSelected ? AppColors.bgPrimary : AppColors.txtDisabled,
+                                    fontWeight: AppTextStyles.semiBold,
+                                    color: isSelected
+                                        ? AppColors.bgPrimary
+                                        : AppColors.txtDisabled,
                                   ),
                                 ),
                               ),
@@ -380,7 +412,7 @@ class _TeamColumn extends StatelessWidget {
                     team,
                     style: GoogleFonts.barlow(
                       fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: AppTextStyles.semiBold,
                       color: color,
                     ),
                   ),
@@ -403,7 +435,9 @@ class _TeamColumn extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Center(
-                child: Text('Empty slot', style: AppText.label.copyWith(color: AppColors.txtDisabled)),
+                child: Text('Empty slot',
+                    style:
+                        AppText.label.copyWith(color: AppColors.txtDisabled)),
               ),
             );
           }),
