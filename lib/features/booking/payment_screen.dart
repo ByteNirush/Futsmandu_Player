@@ -71,7 +71,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           transactionUuid: 'FM-${DateTime.now().millisecondsSinceEpoch}',
         );
 
-        final result = await Esewa.i.init(context: context, eSewaConfig: config);
+        final result =
+            await Esewa.i.init(context: context, eSewaConfig: config);
         if (!mounted) return;
 
         if (result.hasData && result.data != null) {
@@ -88,7 +89,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           );
         } else {
           final message = result.error ?? 'Payment failed';
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(message)));
         }
         return;
       }
@@ -110,7 +112,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final timerText = '${(_seconds ~/ 60).toString().padLeft(2, '0')}:${(_seconds % 60).toString().padLeft(2, '0')}';
+    final timerText =
+        '${(_seconds ~/ 60).toString().padLeft(2, '0')}:${(_seconds % 60).toString().padLeft(2, '0')}';
     final isUrgent = _seconds < 60;
 
     final rawArgs = ModalRoute.of(context)?.settings.arguments;
@@ -155,7 +158,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   Text('Booking Summary', style: AppText.h3),
                   const SizedBox(height: 10),
                   Divider(height: 20, color: AppColors.borderClr),
-                  _SumRow('Venue', args?['venue']?['name'] ?? 'Futsmandu Arena'),
+                  _SumRow(
+                      'Venue', args?['venue']?['name'] ?? 'Futsmandu Arena'),
                   const _SumRow('Court', 'Court A · 5v5 Turf'),
                   const _SumRow('Date', 'Sat 14 Oct 2025'),
                   const _SumRow('Time', '17:00 – 18:00'),
@@ -163,7 +167,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   Divider(height: 20, color: AppColors.borderClr),
                   Row(
                     children: [
-                      Text('Total Amount', style: AppText.body.copyWith(fontWeight: FontWeight.w600)),
+                      Text('Total Amount',
+                          style: AppText.body
+                              .copyWith(fontWeight: FontWeight.w600)),
                       const Spacer(),
                       Text(
                         'NPR ${args?['slot']?['price'] ?? 1800}',
@@ -179,7 +185,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   Row(
                     children: [
                       const Spacer(),
-                      Text('Hold fee NPR 20 (non-refundable)', style: AppText.label),
+                      Text('Hold fee NPR 20 (non-refundable)',
+                          style: AppText.label),
                     ],
                   ),
                 ],
@@ -220,11 +227,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
               decoration: BoxDecoration(
                 color: AppColors.blue.withValues(alpha: 0.07),
                 borderRadius: BorderRadius.circular(12),
-                border: Border(left: BorderSide(color: AppColors.blue, width: 3)),
+                border:
+                    Border(left: BorderSide(color: AppColors.blue, width: 3)),
               ),
               child: Row(
                 children: [
-                      Icon(Icons.info_outline, size: 16, color: AppColors.blue),
+                  Icon(Icons.info_outline, size: 16, color: AppColors.blue),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -277,7 +285,7 @@ class _TimerPill extends StatelessWidget {
             text,
             style: GoogleFonts.barlow(
               fontSize: 16,
-              fontWeight: FontWeight.w700,
+              fontWeight: AppTextStyles.semiBold,
               color: color,
             ),
           ),
@@ -301,7 +309,8 @@ class _SumRow extends StatelessWidget {
         children: [
           Text(label, style: AppText.bodySm),
           const Spacer(),
-          Text(value, style: AppText.bodySm.copyWith(color: AppColors.txtPrimary)),
+          Text(value,
+              style: AppText.bodySm.copyWith(color: AppColors.txtPrimary)),
         ],
       ),
     );
@@ -336,7 +345,9 @@ class _PaymentCard extends StatelessWidget {
           vertical: AppSpacing.xs,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? brandColor.withValues(alpha: 0.08) : AppColors.bgSurface,
+          color: isSelected
+              ? brandColor.withValues(alpha: 0.08)
+              : AppColors.bgSurface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? brandColor : AppColors.borderClr,
@@ -362,7 +373,7 @@ class _PaymentCard extends StatelessWidget {
                         style: GoogleFonts.barlow(
                           fontSize: 12,
                           color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: AppTextStyles.semiBold,
                         ),
                       ),
                     ),
@@ -376,7 +387,8 @@ class _PaymentCard extends StatelessWidget {
               Positioned(
                 top: 8,
                 right: 8,
-                child: Icon(Icons.check_circle_rounded, size: 18, color: brandColor),
+                child: Icon(Icons.check_circle_rounded,
+                    size: 18, color: brandColor),
               ),
           ],
         ),
