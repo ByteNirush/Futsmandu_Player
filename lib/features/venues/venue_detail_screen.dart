@@ -51,8 +51,10 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final venue = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-    final selectedCourt = (venue['courts'] as List)[_courtIdx] as Map<String, dynamic>;
+    final venue =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    final selectedCourt =
+        (venue['courts'] as List)[_courtIdx] as Map<String, dynamic>;
     final isVerified = venue['isVerified'] == true;
 
     return Scaffold(
@@ -65,10 +67,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                 builder: (context, constraints) {
                   final bool isNarrow = constraints.maxWidth < 380;
                   return Container(
-                    padding: const EdgeInsets.fromLTRB(_spaceLg, _spaceMd, _spaceLg, _spaceMd),
+                    padding: const EdgeInsets.fromLTRB(
+                        _spaceLg, _spaceMd, _spaceLg, _spaceMd),
                     decoration: BoxDecoration(
                       color: AppColors.bgSurface,
-                      border: Border(top: BorderSide(color: AppColors.borderClr)),
+                      border:
+                          Border(top: BorderSide(color: AppColors.borderClr)),
                     ),
                     child: isNarrow
                         ? Column(
@@ -77,19 +81,22 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             children: [
                               Text(
                                 '${_selectedSlot!['time']} - ${_selectedSlot!['endTime']}',
-                                style: AppText.body.copyWith(fontWeight: FontWeight.w700),
+                                style: AppText.body.copyWith(
+                                    fontWeight: AppTextStyles.semiBold),
                               ),
                               const SizedBox(height: _spaceXs),
                               Text(
                                 'NPR ${_selectedSlot!['price']} • ${selectedCourt['name']}',
-                                style: AppText.label.copyWith(color: AppColors.txtDisabled),
+                                style: AppText.label
+                                    .copyWith(color: AppColors.txtDisabled),
                               ),
                               const SizedBox(height: _spaceMd),
                               SizedBox(
                                 width: double.infinity,
                                 child: FutsButton(
                                   label: 'Continue',
-                                  onPressed: () => _showSlotSheet(context, _selectedSlot!, venue),
+                                  onPressed: () => _showSlotSheet(
+                                      context, _selectedSlot!, venue),
                                 ),
                               ),
                             ],
@@ -103,12 +110,14 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                   children: [
                                     Text(
                                       '${_selectedSlot!['time']} - ${_selectedSlot!['endTime']}',
-                                      style: AppText.body.copyWith(fontWeight: FontWeight.w700),
+                                      style: AppText.body.copyWith(
+                                          fontWeight: AppTextStyles.semiBold),
                                     ),
                                     const SizedBox(height: _spaceXs),
                                     Text(
                                       'NPR ${_selectedSlot!['price']} • ${selectedCourt['name']}',
-                                      style: AppText.label.copyWith(color: AppColors.txtDisabled),
+                                      style: AppText.label.copyWith(
+                                          color: AppColors.txtDisabled),
                                     ),
                                   ],
                                 ),
@@ -118,7 +127,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                 width: 170,
                                 child: FutsButton(
                                   label: 'Continue',
-                                  onPressed: () => _showSlotSheet(context, _selectedSlot!, venue),
+                                  onPressed: () => _showSlotSheet(
+                                      context, _selectedSlot!, venue),
                                 ),
                               ),
                             ],
@@ -141,7 +151,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                 overflow: TextOverflow.ellipsis,
                 style: AppText.h3.copyWith(fontSize: 17),
               ),
-              titlePadding: const EdgeInsets.only(left: 56, bottom: _spaceLg, right: _spaceLg),
+              titlePadding: const EdgeInsets.only(
+                  left: 56, bottom: _spaceLg, right: _spaceLg),
               background: Stack(
                 children: [
                   CachedNetworkImage(
@@ -176,12 +187,15 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           decoration: BoxDecoration(
                             color: AppColors.bgPrimary.withValues(alpha: 0.55),
                             borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: AppColors.borderClr.withValues(alpha: 0.7)),
+                            border: Border.all(
+                                color:
+                                    AppColors.borderClr.withValues(alpha: 0.7)),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.star_rounded, size: 16, color: AppColors.amber),
+                              Icon(Icons.star_rounded,
+                                  size: 16, color: AppColors.amber),
                               const SizedBox(width: _spaceXs),
                               Text(
                                 '${venue['rating']} (${venue['reviewCount']})',
@@ -200,14 +214,18 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           Container(
                             padding: _VenueDetailSpacing.pillPadding,
                             decoration: BoxDecoration(
-                              color: AppColors.bgPrimary.withValues(alpha: 0.55),
+                              color:
+                                  AppColors.bgPrimary.withValues(alpha: 0.55),
                               borderRadius: BorderRadius.circular(999),
-                              border: Border.all(color: AppColors.borderClr.withValues(alpha: 0.7)),
+                              border: Border.all(
+                                  color: AppColors.borderClr
+                                      .withValues(alpha: 0.7)),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.near_me_rounded, size: 14, color: AppColors.green),
+                                Icon(Icons.near_me_rounded,
+                                    size: 14, color: AppColors.green),
                                 const SizedBox(width: _spaceXs),
                                 Text(
                                   venue['distance'],
@@ -243,7 +261,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(_spaceLg, _spaceLg, _spaceLg, _space2xl),
+              padding: const EdgeInsets.fromLTRB(
+                  _spaceLg, _spaceLg, _spaceLg, _space2xl),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -252,19 +271,22 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(venue['name'], style: AppText.h2.copyWith(fontSize: 26)),
+                        Text(venue['name'],
+                            style: AppText.h2.copyWith(fontSize: 26)),
                         const SizedBox(height: _spaceSm),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.location_on, size: 16, color: AppColors.txtDisabled),
+                            Icon(Icons.location_on,
+                                size: 16, color: AppColors.txtDisabled),
                             const SizedBox(width: _spaceSm),
                             Expanded(
                               child: Text(
                                 venue['address'],
                                 maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
-                                style: AppText.body.copyWith(color: AppColors.txtDisabled),
+                                style: AppText.body
+                                    .copyWith(color: AppColors.txtDisabled),
                               ),
                             ),
                           ],
@@ -275,12 +297,17 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           runSpacing: _spaceSm,
                           children: [
                             _MetaPill(
-                              icon: isVerified ? Icons.verified_rounded : Icons.info_outline_rounded,
-                              label: isVerified ? 'Verified Venue' : 'Standard Venue',
+                              icon: isVerified
+                                  ? Icons.verified_rounded
+                                  : Icons.info_outline_rounded,
+                              label: isVerified
+                                  ? 'Verified Venue'
+                                  : 'Standard Venue',
                             ),
                             _MetaPill(
                               icon: Icons.sports_soccer_rounded,
-                              label: '${(venue['courts'] as List).length} Courts',
+                              label:
+                                  '${(venue['courts'] as List).length} Courts',
                             ),
                           ],
                         ),
@@ -305,7 +332,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(_amenityIcons[a] ?? Icons.circle, size: 15, color: AppColors.txtDisabled),
+                              Icon(_amenityIcons[a] ?? Icons.circle,
+                                  size: 15, color: AppColors.txtDisabled),
                               const SizedBox(width: 6),
                               Text(a.toString(), style: AppText.bodySm),
                             ],
@@ -321,7 +349,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        children: (venue['courts'] as List).asMap().entries.map((e) {
+                        children:
+                            (venue['courts'] as List).asMap().entries.map((e) {
                           final bool isSelected = _courtIdx == e.key;
                           return GestureDetector(
                             onTap: () => setState(() {
@@ -331,20 +360,28 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               margin: EdgeInsets.only(
-                                right: e.key == (venue['courts'] as List).length - 1 ? 0 : _spaceMd,
+                                right: e.key ==
+                                        (venue['courts'] as List).length - 1
+                                    ? 0
+                                    : _spaceMd,
                               ),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: AppSpacing.sm,
                                 vertical: AppSpacing.xs2,
                               ),
                               decoration: BoxDecoration(
-                                color: isSelected ? AppColors.green : AppColors.bgElevated,
+                                color: isSelected
+                                    ? AppColors.green
+                                    : AppColors.bgElevated,
                                 borderRadius: BorderRadius.circular(14),
-                                border: !isSelected ? Border.all(color: AppColors.borderClr) : null,
+                                border: !isSelected
+                                    ? Border.all(color: AppColors.borderClr)
+                                    : null,
                                 boxShadow: isSelected
                                     ? [
                                         BoxShadow(
-                                          color: AppColors.green.withValues(alpha: 0.25),
+                                          color: AppColors.green
+                                              .withValues(alpha: 0.25),
                                           blurRadius: 16,
                                           offset: const Offset(0, 6),
                                         ),
@@ -358,14 +395,19 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                     e.value['name'],
                                     style: AppText.h3.copyWith(
                                       fontSize: 16,
-                                      color: isSelected ? AppColors.bgPrimary : AppColors.txtPrimary,
+                                      color: isSelected
+                                          ? AppColors.bgPrimary
+                                          : AppColors.txtPrimary,
                                     ),
                                   ),
                                   const SizedBox(height: _spaceXs),
                                   Text(
                                     '${e.value['type']} · ${e.value['surface']}',
                                     style: AppText.label.copyWith(
-                                      color: isSelected ? AppColors.bgPrimary.withValues(alpha: 0.7) : AppColors.txtDisabled,
+                                      color: isSelected
+                                          ? AppColors.bgPrimary
+                                              .withValues(alpha: 0.7)
+                                          : AppColors.txtDisabled,
                                     ),
                                   ),
                                 ],
@@ -396,9 +438,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           DateTime.now().add(const Duration(days: 30)),
                         ),
                         focusedDay: _focusedDay,
-                        selectedDayPredicate: (day) => isSameDay(_selectedDate, day),
+                        selectedDayPredicate: (day) =>
+                            isSameDay(_selectedDate, day),
                         calendarFormat: CalendarFormat.month,
-                        availableCalendarFormats: const {CalendarFormat.month: 'Month'},
+                        availableCalendarFormats: const {
+                          CalendarFormat.month: 'Month'
+                        },
                         daysOfWeekHeight: 22,
                         rowHeight: 44,
                         headerStyle: HeaderStyle(
@@ -426,7 +471,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           defaultTextStyle: AppText.bodySm,
                           weekendTextStyle: AppText.bodySm,
                           outsideTextStyle: AppText.label.copyWith(
-                            color: AppColors.txtDisabled.withValues(alpha: 0.45),
+                            color:
+                                AppColors.txtDisabled.withValues(alpha: 0.45),
                           ),
                           todayDecoration: BoxDecoration(
                             color: AppColors.green.withValues(alpha: 0.18),
@@ -434,7 +480,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           ),
                           todayTextStyle: AppText.body.copyWith(
                             color: AppColors.green,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppTextStyles.semiBold,
                           ),
                           selectedDecoration: const BoxDecoration(
                             color: AppColors.primary,
@@ -442,7 +488,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           ),
                           selectedTextStyle: AppText.body.copyWith(
                             color: AppColors.bgPrimary,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppTextStyles.semiBold,
                           ),
                         ),
                         onDaySelected: (selectedDay, focusedDay) {
@@ -453,7 +499,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           });
                         },
                         onPageChanged: (focusedDay) {
-                          setState(() => _focusedDay = DateUtils.dateOnly(focusedDay));
+                          setState(() =>
+                              _focusedDay = DateUtils.dateOnly(focusedDay));
                         },
                       ),
                     ),
@@ -480,13 +527,15 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             ),
                             child: Text(
                               'Pick a date from the calendar to view available slots.',
-                              style: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+                              style: AppText.bodySm
+                                  .copyWith(color: AppColors.txtDisabled),
                             ),
                           ),
                         if (_selectedDate != null) ...[
                           LayoutBuilder(
                             builder: (context, constraints) {
-                              final bool compactHeader = constraints.maxWidth < 390;
+                              final bool compactHeader =
+                                  constraints.maxWidth < 390;
                               final title = Text(
                                 DateFormat('EEE, MMM d').format(_selectedDate!),
                                 style: AppText.h3.copyWith(fontSize: 18),
@@ -526,29 +575,34 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           LayoutBuilder(
                             builder: (context, constraints) {
                               const double spacing = _spaceMd;
-                              final int columns = constraints.maxWidth < 360 ? 2 : 3;
-                              final double chipWidth =
-                                  (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+                              final int columns =
+                                  constraints.maxWidth < 360 ? 2 : 3;
+                              final double chipWidth = (constraints.maxWidth -
+                                      (spacing * (columns - 1))) /
+                                  columns;
 
                               return Wrap(
                                 spacing: spacing,
                                 runSpacing: spacing,
-                                children:
-                                    (venue['courts'][_courtIdx]['slots'] as List).map((slot) {
-                                      final bool isSelected =
-                                          _selectedSlot != null && _selectedSlot?['time'] == slot['time'];
+                                children: (venue['courts'][_courtIdx]['slots']
+                                        as List)
+                                    .map((slot) {
+                                  final bool isSelected = _selectedSlot !=
+                                          null &&
+                                      _selectedSlot?['time'] == slot['time'];
 
-                                      return SizedBox(
-                                        width: chipWidth,
-                                        child: _SlotChip(
-                                          slot: slot,
-                                          isSelected: isSelected,
-                                          onTap: slot['status'] == 'AVAILABLE'
-                                              ? () => setState(() => _selectedSlot = slot)
-                                              : null,
-                                        ),
-                                      );
-                                    }).toList(),
+                                  return SizedBox(
+                                    width: chipWidth,
+                                    child: _SlotChip(
+                                      slot: slot,
+                                      isSelected: isSelected,
+                                      onTap: slot['status'] == 'AVAILABLE'
+                                          ? () => setState(
+                                              () => _selectedSlot = slot)
+                                          : null,
+                                    ),
+                                  );
+                                }).toList(),
                               );
                             },
                           ),
@@ -556,7 +610,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                       ],
                     ),
                   ),
-                  
+
                   // Reviews
                   const SizedBox(height: _spaceXl),
                   _SectionCard(
@@ -603,7 +657,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
     );
   }
 
-  void _showSlotSheet(BuildContext ctx, Map<String, dynamic> slot, Map<String, dynamic> venue) {
+  void _showSlotSheet(
+      BuildContext ctx, Map<String, dynamic> slot, Map<String, dynamic> venue) {
     showModalBottomSheet(
       context: ctx,
       isScrollControlled: true,
@@ -614,7 +669,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final double horizontalPad =
-                  (MediaQuery.of(ctx).size.width * 0.07).clamp(_spaceLg.toDouble(), _space2xl);
+                  (MediaQuery.of(ctx).size.width * 0.07)
+                      .clamp(_spaceLg.toDouble(), _space2xl);
               return ConstrainedBox(
                 constraints: BoxConstraints(maxHeight: constraints.maxHeight),
                 child: SingleChildScrollView(
@@ -786,7 +842,8 @@ class _MetaPill extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: AppColors.green),
           const SizedBox(width: _VenueDetailSpacing.smallGap),
-          Text(label, style: AppText.label.copyWith(color: AppColors.txtPrimary)),
+          Text(label,
+              style: AppText.label.copyWith(color: AppColors.txtPrimary)),
         ],
       ),
     );
@@ -879,7 +936,7 @@ class _SlotChip extends StatelessWidget {
               slot['time'],
               style: GoogleFonts.barlow(
                 fontSize: 17,
-                fontWeight: FontWeight.w700,
+                fontWeight: AppTextStyles.semiBold,
                 color: isSelected
                     ? AppColors.green
                     : slot['status'] == 'HELD'
@@ -946,7 +1003,8 @@ class _ReviewCard extends StatelessWidget {
                 alignment: Alignment.center,
                 child: Text(
                   authorInitial,
-                  style: AppText.body.copyWith(fontWeight: FontWeight.w700),
+                  style:
+                      AppText.body.copyWith(fontWeight: AppTextStyles.semiBold),
                 ),
               ),
               const SizedBox(width: 12),
@@ -957,7 +1015,8 @@ class _ReviewCard extends StatelessWidget {
                     Text(
                       author,
                       overflow: TextOverflow.ellipsis,
-                      style: AppText.body.copyWith(fontWeight: FontWeight.w700),
+                      style: AppText.body
+                          .copyWith(fontWeight: AppTextStyles.semiBold),
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -965,7 +1024,8 @@ class _ReviewCard extends StatelessWidget {
                         ...List.generate(
                           5,
                           (idx) => Padding(
-                            padding: const EdgeInsets.only(right: AppSpacing.xxs / 2),
+                            padding: const EdgeInsets.only(
+                                right: AppSpacing.xxs / 2),
                             child: Icon(
                               idx < rating.round()
                                   ? Icons.star_rounded
@@ -980,7 +1040,7 @@ class _ReviewCard extends StatelessWidget {
                           rating.toStringAsFixed(1),
                           style: AppText.label.copyWith(
                             color: AppColors.amber,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppTextStyles.semiBold,
                           ),
                         ),
                       ],
