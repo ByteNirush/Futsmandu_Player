@@ -23,11 +23,26 @@ class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
   static const _navItems = [
-    _NavItem(icon: Icons.home_outlined, activeIcon: Icons.home_rounded, label: 'Home'),
-    _NavItem(icon: Icons.sports_soccer_outlined, activeIcon: Icons.sports_soccer_rounded, label: 'Futsal'),
-    _NavItem(icon: Icons.people_alt_outlined, activeIcon: Icons.people_alt_rounded, label: 'Friends'),
-    _NavItem(icon: Icons.explore_outlined, activeIcon: Icons.explore_rounded, label: 'Discover'),
-    _NavItem(icon: Icons.person_outline_rounded, activeIcon: Icons.person_rounded, label: 'Profile'),
+    _NavItem(
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home_rounded,
+        label: 'Home'),
+    _NavItem(
+        icon: Icons.sports_soccer_outlined,
+        activeIcon: Icons.sports_soccer_rounded,
+        label: 'Futsal'),
+    _NavItem(
+        icon: Icons.people_alt_outlined,
+        activeIcon: Icons.people_alt_rounded,
+        label: 'Friends'),
+    _NavItem(
+        icon: Icons.explore_outlined,
+        activeIcon: Icons.explore_rounded,
+        label: 'Discover'),
+    _NavItem(
+        icon: Icons.person_outline_rounded,
+        activeIcon: Icons.person_rounded,
+        label: 'Profile'),
   ];
 
   void _onTap(int i) {
@@ -189,7 +204,7 @@ class _NavTile extends StatelessWidget {
               style: AppText.label.copyWith(
                 fontSize: 10,
                 color: color,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: isActive ? AppTextStyles.semiBold : FontWeight.w500,
               ),
             ),
           ],
