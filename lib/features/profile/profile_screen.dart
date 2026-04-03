@@ -2,12 +2,15 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
-import '../../core/mock/mock_data.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/theme/theme_provider.dart';
+import '../../core/services/player_auth_storage_service.dart';
+import '../auth/data/services/player_auth_service.dart';
+import 'data/services/player_profile_service.dart';
 import '../../shared/widgets/futs_card.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 
@@ -20,7 +23,35 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
+  static const Map<String, dynamic> _fallbackUser = <String, dynamic>{
+    'name': 'Player',
+    'handle': '@player',
+    'avatarUrl': 'https://i.pravatar.cc/240?img=11',
+    'isVerified': false,
+    'skillLevel': 'Beginner',
+    'skillLevelRaw': 'beginner',
+    'eloRating': 0,
+    'reliabilityScore': 0,
+    'matchesPlayed': 0,
+    'won': 0,
+    'lost': 0,
+    'draw': 0,
+    'noShows': 0,
+    'lateCancels': 0,
+    'showMatchHistory': true,
+    'preferredRoles': <String>[],
+  };
+
+  final PlayerProfileService _profileService = PlayerProfileService.instance;
+  final ImagePicker _imagePicker = ImagePicker();
+
   bool _notificationsEnabled = true;
+  bool _isLoading = true;
+  bool _isSavingProfile = false;
+  bool _isUploadingAvatar = false;
+  String? _errorMessage;
+  Map<String, dynamic> _user = _fallbackUser;
+
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
 
@@ -36,6 +67,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       curve: Curves.easeOut,
     );
     _animController.forward();
+    _loadProfile();
   }
 
   @override
@@ -46,7 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    const user = MockData.currentUser;
+    final user = _user;
     final int score = user['reliabilityScore'] as int;
     final Color scoreColor = AppColors.reliabilityColor(score);
     final String scoreLabel = score >= 70
@@ -60,6 +92,47 @@ class _ProfileScreenState extends State<ProfileScreen>
     final int draw = user['draw'] as int;
     final double winRate = matchesPlayed == 0 ? 0 : won / matchesPlayed;
     final double bottomPad = MediaQuery.of(context).padding.bottom;
+
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.bgPrimary,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: AppColors.bgPrimary,
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.error_outline_rounded,
+                    color: AppColors.red,
+                    size: 36,
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    _errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: AppText.bodySm,
+                  ),
+                  const SizedBox(height: 14),
+                  FilledButton(
+                    onPressed: _loadProfile,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -87,8 +160,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 ),
                 actions: [
                   _AppBarAction(
-                    icon: Icons.settings_outlined,
-                    onTap: () => _showComingSoon(context, 'Settings'),
+                    icon: Icons.refresh_rounded,
+                    onTap: _loadProfile,
                   ),
                   const SizedBox(width: 8),
                 ],
@@ -98,6 +171,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                     user: user,
                     score: score,
                     scoreColor: scoreColor,
+                    onEditProfile: _openEditProfileSheet,
+                    onAvatarTap: _pickAndUploadAvatar,
+                    isAvatarUploading: _isUploadingAvatar,
                   ),
                 ),
               ),
@@ -313,7 +389,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                     // Quick Actions Section
                     const _SectionLabel(label: 'Quick Actions'),
                     const SizedBox(height: 12),
-                    _QuickActionsGrid(context: context),
+                    _QuickActionsGrid(
+                      context: context,
+                      onEditProfile: _openEditProfileSheet,
+                    ),
 
                     const SizedBox(height: 24),
 
@@ -400,6 +479,318 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
+  Future<void> _loadProfile() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final raw = await _profileService.getOwnProfile();
+      final mapped = _mapProfile(raw);
+      if (!mounted) return;
+      setState(() {
+        _user = mapped;
+      });
+      await PlayerAuthStorageService.instance.saveUser({
+        'id': mapped['id'],
+        'name': mapped['name'],
+        'email': mapped['email'],
+        'phone': mapped['phone'],
+        'profile_image_url': mapped['avatarUrl'],
+      });
+    } on ProfileApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Failed to load profile';
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _openEditProfileSheet() async {
+    final nameController = TextEditingController(text: _string(_user['name']));
+    var selectedSkill = _string(_user['skillLevelRaw']);
+    if (!const ['beginner', 'intermediate', 'advanced']
+        .contains(selectedSkill)) {
+      selectedSkill = 'beginner';
+    }
+    var showMatchHistory = _user['showMatchHistory'] == true;
+    final selectedRoles =
+        Set<String>.from(_asStringList(_user['preferredRoles']));
+
+    final shouldSave = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bgElevated,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setLocalState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.sm,
+                AppSpacing.sm,
+                AppSpacing.sm,
+                MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.sm,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Edit Profile', style: AppText.h3),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Name'),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: selectedSkill,
+                    items: const [
+                      DropdownMenuItem(
+                          value: 'beginner', child: Text('Beginner')),
+                      DropdownMenuItem(
+                          value: 'intermediate', child: Text('Intermediate')),
+                      DropdownMenuItem(
+                          value: 'advanced', child: Text('Advanced')),
+                    ],
+                    decoration: const InputDecoration(labelText: 'Skill Level'),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setLocalState(() => selectedSkill = value);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Preferred Roles', style: AppText.bodySm),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final role in const [
+                        'goalkeeper',
+                        'defender',
+                        'midfielder',
+                        'striker'
+                      ])
+                        FilterChip(
+                          label: Text(role),
+                          selected: selectedRoles.contains(role),
+                          onSelected: (selected) {
+                            setLocalState(() {
+                              if (selected) {
+                                selectedRoles.add(role);
+                              } else {
+                                selectedRoles.remove(role);
+                              }
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Show Match History Publicly'),
+                    value: showMatchHistory,
+                    onChanged: (value) =>
+                        setLocalState(() => showMatchHistory = value),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _isSavingProfile
+                          ? null
+                          : () {
+                              Navigator.pop(ctx, true);
+                            },
+                      child: Text(_isSavingProfile ? 'Saving...' : 'Save'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (shouldSave != true) {
+      nameController.dispose();
+      return;
+    }
+
+    final trimmedName = nameController.text.trim();
+    nameController.dispose();
+    if (trimmedName.length < 2) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name must be at least 2 characters')),
+      );
+      return;
+    }
+
+    setState(() => _isSavingProfile = true);
+    try {
+      await _profileService.updateOwnProfile(
+        name: trimmedName,
+        skillLevel: selectedSkill,
+        preferredRoles: selectedRoles.toList(growable: false),
+        showMatchHistory: showMatchHistory,
+      );
+      await _loadProfile();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully')),
+      );
+    } on ProfileApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update profile')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() => _isSavingProfile = false);
+    }
+  }
+
+  Future<void> _pickAndUploadAvatar() async {
+    if (_isUploadingAvatar) return;
+
+    final file = await _imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 1024,
+    );
+    if (file == null) return;
+
+    setState(() => _isUploadingAvatar = true);
+    try {
+      final bytes = await file.readAsBytes();
+      await _profileService.uploadAvatarBytes(bytes);
+      await _loadProfile();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Avatar updated successfully')),
+      );
+    } on ProfileApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to upload avatar')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() => _isUploadingAvatar = false);
+    }
+  }
+
+  Map<String, dynamic> _mapProfile(Map<String, dynamic> raw) {
+    final mapped = Map<String, dynamic>.from(_fallbackUser);
+    final email = _string(raw['email']);
+    final name = _string(raw['name']).isEmpty
+        ? mapped['name'] as String
+        : _string(raw['name']);
+
+    mapped.addAll({
+      'id': _string(raw['id']),
+      'name': name,
+      'email': email,
+      'phone': _string(raw['phone']),
+      'handle': _buildHandle(name: name, email: email),
+      'avatarUrl': _string(raw['profile_image_url']).isEmpty
+          ? mapped['avatarUrl']
+          : _string(raw['profile_image_url']),
+      'isVerified': raw['is_verified'] == true,
+      'skillLevelRaw': _string(raw['skill_level']).isEmpty
+          ? 'beginner'
+          : _string(raw['skill_level']),
+      'skillLevel': _displaySkill(_string(raw['skill_level'])),
+      'eloRating': _toInt(raw['elo_rating']),
+      'reliabilityScore': _toInt(raw['reliability_score']),
+      'matchesPlayed': _toInt(raw['matches_played']),
+      'won': _toInt(raw['matches_won']),
+      'lost': _toInt(raw['matches_lost']),
+      'draw': _toInt(raw['matches_draw']),
+      'noShows': _toInt(raw['total_no_shows']),
+      'lateCancels': _toInt(raw['total_late_cancels']),
+      'showMatchHistory': raw['show_match_history'] != false,
+      'preferredRoles': _extractPreferredRoles(raw['preferred_roles']),
+    });
+
+    return mapped;
+  }
+
+  List<String> _extractPreferredRoles(dynamic value) {
+    if (value is! List) return const <String>[];
+    return value
+        .map((item) {
+          if (item is Map<String, dynamic>) return _string(item['role']);
+          if (item is Map) return _string(item['role']);
+          if (item is String) return item;
+          return '';
+        })
+        .where((role) => role.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  List<String> _asStringList(dynamic value) {
+    if (value is! List) return const <String>[];
+    return value.whereType<String>().toList(growable: false);
+  }
+
+  int _toInt(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  String _string(dynamic value) {
+    if (value is String) return value;
+    return '';
+  }
+
+  String _displaySkill(String skill) {
+    final normalized = skill.toLowerCase();
+    if (normalized == 'intermediate') return 'Intermediate';
+    if (normalized == 'advanced') return 'Advanced';
+    return 'Beginner';
+  }
+
+  String _buildHandle({required String name, required String email}) {
+    if (email.contains('@')) {
+      return '@${email.split('@').first.toLowerCase()}';
+    }
+    final normalized =
+        name.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '_');
+    if (normalized.isEmpty) return '@player';
+    return '@$normalized';
+  }
+
   void _showLogoutConfirm(BuildContext context) {
     showDialog<void>(
       context: context,
@@ -420,8 +811,14 @@ class _ProfileScreenState extends State<ProfileScreen>
             ),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
+              try {
+                await PlayerAuthService.instance.logout();
+              } catch (_) {
+                await PlayerAuthStorageService.instance.clearSession();
+              }
+              if (!context.mounted) return;
               Navigator.pushReplacementNamed(context, '/login');
             },
             child: Text(
@@ -446,11 +843,17 @@ class _ProfileHeader extends StatelessWidget {
   final Map<String, dynamic> user;
   final int score;
   final Color scoreColor;
+  final VoidCallback onEditProfile;
+  final VoidCallback onAvatarTap;
+  final bool isAvatarUploading;
 
   const _ProfileHeader({
     required this.user,
     required this.score,
     required this.scoreColor,
+    required this.onEditProfile,
+    required this.onAvatarTap,
+    required this.isAvatarUploading,
   });
 
   @override
@@ -538,14 +941,7 @@ class _ProfileHeader extends StatelessWidget {
                     right: -2,
                     bottom: -2,
                     child: GestureDetector(
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Avatar upload coming soon'),
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      },
+                      onTap: onAvatarTap,
                       child: Container(
                         width: 26,
                         height: 26,
@@ -556,7 +952,9 @@ class _ProfileHeader extends StatelessWidget {
                               Border.all(color: AppColors.bgPrimary, width: 2),
                         ),
                         child: Icon(
-                          Icons.camera_alt_outlined,
+                          isAvatarUploading
+                              ? Icons.hourglass_top_rounded
+                              : Icons.camera_alt_outlined,
                           size: 13,
                           color: AppColors.bgPrimary,
                         ),
@@ -576,7 +974,7 @@ class _ProfileHeader extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    '@aarav_sharma',
+                    user['handle'] as String,
                     style: AppText.bodySm.copyWith(
                       color: AppColors.txtDisabled,
                       fontSize: 13,
@@ -597,6 +995,31 @@ class _ProfileHeader extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  GestureDetector(
+                    onTap: onEditProfile,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs3,
+                        vertical: AppSpacing.xxs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.green.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(
+                          color: AppColors.green.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Text(
+                        'Edit',
+                        style: AppText.label.copyWith(
+                          color: AppColors.green,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   _Badge(
                     text: user['skillLevel'] as String,
                     color: AppColors.amber,
@@ -860,15 +1283,20 @@ class _InfoChip extends StatelessWidget {
 
 class _QuickActionsGrid extends StatelessWidget {
   final BuildContext context;
-  const _QuickActionsGrid({required this.context});
+  final VoidCallback onEditProfile;
+
+  const _QuickActionsGrid({
+    required this.context,
+    required this.onEditProfile,
+  });
 
   @override
   Widget build(BuildContext buildContext) {
     const actions = [
-      (Icons.edit_outlined, 'Edit Profile', '/edit-profile'),
+      (Icons.edit_outlined, 'Edit Profile', null),
       (Icons.calendar_month_rounded, 'My Bookings', '/bookings'),
       (Icons.history_rounded, 'Match History', null),
-      (Icons.group_outlined, 'Friends', null),
+      (Icons.group_outlined, 'Friends', '/friends'),
       (Icons.privacy_tip_outlined, 'Privacy', null),
       (Icons.star_border_rounded, 'Reviews', null),
     ];
@@ -886,6 +1314,10 @@ class _QuickActionsGrid extends StatelessWidget {
               label: a.$2,
               width: cardWidth,
               onTap: () {
+                if (a.$2 == 'Edit Profile') {
+                  onEditProfile();
+                  return;
+                }
                 if (a.$3 != null) {
                   Navigator.pushNamed(context, a.$3!);
                 } else {

@@ -1,14 +1,18 @@
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../core/painters/field_painter.dart';
 import '../../core/design_system/app_spacing.dart';
+import '../../core/painters/field_painter.dart';
+import '../../core/services/player_auth_storage_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';
 import '../../shared/widgets/status_badge.dart';
+import 'data/services/player_match_service.dart';
 
 class MatchDetailScreen extends StatefulWidget {
   const MatchDetailScreen({super.key});
@@ -18,38 +22,486 @@ class MatchDetailScreen extends StatefulWidget {
 }
 
 class _MatchDetailScreenState extends State<MatchDetailScreen> {
-  String? _selectedPos;
-  bool _isMember = false;
+  final PlayerMatchService _matchService = PlayerMatchService.instance;
+  final PlayerAuthStorageService _authStorage =
+      PlayerAuthStorageService.instance;
+
+  bool _isLoading = true;
+  bool _isSubmitting = false;
+  bool _isRefreshing = false;
+  String? _errorMessage;
+  String? _currentUserId;
+  Map<String, dynamic>? _match;
+  bool _initialized = false;
+  String? _selectedPosition = 'midfielder';
+  String _selectedWinner = 'A';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
+    _loadMatch();
+  }
+
+  Future<void> _loadMatch({bool refresh = false}) async {
+    final rawArgs = ModalRoute.of(context)?.settings.arguments;
+    final args = rawArgs is Map ? rawArgs.cast<String, dynamic>() : null;
+    final matchId = _matchIdFromArgs(args);
+
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _isRefreshing = refresh;
+      _errorMessage = null;
+    });
+
+    try {
+      _currentUserId = (await _authStorage.getUser())?['id']?.toString();
+
+      if (matchId != null && matchId.isNotEmpty) {
+        try {
+          final match = await _matchService.getMatch(matchId);
+          if (!mounted) return;
+          setState(() {
+            _match = match;
+            _isLoading = false;
+            _isRefreshing = false;
+          });
+          return;
+        } on MatchApiException {
+          if (args != null) {
+            if (!mounted) return;
+            setState(() {
+              _match = _normalizeLocalMatch(args);
+              _isLoading = false;
+              _isRefreshing = false;
+            });
+            return;
+          }
+          rethrow;
+        }
+      }
+
+      if (args != null) {
+        if (!mounted) return;
+        setState(() {
+          _match = _normalizeLocalMatch(args);
+          _isLoading = false;
+          _isRefreshing = false;
+        });
+        return;
+      }
+
+      throw const MatchApiException(
+          message: 'Match not found', statusCode: 404);
+    } on MatchApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.message;
+        _isLoading = false;
+        _isRefreshing = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Could not load match details right now.';
+        _isLoading = false;
+        _isRefreshing = false;
+      });
+    }
+  }
+
+  String? _matchIdFromArgs(Map<String, dynamic>? args) {
+    if (args == null) return null;
+    final matchId = args['id'] ?? args['matchGroupId'] ?? args['match_id'];
+    if (matchId is String && matchId.isNotEmpty) return matchId;
+    return null;
+  }
+
+  Map<String, dynamic> _normalizeLocalMatch(Map<String, dynamic> raw) {
+    final members =
+        (raw['members'] as List? ?? const []).whereType<Map>().map((item) {
+      final member = item.cast<String, dynamic>();
+      return {
+        'id': member['id']?.toString() ?? member['name']?.toString() ?? '',
+        'name': member['name']?.toString() ?? '',
+        'avatarUrl': member['avatarUrl']?.toString() ?? '',
+        'skillLevel': member['skillLevel']?.toString() ?? '',
+        'eloRating':
+            member['eloRating'] is num ? member['eloRating'] as num : 0,
+        'position': member['position']?.toString() ?? '—',
+        'team': member['team']?.toString() ?? '—',
+        'status': member['status']?.toString() ?? 'confirmed',
+        'isAdmin': member['isAdmin'] == true,
+      };
+    }).toList(growable: false);
+
+    return {
+      'id': raw['id']?.toString() ?? '',
+      'venueName': raw['venueName']?.toString() ?? '',
+      'venueImage': raw['venueImage']?.toString() ?? '',
+      'venueAddress': raw['venueAddress']?.toString() ?? '',
+      'courtName': raw['courtName']?.toString() ?? '',
+      'courtType': raw['courtType']?.toString() ?? '',
+      'courtSurface': raw['courtSurface']?.toString() ?? '',
+      'date': raw['date']?.toString() ?? '',
+      'matchDate': raw['matchDate']?.toString() ?? '',
+      'time': raw['time']?.toString() ?? '',
+      'endTime': raw['endTime']?.toString() ?? '',
+      'spotsLeft': raw['spotsLeft'] is num ? raw['spotsLeft'] as num : 0,
+      'maxPlayers': raw['maxPlayers'] is num ? raw['maxPlayers'] as num : 0,
+      'skillLevel': raw['skillLevel']?.toString() ?? '',
+      'skillFilter': raw['skillFilter']?.toString() ?? '',
+      'distance': raw['distance']?.toString() ?? '—',
+      'friendsIn': raw['friendsIn'] is num ? raw['friendsIn'] as num : 0,
+      'isOpen': raw['isOpen'] == true,
+      'isAdmin': raw['isAdmin'] == true,
+      'adminId': raw['adminId']?.toString() ?? '',
+      'matchGroupId':
+          raw['matchGroupId']?.toString() ?? raw['id']?.toString() ?? '',
+      'inviteToken': raw['inviteToken']?.toString() ?? '',
+      'inviteExpiresAt': raw['inviteExpiresAt']?.toString() ?? '',
+      'resultWinner': raw['resultWinner']?.toString() ?? '',
+      'members': members,
+      'confirmedMembers': members
+          .where((member) => member['status'] == 'confirmed')
+          .toList(growable: false),
+      'pendingMembers': const <Map<String, dynamic>>[],
+      'currentUserMember': const <String, dynamic>{},
+      'venue': {
+        'name': raw['venueName']?.toString() ?? '',
+        'cover_image_url': raw['venueImage']?.toString() ?? '',
+        'address': raw['venueAddress']?.toString() ?? '',
+      },
+      'court': {
+        'name': raw['courtName']?.toString() ?? '',
+        'court_type': raw['courtType']?.toString() ?? '',
+        'surface': raw['courtSurface']?.toString() ?? '',
+      },
+    };
+  }
+
+  bool get _isAdmin => _match?['isAdmin'] == true;
+
+  bool get _isLoggedIn => _currentUserId != null && _currentUserId!.isNotEmpty;
+
+  bool get _isCurrentUserMember {
+    final members = _members;
+    if (_currentUserId == null) return false;
+    return members.any((member) => member['id']?.toString() == _currentUserId);
+  }
+
+  String get _matchId => _match?['id']?.toString() ?? '';
+
+  List<Map<String, dynamic>> get _members =>
+      (_match?['members'] as List? ?? const [])
+          .whereType<Map>()
+          .map((item) => item.cast<String, dynamic>())
+          .toList(growable: false);
+
+  List<Map<String, dynamic>> get _confirmedMembers =>
+      (_match?['confirmedMembers'] as List? ?? const [])
+          .whereType<Map>()
+          .map((item) => item.cast<String, dynamic>())
+          .toList(growable: false);
+
+  List<Map<String, dynamic>> get _pendingMembers =>
+      (_match?['pendingMembers'] as List? ?? const [])
+          .whereType<Map>()
+          .map((item) => item.cast<String, dynamic>())
+          .toList(growable: false);
+
+  List<Map<String, dynamic>> _teamMembers(String team) {
+    return _confirmedMembers
+        .where((member) => member['team']?.toString() == team)
+        .toList(growable: false);
+  }
+
+  String _displayTimeRange() {
+    final start = _match?['time']?.toString() ?? '';
+    final end = _match?['endTime']?.toString() ?? '';
+    if (start.isEmpty && end.isEmpty) return '';
+    return end.isEmpty ? start : '$start - $end';
+  }
+
+  Future<void> _joinMatch() async {
+    if (!_isLoggedIn) {
+      if (!mounted) return;
+      Navigator.pushNamed(context, '/login');
+      return;
+    }
+
+    if (_matchId.isEmpty) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await _matchService.joinMatch(
+        matchId: _matchId,
+        position: _selectedPosition,
+      );
+      if (!mounted) return;
+      await _loadMatch(refresh: true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Requested to join match')),
+      );
+    } on MatchApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not join match right now')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _leaveMatch() async {
+    if (_matchId.isEmpty) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      await _matchService.leaveMatch(_matchId);
+      if (!mounted) return;
+      await _loadMatch(refresh: true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Left match')),
+      );
+    } on MatchApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not leave match right now')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _copyInviteLink() async {
+    if (_matchId.isEmpty) return;
+
+    setState(() => _isSubmitting = true);
+    try {
+      final response = await _matchService.generateInviteLink(_matchId);
+      final url = response['url']?.toString() ?? '';
+      final token = response['token']?.toString() ?? '';
+      if (url.isNotEmpty) {
+        await Clipboard.setData(ClipboardData(text: url));
+      }
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Invite Link'),
+          content: SelectableText(url.isNotEmpty ? url : token),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Close'),
+            ),
+            TextButton(
+              onPressed: url.isEmpty
+                  ? null
+                  : () async {
+                      await Clipboard.setData(ClipboardData(text: url));
+                      if (dialogContext.mounted) {
+                        Navigator.pop(dialogContext);
+                      }
+                    },
+              child: const Text('Copy'),
+            ),
+          ],
+        ),
+      );
+    } on MatchApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not generate invite link')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _approveMember(String userId) async {
+    if (_matchId.isEmpty) return;
+    setState(() => _isSubmitting = true);
+    try {
+      await _matchService.approveMember(matchId: _matchId, userId: userId);
+      if (!mounted) return;
+      await _loadMatch(refresh: true);
+    } on MatchApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _rejectMember(String userId) async {
+    if (_matchId.isEmpty) return;
+    setState(() => _isSubmitting = true);
+    try {
+      await _matchService.rejectMember(matchId: _matchId, userId: userId);
+      if (!mounted) return;
+      await _loadMatch(refresh: true);
+    } on MatchApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _autoBalanceTeams() async {
+    if (_matchId.isEmpty) return;
+
+    final confirmed = List<Map<String, dynamic>>.from(_confirmedMembers);
+    if (confirmed.isEmpty) return;
+
+    final teamA = <String>[];
+    final teamB = <String>[];
+    for (var i = 0; i < confirmed.length; i++) {
+      final memberId = confirmed[i]['id']?.toString();
+      if (memberId == null || memberId.isEmpty) continue;
+      if (i.isEven) {
+        teamA.add(memberId);
+      } else {
+        teamB.add(memberId);
+      }
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      await _matchService.updateTeams(
+          matchId: _matchId, teamA: teamA, teamB: teamB);
+      if (!mounted) return;
+      await _loadMatch(refresh: true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Teams updated')),
+      );
+    } on MatchApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _recordResult() async {
+    if (_matchId.isEmpty) return;
+    setState(() => _isSubmitting = true);
+    try {
+      await _matchService.recordResult(
+          matchId: _matchId, winner: _selectedWinner);
+      if (!mounted) return;
+      await _loadMatch(refresh: true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Result recorded')),
+      );
+    } on MatchApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Color _skillColor(String skillLevel) {
+    return switch (skillLevel) {
+      'Advanced' => AppColors.red,
+      'Intermediate' => AppColors.amber,
+      'Beginner' => AppColors.green,
+      _ => AppColors.txtDisabled,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
-    final match =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ??
-            {};
+    if (_isLoading && _match == null) {
+      return Scaffold(
+        backgroundColor: AppColors.bgPrimary,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_errorMessage != null && _match == null) {
+      return Scaffold(
+        backgroundColor: AppColors.bgPrimary,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline_rounded,
+                    size: 48, color: AppColors.txtDisabled),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  _errorMessage ?? 'Could not load match details.',
+                  textAlign: TextAlign.center,
+                  style: AppText.body.copyWith(color: AppColors.txtDisabled),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                ElevatedButton(
+                  onPressed: _loadMatch,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final match = _match ?? const <String, dynamic>{};
+    final venueName = match['venueName']?.toString() ?? '';
+    final venueAddress = match['venueAddress']?.toString() ?? '';
+    final dateLabel = match['date']?.toString() ?? '';
+    final timeLabel = _displayTimeRange();
+    final members = _members;
+    final teamA = _teamMembers('A');
+    final teamB = _teamMembers('B');
+    final confirmedCount =
+        members.where((member) => member['status'] == 'confirmed').length;
+    final maxPlayers =
+        (match['maxPlayers'] is num ? match['maxPlayers'] as num : 0).toInt();
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 210,
+            expandedHeight: 230,
             pinned: true,
             backgroundColor: AppColors.bgPrimary,
             iconTheme: IconThemeData(color: AppColors.txtPrimary),
             actions: [
               IconButton(
+                icon: Icon(Icons.refresh, color: AppColors.txtPrimary),
+                onPressed:
+                    _isRefreshing ? null : () => _loadMatch(refresh: true),
+              ),
+              IconButton(
                 icon: Icon(Icons.share_outlined, color: AppColors.txtPrimary),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Share coming soon')),
-                  );
-                },
-              ),
-              IconButton(
-                icon: Icon(Icons.more_vert, color: AppColors.txtPrimary),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Options coming soon')),
                   );
                 },
               ),
@@ -60,19 +512,33 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                 bottom: 14,
                 end: 16,
               ),
-              title: Text(match['venueName'] ?? '',
-                  style: AppText.h3.copyWith(fontSize: 18)),
+              title: Text(venueName, style: AppText.h3.copyWith(fontSize: 18)),
               background: Stack(
+                fit: StackFit.expand,
                 children: [
+                  if ((match['venueImage']?.toString() ?? '').isNotEmpty)
+                    Image.network(
+                      match['venueImage'].toString(),
+                      fit: BoxFit.cover,
+                    )
+                  else
+                    Container(color: AppColors.bgPrimary),
                   Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    color: AppColors.bgPrimary,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          AppColors.bgPrimary.withValues(alpha: 0.94),
+                        ],
+                        stops: const [0.42, 1.0],
+                      ),
+                    ),
                   ),
                   CustomPaint(
                     painter: FootballFieldPainter(),
-                    child: const SizedBox(
-                        width: double.infinity, height: double.infinity),
+                    child: const SizedBox.expand(),
                   ),
                   Center(
                     child: Column(
@@ -84,7 +550,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.sm),
                           child: Text(
-                            match['venueName'] ?? '',
+                            venueName,
                             style: AppText.h1,
                             textAlign: TextAlign.center,
                             maxLines: 1,
@@ -93,7 +559,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${match['date']} · ${match['time']}–${match['endTime']}',
+                          '$dateLabel · $timeLabel',
                           style: AppText.bodySm,
                           textAlign: TextAlign.center,
                         ),
@@ -110,7 +576,6 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // MATCH META
                   FutsCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -119,24 +584,20 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                           child: Row(
                             children: [
                               _StatCol(
-                                value:
-                                    '${match['spotsLeft']}/${match['maxPlayers']}',
-                                label: 'Spots Left',
+                                value: '$confirmedCount/$maxPlayers',
+                                label: 'Players',
                                 color: AppColors.green,
                               ),
                               const VerticalDivider(),
                               _StatCol(
-                                value: match['skillLevel'] ?? '',
-                                label: 'Skill Level',
-                                color: match['skillLevel'] == 'Advanced'
-                                    ? AppColors.red
-                                    : match['skillLevel'] == 'Intermediate'
-                                        ? AppColors.amber
-                                        : AppColors.green,
+                                value: match['skillLevel']?.toString() ?? 'All',
+                                label: 'Skill',
+                                color: _skillColor(
+                                    match['skillLevel']?.toString() ?? ''),
                               ),
                               const VerticalDivider(),
                               _StatCol(
-                                value: match['distance'] ?? '',
+                                value: match['distance']?.toString() ?? '—',
                                 label: 'Distance',
                                 color: AppColors.blue,
                               ),
@@ -153,7 +614,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                (match['venueName'] ?? '') + ' · Thamel',
+                                venueAddress,
                                 style: AppText.bodySm,
                               ),
                             ),
@@ -171,77 +632,57 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // TEAMS HEADER
                   Row(
                     children: [
                       Text('Teams', style: AppText.h3),
                       const Spacer(),
-                      Text(
-                          '${((match['members'] ?? []) as List).length}/${match['maxPlayers']} players',
+                      Text('$confirmedCount/$maxPlayers players',
                           style: AppText.bodySm),
                     ],
                   ),
                   const SizedBox(height: 12),
-
-                  // TEAMS
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: _TeamColumn(
-                          team: 'A',
-                          color: AppColors.green,
-                          members: ((match['members'] ?? []) as List)
-                              .where((m) => m['team'] == 'A')
-                              .toList(),
-                        ),
+                            team: 'A', color: AppColors.green, members: teamA),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: _TeamColumn(
-                          team: 'B',
-                          color: AppColors.blue,
-                          members: ((match['members'] ?? []) as List)
-                              .where((m) => m['team'] == 'B')
-                              .toList(),
-                        ),
+                            team: 'B', color: AppColors.blue, members: teamB),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
-
-                  // INVITE FRIENDS
                   Text('Invite Friends', style: AppText.h3),
                   const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.sm),
-                    decoration: BoxDecoration(
-                      color: AppColors.bgElevated,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.borderClr),
-                    ),
+                  FutsCard(
                     child: Row(
                       children: [
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Share invite link',
-                                  style: AppText.body
-                                      .copyWith(fontWeight: FontWeight.w600)),
-                              Text('Valid for 48 hours · max 10 uses',
-                                  style: AppText.bodySm),
+                              Text(
+                                'Generate share link',
+                                style: AppText.body
+                                    .copyWith(fontWeight: FontWeight.w600),
+                              ),
+                              Text(
+                                match['inviteToken']?.toString().isNotEmpty ==
+                                        true
+                                    ? 'Invite link is already active'
+                                    : 'Create a new invite link for friends',
+                                style: AppText.bodySm,
+                              ),
                             ],
                           ),
                         ),
                         const SizedBox(width: 12),
                         ElevatedButton(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Link copied!')),
-                            );
-                          },
+                          onPressed: _isAdmin ? _copyInviteLink : null,
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(0, 38),
                             padding: const EdgeInsets.symmetric(
@@ -250,16 +691,145 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(999)),
                           ),
-                          child: Text('Copy Link',
-                              style: TextStyle(
-                                  color: AppColors.bgPrimary,
-                                  fontWeight: FontWeight.w600)),
+                          child: Text(
+                            'Copy Link',
+                            style: TextStyle(
+                              color: AppColors.bgPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ],
                     ),
                   ),
-
-                  const SizedBox(height: 90), // Space for bottom bar
+                  const SizedBox(height: 20),
+                  if (_isAdmin) ...[
+                    Text('Admin Tools', style: AppText.h3),
+                    const SizedBox(height: 12),
+                    FutsCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: FutsButton(
+                                  label: 'Auto Balance Teams',
+                                  isLoading: _isSubmitting,
+                                  onPressed: _autoBalanceTeams,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: DropdownButtonFormField<String>(
+                                  value: _selectedWinner,
+                                  items: const [
+                                    DropdownMenuItem(
+                                        value: 'A', child: Text('Team A')),
+                                    DropdownMenuItem(
+                                        value: 'B', child: Text('Team B')),
+                                    DropdownMenuItem(
+                                        value: 'draw', child: Text('Draw')),
+                                  ],
+                                  onChanged: (value) {
+                                    if (value != null) {
+                                      setState(() => _selectedWinner = value);
+                                    }
+                                  },
+                                  decoration: const InputDecoration(
+                                      labelText: 'Match Result'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              SizedBox(
+                                width: 140,
+                                child: FutsButton(
+                                  label: 'Save Result',
+                                  isLoading: _isSubmitting,
+                                  onPressed: _recordResult,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  if (_pendingMembers.isNotEmpty && _isAdmin) ...[
+                    Text('Pending Requests', style: AppText.h3),
+                    const SizedBox(height: 12),
+                    ..._pendingMembers.map(
+                      (member) => Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.xs2),
+                        child: FutsCard(
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: AppColors.bgElevated,
+                                backgroundImage: (member['avatarUrl']
+                                            ?.toString()
+                                            .isNotEmpty ==
+                                        true)
+                                    ? NetworkImage(
+                                        member['avatarUrl'].toString())
+                                    : null,
+                                child: (member['avatarUrl']
+                                            ?.toString()
+                                            .isNotEmpty ==
+                                        true)
+                                    ? null
+                                    : Text(
+                                        (member['name']
+                                                    ?.toString()
+                                                    .isNotEmpty ==
+                                                true)
+                                            ? member['name']
+                                                .toString()
+                                                .substring(0, 1)
+                                            : '?',
+                                      ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(member['name']?.toString() ?? '-',
+                                        style: AppText.bodySm),
+                                    Text(member['position']?.toString() ?? '-',
+                                        style: AppText.label),
+                                  ],
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: _isSubmitting
+                                    ? null
+                                    : () => _approveMember(
+                                        member['id']?.toString() ?? ''),
+                                child: const Text('Approve'),
+                              ),
+                              TextButton(
+                                onPressed: _isSubmitting
+                                    ? null
+                                    : () => _rejectMember(
+                                        member['id']?.toString() ?? ''),
+                                child: Text('Reject',
+                                    style: TextStyle(color: AppColors.red)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  const SizedBox(height: 10),
                 ],
               ),
             ),
@@ -277,24 +847,32 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
           color: AppColors.bgSurface,
           border: Border(top: BorderSide(color: AppColors.borderClr)),
         ),
-        child: _isMember
+        child: _isCurrentUserMember
             ? FutsButton(
-                label: 'Leave Match',
+                label: _isAdmin ? 'Admin Member' : 'Leave Match',
                 outlined: true,
                 customColor: AppColors.red,
-                onPressed: () => setState(() => _isMember = false),
+                onPressed: _isAdmin || _isSubmitting ? null : _leaveMatch,
               )
-            : (match['spotsLeft'] ?? 0) > 0
+            : _isLoggedIn
                 ? Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: ['GK', 'DEF', 'MID', 'FWD'].map((pos) {
-                            final bool isSelected = _selectedPos == pos;
+                          children: [
+                            ('GK', 'goalkeeper'),
+                            ('DEF', 'defender'),
+                            ('MID', 'midfielder'),
+                            ('FWD', 'striker'),
+                          ].map((entry) {
+                            final label = entry.$1;
+                            final apiValue = entry.$2;
+                            final isSelected = _selectedPosition == apiValue;
                             return GestureDetector(
-                              onTap: () => setState(() => _selectedPos = pos),
+                              onTap: () =>
+                                  setState(() => _selectedPosition = apiValue),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 180),
                                 margin:
@@ -315,7 +893,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                                   ),
                                 ),
                                 child: Text(
-                                  pos,
+                                  label,
                                   style: GoogleFonts.barlow(
                                     fontSize: 15,
                                     fontWeight: AppTextStyles.semiBold,
@@ -331,16 +909,28 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                       ),
                       const SizedBox(height: 10),
                       FutsButton(
-                        label: 'Join as ${_selectedPos ?? 'Player'}',
-                        onPressed: _selectedPos == null
-                            ? null
-                            : () => setState(() => _isMember = true),
+                        label: 'Join Match',
+                        isLoading: _isSubmitting,
+                        onPressed:
+                            _selectedPosition == null ? null : _joinMatch,
                       ),
                     ],
                   )
-                : const FutsButton(
-                    label: 'Match Full',
-                    onPressed: null,
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FutsButton(
+                        label: 'Sign In to Join',
+                        onPressed: () => Navigator.pushNamed(context, '/login'),
+                      ),
+                      const SizedBox(height: 12),
+                      FutsButton(
+                        label: 'Create Account',
+                        outlined: true,
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/register'),
+                      ),
+                    ],
                   ),
       ),
     );
@@ -376,7 +966,7 @@ class _StatCol extends StatelessWidget {
 class _TeamColumn extends StatelessWidget {
   final String team;
   final Color color;
-  final List members;
+  final List<Map<String, dynamic>> members;
 
   const _TeamColumn({
     required this.team,
@@ -425,7 +1015,7 @@ class _TeamColumn extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          ...members.map((m) => _MemberRow(m: m)),
+          ...members.map((member) => _MemberRow(m: member)),
           ...List.generate(emptySlots, (_) {
             return Container(
               height: 34,
@@ -435,9 +1025,10 @@ class _TeamColumn extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Center(
-                child: Text('Empty slot',
-                    style:
-                        AppText.label.copyWith(color: AppColors.txtDisabled)),
+                child: Text(
+                  'Empty slot',
+                  style: AppText.label.copyWith(color: AppColors.txtDisabled),
+                ),
               ),
             );
           }),
@@ -448,7 +1039,7 @@ class _TeamColumn extends StatelessWidget {
 }
 
 class _MemberRow extends StatelessWidget {
-  final dynamic m;
+  final Map<String, dynamic> m;
 
   const _MemberRow({required this.m});
 
@@ -461,17 +1052,26 @@ class _MemberRow extends StatelessWidget {
           CircleAvatar(
             radius: 14,
             backgroundColor: AppColors.bgElevated,
-            backgroundImage: NetworkImage(m['avatarUrl'] ?? ''),
+            backgroundImage: (m['avatarUrl']?.toString().isNotEmpty == true)
+                ? NetworkImage(m['avatarUrl'].toString())
+                : null,
+            child: (m['avatarUrl']?.toString().isNotEmpty == true)
+                ? null
+                : Text(
+                    (m['name']?.toString().isNotEmpty == true)
+                        ? m['name'].toString().substring(0, 1)
+                        : '?',
+                  ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              m['name'].toString().split(' ')[0],
+              m['name'].toString().split(' ').first,
               style: AppText.bodySm.copyWith(color: AppColors.txtPrimary),
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Text(m['position'] ?? '—', style: AppText.label),
+          Text(m['position']?.toString() ?? '—', style: AppText.label),
         ],
       ),
     );

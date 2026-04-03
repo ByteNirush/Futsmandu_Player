@@ -1,14 +1,15 @@
-import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
 
-import '../../core/mock/mock_data.dart';
-import '../../core/painters/field_painter.dart';
 import '../../core/design_system/app_spacing.dart';
+import '../../core/painters/field_painter.dart';
+import '../../core/services/player_auth_storage_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';
 import '../../shared/widgets/status_badge.dart';
+import '../matches/data/services/player_match_service.dart';
 
 class InvitePreviewScreen extends StatefulWidget {
   const InvitePreviewScreen({super.key});
@@ -18,35 +19,197 @@ class InvitePreviewScreen extends StatefulWidget {
 }
 
 class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
+  final PlayerMatchService _matchService = PlayerMatchService.instance;
+  final PlayerAuthStorageService _authStorage =
+      PlayerAuthStorageService.instance;
+
+  bool _isLoading = true;
+  bool _isJoining = false;
   bool _isLoggedIn = false;
+  String? _errorMessage;
+  bool _initialized = false;
+  String? _selectedPosition = 'midfielder';
+  Map<String, dynamic>? _invite;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
+    _loadInvite();
+  }
+
+  Future<void> _loadInvite() async {
+    final rawArgs = ModalRoute.of(context)?.settings.arguments;
+    final args = rawArgs is Map ? rawArgs.cast<String, dynamic>() : null;
+    final token = (args?['token'] ?? args?['inviteToken'])?.toString();
+
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      _isLoggedIn = (await _authStorage.getAccessToken())?.isNotEmpty == true;
+
+      if (token != null && token.isNotEmpty) {
+        try {
+          final preview = await _matchService.getInvitePreview(token);
+          if (!mounted) return;
+          setState(() {
+            _invite = preview;
+            _isLoading = false;
+          });
+          return;
+        } on MatchApiException {
+          if (args != null) {
+            if (!mounted) return;
+            setState(() {
+              _invite = _normalizeLocalInvite(args);
+              _isLoading = false;
+            });
+            return;
+          }
+          rethrow;
+        }
+      }
+
+      if (args != null) {
+        if (!mounted) return;
+        setState(() {
+          _invite = _normalizeLocalInvite(args);
+          _isLoading = false;
+        });
+        return;
+      }
+
+      throw const MatchApiException(
+        message: 'Invite link not found',
+        statusCode: 404,
+      );
+    } on MatchApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.message;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Could not load invite preview right now.';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Map<String, dynamic> _normalizeLocalInvite(Map<String, dynamic> raw) {
+    return {
+      'matchGroupId':
+          raw['matchGroupId']?.toString() ?? raw['id']?.toString() ?? '',
+      'venueName': raw['venueName']?.toString() ?? '',
+      'venueAddress': raw['venueAddress']?.toString() ?? '',
+      'venueImage': raw['venueImage']?.toString() ?? '',
+      'date': raw['date']?.toString() ?? '',
+      'startTime': raw['startTime']?.toString() ?? '',
+      'spotsLeft': raw['spotsLeft'] is num ? raw['spotsLeft'] as num : 0,
+      'skillFilter': raw['skillFilter']?.toString() ??
+          raw['skillLevel']?.toString() ??
+          'All',
+    };
+  }
+
+  String _skillText(String? skillFilter) {
+    final text = skillFilter?.toString() ?? '';
+    if (text.isEmpty || text == 'All') return 'Open to all skill levels';
+    return '$text players preferred';
+  }
+
+  Future<void> _joinMatch() async {
+    final invite = _invite;
+    final matchGroupId = invite?['matchGroupId']?.toString() ?? '';
+
+    if (!_isLoggedIn) {
+      if (!mounted) return;
+      Navigator.pushNamed(context, '/login');
+      return;
+    }
+
+    if (matchGroupId.isEmpty) return;
+
+    setState(() => _isJoining = true);
+    try {
+      await _matchService.joinMatch(
+        matchId: matchGroupId,
+        position: _selectedPosition,
+      );
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(
+        context,
+        '/match-detail',
+        arguments: {'id': matchGroupId},
+      );
+    } on MatchApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not join match right now')),
+      );
+    } finally {
+      if (mounted) setState(() => _isJoining = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Gracefully handle dynamic MockData.invite if not explicitly defined
-    final Map<String, dynamic> invite = (() {
-      try {
-        return (MockData as dynamic).invite as Map<String, dynamic>;
-      } catch (_) {
-        return <String, dynamic>{
-          'id': 'inv001',
-          'venueName': 'Futsmandu Arena',
-          'venueAddress': 'Thamel, Kathmandu',
-          'venueImage': 'https://picsum.photos/seed/arena1/200',
-          'date': 'Sat, 14 Oct',
-          'time': '17:00 – 18:00',
-          'format': '5v5 Turf',
-          'skillLevel': 'Intermediate',
-          'expiresIn': '48 hrs',
-          'maxPlayers': 10,
-          'spotsLeft': 3,
-          'members': MockData.friends.take(7).toList(),
-        };
-      }
-    })();
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.bgPrimary,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
-    final List members = (invite['members'] as List?) ?? [];
-    final int maxPlayers = invite['maxPlayers'] as int? ?? 10;
-    final int spotsLeft = invite['spotsLeft'] as int? ?? (maxPlayers - members.length);
+    if (_errorMessage != null && _invite == null) {
+      return Scaffold(
+        backgroundColor: AppColors.bgPrimary,
+        appBar: AppBar(
+          title: const Text('Invite Preview'),
+          backgroundColor: AppColors.bgPrimary,
+          elevation: 0,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.link_off_rounded,
+                    size: 48, color: AppColors.txtDisabled),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  _errorMessage ?? 'Could not load invite preview.',
+                  textAlign: TextAlign.center,
+                  style: AppText.body.copyWith(color: AppColors.txtDisabled),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                ElevatedButton(
+                  onPressed: _loadInvite,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final invite = _invite ?? const <String, dynamic>{};
+    final spotsLeft =
+        (invite['spotsLeft'] is num ? invite['spotsLeft'] as num : 0).toInt();
+    final skillText = _skillText(invite['skillFilter']?.toString());
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -54,25 +217,44 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // HERO
             SizedBox(
-              height: 220,
+              height: 230,
               child: Stack(
                 children: [
-                  Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    color: AppColors.bgPrimary,
-                  ),
+                  if ((invite['venueImage']?.toString() ?? '').isNotEmpty)
+                    CachedNetworkImage(
+                      imageUrl: invite['venueImage'].toString(),
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                    )
+                  else
+                    Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      color: AppColors.bgPrimary,
+                    ),
                   CustomPaint(
                     painter: FootballFieldPainter(),
-                    child: const SizedBox(width: double.infinity, height: double.infinity),
+                    child: const SizedBox.expand(),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          AppColors.bgPrimary.withValues(alpha: 0.92),
+                        ],
+                      ),
+                    ),
                   ),
                   Positioned(
                     top: MediaQuery.of(context).padding.top + 16,
                     right: 16,
                     child: StatusBadge(
-                      label: 'Expires in ${invite['expiresIn']}',
+                      label: 'Preview',
                       color: AppColors.amber,
                     ),
                   ),
@@ -82,20 +264,19 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                       children: [
                         Text("You're Invited!", style: AppText.bodySm),
                         const SizedBox(height: 6),
-                        Text('Join the Match', style: AppText.h1, textAlign: TextAlign.center),
+                        Text('Join the Match',
+                            style: AppText.h1, textAlign: TextAlign.center),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            
             Padding(
               padding: const EdgeInsets.all(AppSpacing.sm),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // MATCH DETAILS
                   FutsCard(
                     child: Column(
                       children: [
@@ -105,16 +286,21 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(invite['venueName'] ?? '', style: AppText.h2),
+                                  Text(invite['venueName']?.toString() ?? '',
+                                      style: AppText.h2),
                                   const SizedBox(height: 4),
                                   Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Icon(Icons.location_on, size: 13, color: AppColors.txtDisabled),
+                                      Icon(Icons.location_on,
+                                          size: 13,
+                                          color: AppColors.txtDisabled),
                                       const SizedBox(width: 4),
                                       Expanded(
                                         child: Text(
-                                          invite['venueAddress'] ?? '',
+                                          invite['venueAddress']?.toString() ??
+                                              '',
                                           style: AppText.bodySm,
                                         ),
                                       ),
@@ -126,12 +312,24 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                             const SizedBox(width: 12),
                             ClipRRect(
                               borderRadius: BorderRadius.circular(10),
-                              child: CachedNetworkImage(
-                                imageUrl: invite['venueImage'] ?? '',
-                                width: 60,
-                                height: 60,
-                                fit: BoxFit.cover,
-                              ),
+                              child: (invite['venueImage']
+                                          ?.toString()
+                                          .isNotEmpty ==
+                                      true)
+                                  ? CachedNetworkImage(
+                                      imageUrl: invite['venueImage'].toString(),
+                                      width: 60,
+                                      height: 60,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Container(
+                                      width: 60,
+                                      height: 60,
+                                      color: AppColors.bgElevated,
+                                      alignment: Alignment.center,
+                                      child: Icon(Icons.image_not_supported,
+                                          color: AppColors.txtDisabled),
+                                    ),
                             ),
                           ],
                         ),
@@ -146,152 +344,103 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                           mainAxisSpacing: 12,
                           crossAxisSpacing: 12,
                           children: [
-                            _GridItem('Date', invite['date']),
-                            _GridItem('Time', invite['time']),
-                            _GridItem('Format', invite['format']),
-                            _GridItem('Skill', invite['skillLevel']),
+                            _GridItem(
+                                'Date', invite['date']?.toString() ?? '-'),
+                            _GridItem(
+                                'Time', invite['startTime']?.toString() ?? '-'),
+                            _GridItem('Spots', '$spotsLeft left'),
+                            _GridItem('Skill', skillText),
                           ],
                         ),
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      Text("Who's Playing (${members.length}/$maxPlayers)", style: AppText.h3),
+                      Text("Who's Playing", style: AppText.h3),
                       const Spacer(),
-                      Text('$spotsLeft spots left', style: AppText.bodySm.copyWith(color: AppColors.amber)),
+                      Text('$spotsLeft spots left',
+                          style:
+                              AppText.bodySm.copyWith(color: AppColors.amber)),
                     ],
                   ),
                   const SizedBox(height: 12),
-
-                  // Avatar Stack
-                  SizedBox(
-                    height: 40,
-                    child: Stack(
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgElevated,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.borderClr),
+                    ),
+                    child: Row(
                       children: [
-                        ...members.take(7).toList().asMap().entries.map((e) {
-                          return Positioned(
-                            left: e.key * 28.0, 
-                            child: CircleAvatar(
-                              radius: 20,
-                              backgroundColor: AppColors.bgElevated,
-                              backgroundImage: NetworkImage(e.value['avatarUrl'] ?? ''),
-                            ),
-                          );
-                        }),
-                        if (members.length > 7)
-                          Positioned(
-                            left: 7 * 28.0,
-                            child: CircleAvatar(
-                              radius: 20,
-                              backgroundColor: AppColors.bgElevated,
-                              child: Text(
-                                '+${members.length - 7}',
-                                style: AppText.label.copyWith(color: AppColors.txtPrimary),
-                              ),
-                            ),
+                        Icon(Icons.group_outlined, color: AppColors.green),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Text(
+                            'Confirm your spot and join the lineup.',
+                            style: AppText.bodySm,
                           ),
+                        ),
                       ],
                     ),
                   ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Skill Progress Indicators
-                  Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(999),
-                              child: LinearProgressIndicator(
-                                value: 0.43,
-                                valueColor: AlwaysStoppedAnimation(AppColors.green),
-                                backgroundColor: AppColors.bgElevated,
-                                minHeight: 5,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(999),
-                              child: LinearProgressIndicator(
-                                value: 0.43,
-                                valueColor: AlwaysStoppedAnimation(AppColors.amber),
-                                backgroundColor: AppColors.bgElevated,
-                                minHeight: 5,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(999),
-                              child: LinearProgressIndicator(
-                                value: 0.14,
-                                valueColor: AlwaysStoppedAnimation(AppColors.red),
-                                backgroundColor: AppColors.bgElevated,
-                                minHeight: 5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          _LegendItem(AppColors.green, 'Beginner'),
-                          const Spacer(),
-                          _LegendItem(AppColors.amber, 'Intermediate'),
-                          const Spacer(),
-                          _LegendItem(AppColors.red, 'Advanced'),
-                        ],
-                      ),
-                    ],
-                  ),
-
                   const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextButton.icon(
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: AppSpacing.xs2,
-                            ),
-                          ),
-                          icon: Icon(Icons.share_outlined, size: 16, color: AppColors.txtDisabled),
-                          label: Text('Share', style: AppText.bodySm.copyWith(color: AppColors.txtPrimary)),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Share coming soon')),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () => setState(() => _isLoggedIn = !_isLoggedIn),
-                          child: Text(
-                            _isLoggedIn ? 'Logged In\n(tap to toggle)' : 'Logged Out\n(tap to toggle)',
-                            style: AppText.label.copyWith(color: AppColors.txtDisabled),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  
                   if (_isLoggedIn)
-                    FutsButton(
-                      label: 'Join This Match',
-                      onPressed: () => Navigator.pushNamed(context, '/match-detail', arguments: MockData.matches[0]),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _PositionChip(
+                                label: 'GK',
+                                value: 'goalkeeper',
+                                selectedValue: _selectedPosition,
+                                onTap: (value) =>
+                                    setState(() => _selectedPosition = value),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _PositionChip(
+                                label: 'DEF',
+                                value: 'defender',
+                                selectedValue: _selectedPosition,
+                                onTap: (value) =>
+                                    setState(() => _selectedPosition = value),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _PositionChip(
+                                label: 'MID',
+                                value: 'midfielder',
+                                selectedValue: _selectedPosition,
+                                onTap: (value) =>
+                                    setState(() => _selectedPosition = value),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _PositionChip(
+                                label: 'FWD',
+                                value: 'striker',
+                                selectedValue: _selectedPosition,
+                                onTap: (value) =>
+                                    setState(() => _selectedPosition = value),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        FutsButton(
+                          label: _isJoining ? 'Joining...' : 'Join This Match',
+                          isLoading: _isJoining,
+                          onPressed: _joinMatch,
+                        ),
+                      ],
                     )
                   else
                     Column(
@@ -299,17 +448,22 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                       children: [
                         FutsButton(
                           label: 'Sign In to Join',
-                          onPressed: () => Navigator.pushNamed(context, '/login'),
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/login'),
                         ),
                         const SizedBox(height: 12),
                         FutsButton(
                           label: 'Create Account',
                           outlined: true,
-                          onPressed: () => Navigator.pushNamed(context, '/register'),
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/register'),
                         ),
                         const SizedBox(height: 10),
                         Center(
-                          child: Text('Preview only — sign in to join', style: AppText.label),
+                          child: Text(
+                            'Preview only - sign in to join',
+                            style: AppText.label,
+                          ),
                         ),
                       ],
                     ),
@@ -343,25 +497,42 @@ class _GridItem extends StatelessWidget {
   }
 }
 
-class _LegendItem extends StatelessWidget {
-  final Color color;
+class _PositionChip extends StatelessWidget {
   final String label;
+  final String value;
+  final String? selectedValue;
+  final ValueChanged<String> onTap;
 
-  const _LegendItem(this.color, this.label);
+  const _PositionChip({
+    required this.label,
+    required this.value,
+    required this.selectedValue,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 8,
-          height: 8,
-          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+    final isSelected = selectedValue == value;
+    return GestureDetector(
+      onTap: () => onTap(value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs2),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.green : AppColors.bgElevated,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected ? AppColors.green : AppColors.borderClr,
+          ),
         ),
-        const SizedBox(width: 5),
-        Text(label, style: AppText.label),
-      ],
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: AppText.label.copyWith(
+            color: isSelected ? AppColors.bgPrimary : AppColors.txtDisabled,
+          ),
+        ),
+      ),
     );
   }
 }
