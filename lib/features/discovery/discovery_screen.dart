@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../core/mock/mock_data.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/filter_chip_row.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
+import '../matches/data/services/player_match_service.dart';
 import 'widgets/match_list_card.dart';
 
 class DiscoveryScreen extends StatefulWidget {
@@ -18,8 +18,17 @@ class DiscoveryScreen extends StatefulWidget {
 }
 
 class _DiscoveryScreenState extends State<DiscoveryScreen> {
+  static const double _fallbackLatitude = 27.7172;
+  static const double _fallbackLongitude = 85.3240;
+
+  final PlayerMatchService _matchService = PlayerMatchService.instance;
+
   int _tabIndex = 0;
   String _activeSkill = 'All';
+  bool _isLoading = false;
+  String? _error;
+  final Map<int, List<Map<String, dynamic>>> _tabMatches =
+      <int, List<Map<String, dynamic>>>{};
 
   static const List<String> _tabLabels = [
     'Tonight',
@@ -28,21 +37,10 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     'Open Matches',
   ];
 
-  String? get _primaryMatchDay {
-    for (final match in MockData.matches) {
-      final date = (match['date'] ?? '').toString();
-      if (date.isNotEmpty) return date;
-    }
-    return null;
-  }
-
-  String? get _secondaryMatchDay {
-    final first = _primaryMatchDay;
-    for (final match in MockData.matches) {
-      final date = (match['date'] ?? '').toString();
-      if (date.isNotEmpty && date != first) return date;
-    }
-    return null;
+  @override
+  void initState() {
+    super.initState();
+    _loadTabMatches(_tabIndex);
   }
 
   bool _isEveningMatch(Map<String, dynamic> match) {
@@ -52,15 +50,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   }
 
   bool _passesTab(Map<String, dynamic> match) {
-    final date = (match['date'] ?? '').toString();
     switch (_tabIndex) {
       case 0:
-        final today = _primaryMatchDay;
-        return today == null ? _isEveningMatch(match) : date == today;
+        return _isEveningMatch(match);
       case 1:
-        final tomorrow = _secondaryMatchDay;
-        return tomorrow == null ? !_isEveningMatch(match) : date == tomorrow;
+        return !_isEveningMatch(match);
       case 2:
+        final date = (match['date'] ?? '').toString();
         return date.startsWith('Sat') || date.startsWith('Sun');
       case 3:
         return match['isOpen'] == true;
@@ -70,12 +66,79 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   }
 
   List<Map<String, dynamic>> get _filteredMatches {
-    return MockData.matches.where((match) {
+    final currentTabMatches =
+        _tabMatches[_tabIndex] ?? const <Map<String, dynamic>>[];
+    return currentTabMatches.where((match) {
       if (!_passesTab(match)) return false;
       if (_activeSkill == 'All') return true;
       if (_activeSkill == 'Friends') return (match['friendsIn'] ?? 0) > 0;
       return match['skillLevel'] == _activeSkill;
     }).toList();
+  }
+
+  Future<void> _loadTabMatches(int tabIndex, {bool forceReload = false}) async {
+    if (!forceReload && _tabMatches.containsKey(tabIndex)) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      late final List<Map<String, dynamic>> matches;
+      switch (tabIndex) {
+        case 0:
+          matches = await _matchService.getTonightMatches(
+            latitude: _fallbackLatitude,
+            longitude: _fallbackLongitude,
+          );
+          break;
+        case 1:
+          matches = await _matchService.getTomorrowMatches(
+            latitude: _fallbackLatitude,
+            longitude: _fallbackLongitude,
+          );
+          break;
+        case 2:
+          matches = await _matchService.getWeekendMatches(
+            latitude: _fallbackLatitude,
+            longitude: _fallbackLongitude,
+          );
+          break;
+        case 3:
+          matches = await _matchService.getOpenMatches(
+            latitude: _fallbackLatitude,
+            longitude: _fallbackLongitude,
+          );
+          break;
+        default:
+          matches = const <Map<String, dynamic>>[];
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _tabMatches[tabIndex] = matches;
+      });
+    } on MatchApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.message;
+        _tabMatches[tabIndex] = const <Map<String, dynamic>>[];
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Unable to load matches right now';
+        _tabMatches[tabIndex] = const <Map<String, dynamic>>[];
+      });
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -90,10 +153,39 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
         backgroundColor: AppColors.bgPrimary,
         scrolledUnderElevation: 0,
         centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () => _loadTabMatches(_tabIndex, forceReload: true),
+            tooltip: 'Refresh',
+          ),
+        ],
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (_isLoading) const LinearProgressIndicator(minHeight: 2),
+          if (_error != null)
+            Container(
+              margin: const EdgeInsets.fromLTRB(
+                AppSpacing.sm2,
+                AppSpacing.xs,
+                AppSpacing.sm2,
+                0,
+              ),
+              padding: const EdgeInsets.all(AppSpacing.xs),
+              decoration: BoxDecoration(
+                color: AppColors.red.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: AppColors.red.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Text(
+                _error!,
+                style: AppText.bodySm.copyWith(color: AppColors.red),
+              ),
+            ),
           // TAB STRIP
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -108,7 +200,10 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                 final bool isSelected = _tabIndex == i;
 
                 return GestureDetector(
-                  onTap: () => setState(() => _tabIndex = i),
+                  onTap: () {
+                    setState(() => _tabIndex = i);
+                    _loadTabMatches(i);
+                  },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
                     margin: const EdgeInsets.only(right: AppSpacing.xs2),

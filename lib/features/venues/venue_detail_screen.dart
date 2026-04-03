@@ -4,12 +4,13 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-import '../../core/mock/mock_data.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';
+import '../booking/data/services/player_booking_service.dart';
+import 'data/services/player_venues_service.dart';
 
 class _VenueDetailSpacing {
   // Keep these aligned with the screen's local `_space*` scale.
@@ -30,6 +31,9 @@ class VenueDetailScreen extends StatefulWidget {
 }
 
 class _VenueDetailScreenState extends State<VenueDetailScreen> {
+  final PlayerVenuesService _venuesService = PlayerVenuesService.instance;
+  final PlayerBookingService _bookingService = PlayerBookingService.instance;
+
   static const double _spaceXs = 4;
   static const double _spaceSm = 8;
   static const double _spaceMd = 12;
@@ -37,10 +41,19 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   static const double _spaceXl = 20;
   static const double _space2xl = 24;
 
+  String? _venueId;
+  Map<String, dynamic>? _venue;
+  bool _isLoading = true;
+  String? _errorMessage;
+
   int _courtIdx = 0;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDate;
   Map<String, dynamic>? _selectedSlot;
+  List<Map<String, dynamic>> _availabilitySlots =
+      const <Map<String, dynamic>>[];
+  bool _isLoadingAvailability = false;
+  String? _availabilityError;
 
   final Map<String, IconData> _amenityIcons = {
     'Parking': Icons.local_parking,
@@ -50,11 +63,319 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   };
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_venueId != null) return;
+
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map<String, dynamic>) {
+      _venueId = args['id'] as String?;
+      _venue = args;
+      if (_venueId != null && _venueId!.isNotEmpty) {
+        _loadVenueDetail();
+        return;
+      }
+    }
+
+    _isLoading = false;
+    _errorMessage = 'Venue ID is missing.';
+  }
+
+  Future<void> _loadVenueDetail() async {
+    final venueId = _venueId;
+    if (venueId == null || venueId.isEmpty) return;
+
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final venue = await _venuesService.getVenueDetail(venueId);
+      if (!mounted) return;
+      setState(() {
+        _venue = venue;
+        _isLoading = false;
+        if (_courtIdx >= (_venue?['courts'] as List? ?? const []).length) {
+          _courtIdx = 0;
+          _selectedSlot = null;
+        }
+      });
+      await _loadAvailability();
+    } on VenueApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Could not load venue details right now.';
+      });
+    }
+  }
+
+  Future<void> _loadAvailability() async {
+    final venueId = _venueId;
+    final selectedDate = _selectedDate;
+    final venue = _venue;
+
+    if (venueId == null ||
+        venueId.isEmpty ||
+        selectedDate == null ||
+        venue == null) {
+      if (!mounted) return;
+      setState(() {
+        _availabilitySlots = const <Map<String, dynamic>>[];
+        _availabilityError = null;
+        _isLoadingAvailability = false;
+      });
+      return;
+    }
+
+    final courts = (venue['courts'] as List?)?.cast<Map<String, dynamic>>() ??
+        const <Map<String, dynamic>>[];
+    if (courts.isEmpty || _courtIdx >= courts.length) {
+      if (!mounted) return;
+      setState(() {
+        _availabilitySlots = const <Map<String, dynamic>>[];
+        _availabilityError = 'No courts available for this venue.';
+        _isLoadingAvailability = false;
+      });
+      return;
+    }
+
+    final selectedCourt = courts[_courtIdx];
+    final courtId = (selectedCourt['id'] as String?) ?? '';
+    if (courtId.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _availabilitySlots = const <Map<String, dynamic>>[];
+        _availabilityError = 'Court ID is missing for selected court.';
+        _isLoadingAvailability = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoadingAvailability = true;
+      _availabilityError = null;
+      _selectedSlot = null;
+    });
+
+    try {
+      final slots = await _bookingService.getAvailability(
+        venueId: venueId,
+        courtId: courtId,
+        date: _formatApiDate(selectedDate),
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _availabilitySlots = slots;
+        _isLoadingAvailability = false;
+      });
+    } on BookingApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _availabilitySlots = const <Map<String, dynamic>>[];
+        _availabilityError = e.message;
+        _isLoadingAvailability = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _availabilitySlots = const <Map<String, dynamic>>[];
+        _availabilityError = 'Could not load availability right now.';
+        _isLoadingAvailability = false;
+      });
+    }
+  }
+
+  String _formatApiDate(DateTime date) {
+    final y = date.year.toString().padLeft(4, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  Future<void> _showWriteReviewSheet() async {
+    final venueId = _venueId;
+    if (venueId == null || venueId.isEmpty) return;
+
+    final bookingIdController = TextEditingController();
+    final commentController = TextEditingController();
+    double rating = 5;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bgSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                MediaQuery.of(context).viewInsets.bottom + AppSpacing.md,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Write Review', style: AppText.h3),
+                  const SizedBox(height: AppSpacing.sm),
+                  TextField(
+                    controller: bookingIdController,
+                    decoration: const InputDecoration(
+                      labelText: 'Booking ID',
+                      hintText: 'Enter completed booking ID',
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text('Rating: ${rating.toStringAsFixed(1)}',
+                      style: AppText.bodySm),
+                  Slider(
+                    min: 1,
+                    max: 5,
+                    divisions: 8,
+                    value: rating,
+                    label: rating.toStringAsFixed(1),
+                    onChanged: (value) => setSheetState(() => rating = value),
+                  ),
+                  TextField(
+                    controller: commentController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Comment (optional)',
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final bookingId = bookingIdController.text.trim();
+                        if (bookingId.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Booking ID is required')),
+                          );
+                          return;
+                        }
+
+                        try {
+                          await _venuesService.createVenueReview(
+                            venueId: venueId,
+                            bookingId: bookingId,
+                            rating: rating.round(),
+                            comment: commentController.text,
+                          );
+                          if (!mounted) return;
+                          Navigator.pop(sheetContext);
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Review submitted successfully')),
+                          );
+                          _loadVenueDetail();
+                        } on VenueApiException catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            SnackBar(content: Text(e.message)),
+                          );
+                        } catch (_) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Could not submit review')),
+                          );
+                        }
+                      },
+                      child: const Text('Submit Review'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final venue =
-        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-    final selectedCourt =
-        (venue['courts'] as List)[_courtIdx] as Map<String, dynamic>;
+    if (_isLoading && _venue == null) {
+      return Scaffold(
+        backgroundColor: AppColors.bgPrimary,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_errorMessage != null && _venue == null) {
+      return Scaffold(
+        backgroundColor: AppColors.bgPrimary,
+        appBar: AppBar(
+          title: const Text('Venue'),
+          backgroundColor: AppColors.bgPrimary,
+          elevation: 0,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline_rounded,
+                    size: 48, color: AppColors.txtDisabled),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  _errorMessage ?? 'Could not load venue details.',
+                  textAlign: TextAlign.center,
+                  style: AppText.body.copyWith(color: AppColors.txtDisabled),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                ElevatedButton(
+                  onPressed: _loadVenueDetail,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final venue = _venue;
+    if (venue == null) {
+      return Scaffold(
+        backgroundColor: AppColors.bgPrimary,
+        appBar: AppBar(
+          title: const Text('Venue'),
+          backgroundColor: AppColors.bgPrimary,
+          elevation: 0,
+        ),
+        body: const Center(child: Text('Venue not found')),
+      );
+    }
+
+    final courts = (venue['courts'] as List?) ?? const [];
+    if (courts.isEmpty) {
+      _courtIdx = 0;
+      _selectedSlot = null;
+    }
+
+    final selectedCourt = courts.isNotEmpty
+        ? courts[_courtIdx] as Map<String, dynamic>
+        : const <String, dynamic>{};
     final isVerified = venue['isVerified'] == true;
 
     return Scaffold(
@@ -86,7 +407,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                               ),
                               const SizedBox(height: _spaceXs),
                               Text(
-                                'NPR ${_selectedSlot!['price']} • ${selectedCourt['name']}',
+                                '${_selectedSlot!['status'] == 'AVAILABLE' ? 'Price shown at payment' : 'Unavailable'} • ${selectedCourt['name'] ?? 'Court'}',
                                 style: AppText.label
                                     .copyWith(color: AppColors.txtDisabled),
                               ),
@@ -115,7 +436,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                     ),
                                     const SizedBox(height: _spaceXs),
                                     Text(
-                                      'NPR ${_selectedSlot!['price']} • ${selectedCourt['name']}',
+                                      '${_selectedSlot!['status'] == 'AVAILABLE' ? 'Price shown at payment' : 'Unavailable'} • ${selectedCourt['name'] ?? 'Court'}',
                                       style: AppText.label.copyWith(
                                           color: AppColors.txtDisabled),
                                     ),
@@ -306,8 +627,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             ),
                             _MetaPill(
                               icon: Icons.sports_soccer_rounded,
-                              label:
-                                  '${(venue['courts'] as List).length} Courts',
+                              label: '${courts.length} Courts',
                             ),
                           ],
                         ),
@@ -349,21 +669,21 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
-                        children:
-                            (venue['courts'] as List).asMap().entries.map((e) {
+                        children: courts.asMap().entries.map((e) {
                           final bool isSelected = _courtIdx == e.key;
                           return GestureDetector(
-                            onTap: () => setState(() {
-                              _courtIdx = e.key;
-                              _selectedSlot = null;
-                            }),
+                            onTap: () {
+                              setState(() {
+                                _courtIdx = e.key;
+                                _selectedSlot = null;
+                              });
+                              _loadAvailability();
+                            },
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               margin: EdgeInsets.only(
-                                right: e.key ==
-                                        (venue['courts'] as List).length - 1
-                                    ? 0
-                                    : _spaceMd,
+                                right:
+                                    e.key == courts.length - 1 ? 0 : _spaceMd,
                               ),
                               padding: const EdgeInsets.symmetric(
                                 horizontal: AppSpacing.sm,
@@ -497,6 +817,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             _focusedDay = DateUtils.dateOnly(focusedDay);
                             _selectedSlot = null;
                           });
+                          _loadAvailability();
                         },
                         onPageChanged: (focusedDay) {
                           setState(() =>
@@ -545,8 +866,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                 runSpacing: _spaceSm,
                                 children: [
                                   _LegendDot(AppColors.green, 'Available'),
-                                  _LegendDot(AppColors.amber, 'Held'),
-                                  _LegendDot(AppColors.red, 'Booked'),
+                                  _LegendDot(AppColors.red, 'Unavailable'),
                                 ],
                               );
 
@@ -581,12 +901,63 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                       (spacing * (columns - 1))) /
                                   columns;
 
+                              final slots = _availabilitySlots;
+
+                              if (_isLoadingAvailability) {
+                                return const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 20),
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              }
+
+                              if (_availabilityError != null) {
+                                return Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.sm,
+                                    vertical: AppSpacing.sm,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.bgElevated,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border:
+                                        Border.all(color: AppColors.borderClr),
+                                  ),
+                                  child: Text(
+                                    _availabilityError!,
+                                    style: AppText.bodySm
+                                        .copyWith(color: AppColors.txtDisabled),
+                                  ),
+                                );
+                              }
+
+                              if (slots.isEmpty) {
+                                return Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.sm,
+                                    vertical: AppSpacing.sm,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.bgElevated,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border:
+                                        Border.all(color: AppColors.borderClr),
+                                  ),
+                                  child: Text(
+                                    'No slots available for this date.',
+                                    style: AppText.bodySm
+                                        .copyWith(color: AppColors.txtDisabled),
+                                  ),
+                                );
+                              }
+
                               return Wrap(
                                 spacing: spacing,
                                 runSpacing: spacing,
-                                children: (venue['courts'][_courtIdx]['slots']
-                                        as List)
-                                    .map((slot) {
+                                children: slots.map((slot) {
                                   final bool isSelected = _selectedSlot !=
                                           null &&
                                       _selectedSlot?['time'] == slot['time'];
@@ -616,7 +987,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   _SectionCard(
                     title: 'Reviews',
                     trailing: TextButton(
-                      onPressed: () {},
+                      onPressed: _showWriteReviewSheet,
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.green,
                         padding: _VenueDetailSpacing.pillPadding,
@@ -629,24 +1000,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      child: const Text('See all'),
+                      child: const Text('Write review'),
                     ),
-                    child: Column(
-                      children: MockData.reviews
-                          .take(3)
-                          .toList()
-                          .asMap()
-                          .entries
-                          .map(
-                            (entry) => Padding(
-                              padding: EdgeInsets.only(
-                                bottom: entry.key == 2 ? 0 : _spaceMd,
-                              ),
-                              child: _ReviewCard(entry.value),
-                            ),
-                          )
-                          .toList(),
-                    ),
+                    child: _buildReviews(venue),
                   ),
                 ],
               ),
@@ -659,6 +1015,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
 
   void _showSlotSheet(
       BuildContext ctx, Map<String, dynamic> slot, Map<String, dynamic> venue) {
+    final courts = (venue['courts'] as List?) ?? const [];
     showModalBottomSheet(
       context: ctx,
       isScrollControlled: true,
@@ -714,13 +1071,13 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      venue['courts'][_courtIdx]['name'],
+                                      courts[_courtIdx]['name'],
                                       style: AppText.h3,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     Text(
-                                      '${venue['courts'][_courtIdx]['type']} · ${venue['courts'][_courtIdx]['surface']}',
+                                      '${courts[_courtIdx]['type']} · ${courts[_courtIdx]['surface']}',
                                       style: AppText.bodySm,
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
@@ -750,7 +1107,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             Text('Total', style: AppText.body),
                             const Spacer(),
                             Text(
-                              'NPR ${slot['price']}',
+                              'Price shown at payment',
                               style: GoogleFonts.barlow(
                                 color: AppColors.green,
                                 fontWeight: FontWeight.w600,
@@ -771,6 +1128,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         FutsButton(
                           label: 'Hold This Slot — 7 min',
                           onPressed: () {
+                            final selectedDate = _selectedDate;
+                            final selectedCourt =
+                                courts[_courtIdx] as Map<String, dynamic>;
                             Navigator.pop(ctx);
                             Navigator.pushNamed(
                               ctx,
@@ -779,6 +1139,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                 'slot': slot,
                                 'venue': venue,
                                 'courtIdx': _courtIdx,
+                                'courtId': selectedCourt['id'],
+                                'bookingDate': selectedDate == null
+                                    ? null
+                                    : _formatApiDate(selectedDate),
+                                'startTime': slot['time'],
+                                'endTime': slot['endTime'],
                               },
                             );
                           },
@@ -793,6 +1159,43 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildReviews(Map<String, dynamic> venue) {
+    final reviews = (venue['reviews'] as List?)?.cast<Map<String, dynamic>>() ??
+        const <Map<String, dynamic>>[];
+
+    if (reviews.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.bgElevated,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderClr),
+        ),
+        child: Text(
+          'No reviews yet. Be the first to review this venue.',
+          style: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+        ),
+      );
+    }
+
+    return Column(
+      children: reviews.take(3).toList().asMap().entries.map(
+        (entry) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: entry.key == reviews.take(3).length - 1 ? 0 : _spaceMd,
+            ),
+            child: _ReviewCard(entry.value),
+          );
+        },
+      ).toList(),
     );
   }
 }
@@ -913,19 +1316,15 @@ class _SlotChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           color: isSelected
               ? AppColors.green.withValues(alpha: 0.15)
-              : slot['status'] == 'HELD'
-                  ? AppColors.amber.withValues(alpha: 0.07)
-                  : slot['status'] == 'CONFIRMED'
-                      ? AppColors.red.withValues(alpha: 0.07)
-                      : AppColors.bgElevated,
+              : slot['status'] == 'UNAVAILABLE'
+                  ? AppColors.red.withValues(alpha: 0.07)
+                  : AppColors.bgElevated,
           border: Border.all(
             color: isSelected
                 ? AppColors.green
-                : slot['status'] == 'HELD'
-                    ? AppColors.amber.withValues(alpha: 0.5)
-                    : slot['status'] == 'CONFIRMED'
-                        ? AppColors.red.withValues(alpha: 0.5)
-                        : AppColors.borderClr,
+                : slot['status'] == 'UNAVAILABLE'
+                    ? AppColors.red.withValues(alpha: 0.5)
+                    : AppColors.borderClr,
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
@@ -939,27 +1338,21 @@ class _SlotChip extends StatelessWidget {
                 fontWeight: AppTextStyles.semiBold,
                 color: isSelected
                     ? AppColors.green
-                    : slot['status'] == 'HELD'
-                        ? AppColors.amber
-                        : slot['status'] == 'CONFIRMED'
-                            ? AppColors.red
-                            : AppColors.txtPrimary,
+                    : slot['status'] == 'UNAVAILABLE'
+                        ? AppColors.red
+                        : AppColors.txtPrimary,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             Text(
-              slot['status'] == 'AVAILABLE'
-                  ? 'NPR ${slot['price']}'
-                  : slot['status'] == 'HELD'
-                      ? 'Held'
-                      : 'Booked',
+              slot['status'] == 'AVAILABLE' ? 'Available' : 'Unavailable',
               style: AppText.label.copyWith(
                 color: isSelected
                     ? AppColors.green.withValues(alpha: 0.8)
-                    : slot['status'] == 'HELD'
-                        ? AppColors.amber
-                        : AppColors.red,
+                    : slot['status'] == 'UNAVAILABLE'
+                        ? AppColors.red
+                        : AppColors.txtDisabled,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

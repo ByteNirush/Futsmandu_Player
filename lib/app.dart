@@ -100,7 +100,9 @@ class _FutsmanduAppState extends State<FutsmanduApp> {
           '/register': (_) => _themeAware(() => const RegisterScreen()),
           '/forgot-password': (_) =>
               _themeAware(() => const ForgotPasswordScreen()),
-          '/otp-verification': (_) =>
+            '/verify-email': (_) =>
+              _themeAware(() => const OtpVerificationScreen()),
+            '/otp-verification': (_) =>
               _themeAware(() => const OtpVerificationScreen()),
           '/reset-password': (_) =>
               _themeAware(() => const ResetPasswordScreen()),

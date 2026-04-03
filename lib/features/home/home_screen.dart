@@ -6,6 +6,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../core/mock/mock_data.dart';
 import '../../core/design_system/app_spacing.dart';
+import '../../core/services/player_auth_storage_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/empty_state.dart';
@@ -421,15 +422,46 @@ class _TopFutsalCard extends StatelessWidget {
 }
 
 // --- Home Screen ---
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  Map<String, dynamic> _currentUser =
+      Map<String, dynamic>.from(MockData.currentUser);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final user = await PlayerAuthStorageService.instance.getUser();
+    if (!mounted || user == null) return;
+
+    final mergedUser = Map<String, dynamic>.from(MockData.currentUser)
+      ..addAll(user);
+
+    setState(() {
+      _currentUser = mergedUser;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    const Map<String, dynamic> currentUser = MockData.currentUser;
+    final Map<String, dynamic> currentUser = _currentUser;
     final int score = currentUser['reliabilityScore'] ?? 100;
     final bool isVerified = currentUser['isVerified'] ?? true;
     final String greeting = _greetingForHour(DateTime.now().hour);
+    final String userName =
+        (currentUser['name']?.toString().trim().isNotEmpty ?? false)
+            ? currentUser['name'].toString().trim()
+            : 'Player';
+    final String avatarUrl = currentUser['avatarUrl']?.toString() ?? '';
 
     Map<String, dynamic>? upcomingBooking;
     try {
@@ -495,7 +527,7 @@ class HomeScreen extends StatelessWidget {
                               children: [
                                 Text(greeting, style: AppText.bodySm),
                                 Text(
-                                  currentUser['name'],
+                                  userName,
                                   style: AppText.h1,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
@@ -507,9 +539,12 @@ class HomeScreen extends StatelessWidget {
                             children: [
                               CircleAvatar(
                                 radius: 24,
-                                backgroundImage: NetworkImage(
-                                  currentUser['avatarUrl'],
-                                ),
+                                backgroundImage: avatarUrl.isNotEmpty
+                                    ? NetworkImage(avatarUrl)
+                                    : null,
+                                child: avatarUrl.isEmpty
+                                    ? const Icon(Icons.person_outline)
+                                    : null,
                               ),
                               Positioned(
                                 bottom: 1,
