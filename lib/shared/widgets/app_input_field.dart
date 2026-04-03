@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'futs_input.dart';
 
-class AppInputField extends StatelessWidget {
+class AppInputField extends StatefulWidget {
   final String label;
   final TextEditingController? controller;
   final String? hint;
@@ -14,6 +14,7 @@ class AppInputField extends StatelessWidget {
   final int maxLines;
   final FormFieldValidator<String>? validator;
   final bool enabled;
+  final String? errorText;
 
   const AppInputField({
     super.key,
@@ -29,7 +30,15 @@ class AppInputField extends StatelessWidget {
     this.maxLines = 1,
     this.validator,
     this.enabled = true,
+    this.errorText,
   });
+
+  @override
+  State<AppInputField> createState() => _AppInputFieldState();
+}
+
+class _AppInputFieldState extends State<AppInputField> {
+  bool _obscureText = true;
 
   Widget? _buildIcon(dynamic icon) {
     if (icon == null) return null;
@@ -41,18 +50,27 @@ class AppInputField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutsInput(
-      label: label,
-      controller: controller,
-      hint: hint,
-      prefixIcon: _buildIcon(prefixIcon),
-      suffixIcon: _buildIcon(suffixIcon),
-      obscureText: isPassword,
-      textInputAction: textInputAction,
-      keyboardType: keyboardType,
-      onChanged: onChanged,
-      maxLines: maxLines,
-      validator: validator,
-      enabled: enabled,
+      label: widget.label,
+      controller: widget.controller,
+      hint: widget.hint,
+      prefixIcon: _buildIcon(widget.prefixIcon),
+      suffixIcon: widget.isPassword
+          ? IconButton(
+              onPressed: () => setState(() => _obscureText = !_obscureText),
+              icon: Icon(
+                _obscureText
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+              ),
+            )
+          : _buildIcon(widget.suffixIcon),
+      obscureText: widget.isPassword && _obscureText,
+      textInputAction: widget.textInputAction,
+      keyboardType: widget.keyboardType,
+      onChanged: widget.onChanged,
+      maxLines: widget.maxLines,
+      validator: widget.validator,
+      enabled: widget.enabled,
     );
   }
 }
