@@ -30,27 +30,43 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   Color _colorFor(String type) {
     switch (type) {
-      case 'BOOKING_CONFIRMED': return AppColors.green;
-      case 'BOOKING_CANCELLED': return AppColors.red;
-      case 'SLOT_EXPIRING': return AppColors.amber;
-      case 'MATCH_INVITE': return AppColors.blue;
-      case 'FRIEND_REQUEST': return AppColors.amber;
-      case 'NO_SHOW_MARKED': return AppColors.red;
-      case 'REVIEW_REQUEST': return AppColors.amber;
-      default: return AppColors.txtDisabled; // txtSecond
+      case 'BOOKING_CONFIRMED':
+        return AppColors.green;
+      case 'BOOKING_CANCELLED':
+        return AppColors.red;
+      case 'SLOT_EXPIRING':
+        return AppColors.amber;
+      case 'MATCH_INVITE':
+        return AppColors.blue;
+      case 'FRIEND_REQUEST':
+        return AppColors.amber;
+      case 'NO_SHOW_MARKED':
+        return AppColors.red;
+      case 'REVIEW_REQUEST':
+        return AppColors.amber;
+      default:
+        return AppColors.txtDisabled; // txtSecond
     }
   }
 
   IconData _iconFor(String type) {
     switch (type) {
-      case 'BOOKING_CONFIRMED': return Icons.check_circle_rounded;
-      case 'BOOKING_CANCELLED': return Icons.cancel_rounded;
-      case 'SLOT_EXPIRING': return Icons.timer_rounded;
-      case 'MATCH_INVITE': return Icons.group_add_rounded;
-      case 'FRIEND_REQUEST': return Icons.person_add_rounded;
-      case 'NO_SHOW_MARKED': return Icons.warning_rounded;
-      case 'REVIEW_REQUEST': return Icons.star_rounded;
-      default: return Icons.notifications_outlined;
+      case 'BOOKING_CONFIRMED':
+        return Icons.check_circle_rounded;
+      case 'BOOKING_CANCELLED':
+        return Icons.cancel_rounded;
+      case 'SLOT_EXPIRING':
+        return Icons.timer_rounded;
+      case 'MATCH_INVITE':
+        return Icons.group_add_rounded;
+      case 'FRIEND_REQUEST':
+        return Icons.person_add_rounded;
+      case 'NO_SHOW_MARKED':
+        return Icons.warning_rounded;
+      case 'REVIEW_REQUEST':
+        return Icons.star_rounded;
+      default:
+        return Icons.notifications_outlined;
     }
   }
 
@@ -103,7 +119,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     setState(() => _items.removeAt(i));
                   },
                   child: Container(
-                    color: isRead ? AppColors.bgPrimary : AppColors.bgElevated.withValues(alpha: 0.4),
+                    color: isRead
+                        ? AppColors.bgPrimary
+                        : AppColors.bgElevated.withValues(alpha: 0.4),
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.sm,
                       vertical: AppSpacing.xs2,
@@ -118,7 +136,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             shape: BoxShape.circle,
                             color: _colorFor(type).withValues(alpha: 0.12),
                           ),
-                          child: Icon(_iconFor(type), size: 22, color: _colorFor(type)),
+                          child: Icon(_iconFor(type),
+                              size: 22, color: _colorFor(type)),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -128,8 +147,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               Text(
                                 item['title'] ?? '',
                                 style: AppText.body.copyWith(
-                                  fontWeight: isRead ? FontWeight.w400 : FontWeight.w700,
-                                  color: isRead ? AppColors.txtDisabled : AppColors.txtPrimary,
+                                  fontWeight: isRead
+                                      ? FontWeight.w400
+                                      : AppTextStyles.semiBold,
+                                  color: isRead
+                                      ? AppColors.txtDisabled
+                                      : AppColors.txtPrimary,
                                 ),
                               ),
                               const SizedBox(height: 2),
