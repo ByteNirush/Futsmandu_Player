@@ -16,7 +16,8 @@ class BookingConfirmScreen extends StatefulWidget {
   State<BookingConfirmScreen> createState() => _BookingConfirmScreenState();
 }
 
-class _BookingConfirmScreenState extends State<BookingConfirmScreen> with SingleTickerProviderStateMixin {
+class _BookingConfirmScreenState extends State<BookingConfirmScreen>
+    with SingleTickerProviderStateMixin {
   bool _show = false;
   late AnimationController _confettiController;
 
@@ -41,7 +42,26 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen> with Single
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final heldBooking = args?['heldBooking'] is Map
+        ? (args?['heldBooking'] as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+
+    final selectedCourtName = args?['venue']?['courts'] is List &&
+            args?['courtIdx'] is int &&
+            (args?['venue']?['courts'] as List).length >
+                (args?['courtIdx'] as int)
+        ? ((args?['venue']?['courts'] as List)[args?['courtIdx'] as int]['name']
+                ?.toString() ??
+            'Court')
+        : 'Court';
+    final bookingDate = args?['bookingDate']?.toString() ?? '-';
+    final startTime = args?['startTime']?.toString() ?? '-';
+    final endTime = args?['endTime']?.toString() ?? '-';
+    final totalAmount = heldBooking['total_amount']?.toString() ??
+        args?['slot']?['price']?.toString() ??
+        '1800';
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -52,7 +72,8 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen> with Single
             animation: _confettiController,
             builder: (context, child) {
               return Stack(
-                children: List.generate(22, (index) => _ConfettiItem(index, _confettiController)),
+                children: List.generate(
+                    22, (index) => _ConfettiItem(index, _confettiController)),
               );
             },
           ),
@@ -80,7 +101,8 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen> with Single
                         border: Border.all(color: AppColors.green, width: 2),
                       ),
                       child: Center(
-                        child: Icon(Icons.check_rounded, size: 60, color: AppColors.green),
+                        child: Icon(Icons.check_rounded,
+                            size: 60, color: AppColors.green),
                       ),
                     ),
                   ),
@@ -91,21 +113,24 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen> with Single
                   duration: const Duration(milliseconds: 400),
                   child: Column(
                     children: [
-                      Text('Booking Confirmed!', style: AppText.h1, textAlign: TextAlign.center),
+                      Text('Booking Confirmed!',
+                          style: AppText.h1, textAlign: TextAlign.center),
                       const SizedBox(height: 8),
                       Text(
                         'Your slot is locked in. See you on the pitch!',
-                        style: AppText.body.copyWith(color: AppColors.txtDisabled),
+                        style:
+                            AppText.body.copyWith(color: AppColors.txtDisabled),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 28),
                       FutsCard(
                         child: Column(
                           children: [
-                            _ConfirmRow('Venue', args?['venue']?['name'] ?? 'Futsmandu Arena'),
-                            const _ConfirmRow('Court', 'Court A · 5v5 Turf'),
-                            const _ConfirmRow('Date', 'Sat 14 Oct 2025'),
-                            const _ConfirmRow('Time', '17:00 – 18:00'),
+                            _ConfirmRow('Venue',
+                                args?['venue']?['name'] ?? 'Futsmandu Arena'),
+                            _ConfirmRow('Court', selectedCourtName),
+                            _ConfirmRow('Date', bookingDate),
+                            _ConfirmRow('Time', '$startTime - $endTime'),
                             const Divider(),
                             Row(
                               children: [
@@ -115,9 +140,12 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen> with Single
                                     Text('Match Group', style: AppText.bodySm),
                                     Row(
                                       children: [
-                                        Icon(Icons.group_outlined, size: 15, color: AppColors.blue),
+                                        Icon(Icons.group_outlined,
+                                            size: 15, color: AppColors.blue),
                                         const SizedBox(width: 4),
-                                        Text('Created — invite friends', style: AppText.bodySm.copyWith(color: AppColors.blue)),
+                                        Text('Created — invite friends',
+                                            style: AppText.bodySm.copyWith(
+                                                color: AppColors.blue)),
                                       ],
                                     ),
                                   ],
@@ -125,11 +153,15 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen> with Single
                                 const Spacer(),
                                 Row(
                                   children: [
-                                    Icon(Icons.check_circle_rounded, size: 15, color: AppColors.green),
+                                    Icon(Icons.check_circle_rounded,
+                                        size: 15, color: AppColors.green),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'Paid NPR ${args?['slot']?['price'] ?? 1800}',
-                                      style: AppText.mono.copyWith(fontSize: 14, color: AppColors.green, fontWeight: FontWeight.w600),
+                                      'Paid NPR $totalAmount',
+                                      style: AppText.mono.copyWith(
+                                          fontSize: 14,
+                                          color: AppColors.green,
+                                          fontWeight: FontWeight.w600),
                                     ),
                                   ],
                                 ),
@@ -142,7 +174,8 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen> with Single
                       FutsButton(
                         label: 'View Match Group',
                         onPressed: () {
-                          Navigator.pushNamed(context, '/match-detail', arguments: MockData.matches[0]);
+                          Navigator.pushNamed(context, '/match-detail',
+                              arguments: MockData.matches[0]);
                         },
                       ),
                       const SizedBox(height: 12),
@@ -150,17 +183,21 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen> with Single
                         label: 'Back to Home',
                         outlined: true,
                         onPressed: () {
-                          Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false);
+                          Navigator.pushNamedAndRemoveUntil(
+                              context, '/home', (_) => false);
                         },
                       ),
                       const SizedBox(height: 16),
                       Center(
                         child: TextButton.icon(
-                          icon: Icon(Icons.calendar_today_outlined, size: 16, color: AppColors.txtDisabled),
+                          icon: Icon(Icons.calendar_today_outlined,
+                              size: 16, color: AppColors.txtDisabled),
                           label: Text('Add to Calendar', style: AppText.bodySm),
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Calendar feature coming soon')),
+                              const SnackBar(
+                                  content:
+                                      Text('Calendar feature coming soon')),
                             );
                           },
                         ),
@@ -192,7 +229,8 @@ class _ConfirmRow extends StatelessWidget {
         children: [
           Text(label, style: AppText.bodySm),
           const Spacer(),
-          Text(value, style: AppText.bodySm.copyWith(color: AppColors.txtPrimary)),
+          Text(value,
+              style: AppText.bodySm.copyWith(color: AppColors.txtPrimary)),
         ],
       ),
     );

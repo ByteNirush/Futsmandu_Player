@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../core/mock/mock_data.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
-import '../home/home_shell.dart' show kNavBarHeight;
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/filter_chip_row.dart';
 import '../../shared/widgets/futs_card.dart';
 import '../../shared/widgets/status_badge.dart';
+import 'data/services/player_booking_service.dart';
 
 class BookingHistoryScreen extends StatefulWidget {
   const BookingHistoryScreen({super.key});
@@ -19,19 +18,378 @@ class BookingHistoryScreen extends StatefulWidget {
 }
 
 class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
-  String _filter = 'All';
+  final PlayerBookingService _bookingService = PlayerBookingService.instance;
+  final ScrollController _scrollController = ScrollController();
 
-  List<Map<String, dynamic>> get _filtered {
-    if (_filter == 'All') return MockData.bookings;
-    return MockData.bookings.where((b) {
-      return b['status'] == _filter.toUpperCase();
-    }).toList();
+  String _filter = 'All';
+  bool _isLoading = true;
+  bool _isLoadingMore = false;
+  String? _errorMessage;
+
+  List<Map<String, dynamic>> _bookings = const <Map<String, dynamic>>[];
+  String? _nextCursor;
+  int _page = 1;
+
+  static const List<String> _filters = <String>[
+    'All',
+    'Confirmed',
+    'Completed',
+    'Cancelled',
+    'Held',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    _fetchBookings(reset: true);
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 240) {
+      if (_nextCursor != null && !_isLoadingMore && !_isLoading) {
+        _fetchBookings(reset: false);
+      }
+    }
+  }
+
+  String? _backendStatusFilter(String uiFilter) {
+    switch (uiFilter) {
+      case 'Confirmed':
+        return 'CONFIRMED';
+      case 'Completed':
+        return 'COMPLETED';
+      case 'Cancelled':
+        return 'CANCELLED';
+      case 'Held':
+        return 'HELD';
+      default:
+        return null;
+    }
+  }
+
+  Future<void> _fetchBookings({required bool reset}) async {
+    if (reset) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+        _nextCursor = null;
+        _page = 1;
+        _bookings = const <Map<String, dynamic>>[];
+      });
+    } else {
+      setState(() {
+        _isLoadingMore = true;
+      });
+    }
+
+    try {
+      final result = await _bookingService.getBookings(
+        status: _backendStatusFilter(_filter),
+        page: _page,
+        cursor: reset ? null : _nextCursor,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _bookings = reset
+            ? result.items
+            : <Map<String, dynamic>>[..._bookings, ...result.items];
+        _nextCursor = result.nextCursor;
+        _page = _page + 1;
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
+    } on BookingApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.message;
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Could not load bookings right now.';
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  Future<void> _showCancelSheet(Map<String, dynamic> booking) async {
+    final reasonController = TextEditingController();
+    bool isCancelling = false;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bgSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                MediaQuery.of(context).viewInsets.bottom + AppSpacing.md,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.borderClr,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text('Cancel Booking?', style: AppText.h2),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(booking['venueName']?.toString() ?? '-',
+                      style: AppText.bodySm),
+                  const SizedBox(height: AppSpacing.md),
+                  TextFormField(
+                    controller: reasonController,
+                    maxLines: 3,
+                    style: AppText.body.copyWith(color: AppColors.txtPrimary),
+                    decoration: InputDecoration(
+                      labelText: 'Reason (optional)',
+                      hintText: 'Let the venue know why you are cancelling...',
+                      alignLabelWithHint: true,
+                      labelStyle: AppText.label,
+                      hintStyle:
+                          AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+                      filled: true,
+                      fillColor: AppColors.bgElevated,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: isCancelling
+                              ? null
+                              : () => Navigator.pop(sheetContext),
+                          child: const Text('Keep Booking'),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                AppColors.red.withValues(alpha: 0.1),
+                            foregroundColor: AppColors.red,
+                          ),
+                          onPressed: isCancelling
+                              ? null
+                              : () async {
+                                  setSheetState(() => isCancelling = true);
+                                  try {
+                                    final response =
+                                        await _bookingService.cancelBooking(
+                                      bookingId:
+                                          booking['id']?.toString() ?? '',
+                                      reason: reasonController.text,
+                                    );
+                                    if (!mounted) return;
+
+                                    setState(() {
+                                      _bookings = _bookings.map((item) {
+                                        if (item['id'] == booking['id']) {
+                                          return {
+                                            ...item,
+                                            'status': 'CANCELLED',
+                                            'refundAmount':
+                                                response['refundAmount'] ?? 0,
+                                            'refundNote':
+                                                response['refundNote'] ?? '',
+                                          };
+                                        }
+                                        return item;
+                                      }).toList(growable: false);
+                                    });
+
+                                    Navigator.pop(sheetContext);
+                                    final refundText = response['displayRefund']
+                                            ?.toString() ??
+                                        'NPR ${response['refundAmount'] ?? 0}';
+                                    ScaffoldMessenger.of(this.context)
+                                        .showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Booking cancelled. Refund: $refundText',
+                                        ),
+                                      ),
+                                    );
+                                  } on BookingApiException catch (e) {
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(this.context)
+                                        .showSnackBar(
+                                      SnackBar(content: Text(e.message)),
+                                    );
+                                  } catch (_) {
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(this.context)
+                                        .showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Could not cancel booking right now.'),
+                                      ),
+                                    );
+                                  } finally {
+                                    if (mounted) {
+                                      setSheetState(() => isCancelling = false);
+                                    }
+                                  }
+                                },
+                          child: isCancelling
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text('Cancel & Refund'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _showBookingDetail(String bookingId) async {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.bgSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) {
+        return FutureBuilder<Map<String, dynamic>>(
+          future: _bookingService.getBookingDetail(bookingId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(
+                height: 260,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            if (snapshot.hasError) {
+              final message = snapshot.error is BookingApiException
+                  ? (snapshot.error as BookingApiException).message
+                  : 'Could not load booking detail.';
+
+              return SizedBox(
+                height: 260,
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Text(message,
+                        style: AppText.bodySm, textAlign: TextAlign.center),
+                  ),
+                ),
+              );
+            }
+
+            final booking = snapshot.data ?? const <String, dynamic>{};
+            final court = booking['court'] is Map
+                ? (booking['court'] as Map).cast<String, dynamic>()
+                : const <String, dynamic>{};
+            final venue = court['venue'] is Map
+                ? (court['venue'] as Map).cast<String, dynamic>()
+                : const <String, dynamic>{};
+            final payment = booking['payment'] is Map
+                ? (booking['payment'] as Map).cast<String, dynamic>()
+                : const <String, dynamic>{};
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.borderClr,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    Text('Booking Detail', style: AppText.h2),
+                    const SizedBox(height: AppSpacing.sm),
+                    _DetailRow('Booking ID', booking['id']?.toString() ?? '-'),
+                    _DetailRow('Status', booking['status']?.toString() ?? '-'),
+                    _DetailRow('Venue', venue['name']?.toString() ?? '-'),
+                    _DetailRow('Court', court['name']?.toString() ?? '-'),
+                    _DetailRow(
+                        'Date', booking['booking_date']?.toString() ?? '-'),
+                    _DetailRow(
+                      'Time',
+                      '${booking['start_time'] ?? '-'} - ${booking['end_time'] ?? '-'}',
+                    ),
+                    _DetailRow(
+                      'Amount',
+                      booking['displayAmount']?.toString() ??
+                          'NPR ${booking['total_amount'] ?? 0}',
+                    ),
+                    _DetailRow('Payment', payment['status']?.toString() ?? '-'),
+                    _DetailRow(
+                        'Gateway', payment['gateway']?.toString() ?? '-'),
+                    const SizedBox(height: AppSpacing.md),
+                    OutlinedButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      child: const Text('Close'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final filtered = _filtered;
-
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
@@ -44,303 +402,198 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs3),
             child: FilterChipRow(
-              options: const ['All', 'Confirmed', 'Completed', 'Cancelled'],
+              options: _filters,
               selected: _filter,
-              onSelected: (v) => setState(() => _filter = v),
+              onSelected: (value) {
+                setState(() => _filter = value);
+                _fetchBookings(reset: true);
+              },
             ),
           ),
           Expanded(
-            child: filtered.isEmpty
-                ? const EmptyState(
-                    icon: Icons.calendar_today_outlined,
-                    title: 'No bookings',
-                    subtitle: 'Your booking history will appear here',
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                      vertical: AppSpacing.xs,
-                    ),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: AppSpacing.xs2),
-                    itemBuilder: (ctx, i) => _BookingCard(filtered[i]),
-                  ),
+            child: RefreshIndicator(
+              onRefresh: () => _fetchBookings(reset: true),
+              child: _buildContent(),
+            ),
           ),
         ],
       ),
     );
   }
-}
 
-class _BookingCard extends StatelessWidget {
-  final Map<String, dynamic> b;
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-  const _BookingCard(this.b);
-
-  @override
-  Widget build(BuildContext context) {
-    return FutsCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    if (_errorMessage != null) {
+      return ListView(
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(b['venueName'],
-                      style: AppText.h3.copyWith(fontSize: 16)),
-                  const SizedBox(height: 2),
-                  Text(b['courtName'], style: AppText.bodySm),
-                ],
-              ),
-              const Spacer(),
-              StatusBadge(
-                label: b['status'],
-                color: AppColors.statusColor(b['status']),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 16,
-            runSpacing: 8,
-            children: [
-              _Meta(Icons.calendar_today, b['date']),
-              _Meta(Icons.access_time, b['time']),
-              _Meta(Icons.timelapse_outlined, b['duration']),
-            ],
-          ),
-          const SizedBox(height: 10),
-          const Divider(),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Text(
-                'NPR ${b['priceNPR']}',
-                style: GoogleFonts.barlow(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.txtPrimary,
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              children: [
+                Text(_errorMessage!,
+                    style: AppText.body, textAlign: TextAlign.center),
+                const SizedBox(height: AppSpacing.sm),
+                ElevatedButton(
+                  onPressed: () => _fetchBookings(reset: true),
+                  child: const Text('Retry'),
                 ),
-              ),
-              const Spacer(),
-              if (b['status'] == 'CONFIRMED')
-                SizedBox(
-                  height: 34,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: AppColors.red),
-                      foregroundColor: AppColors.red,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999)),
-                      textStyle: GoogleFonts.barlow(
-                          fontSize: 13, fontWeight: FontWeight.w500),
-                    ),
-                    onPressed: () => _showCancelSheet(context, b),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-              if (b['status'] == 'COMPLETED')
-                SizedBox(
-                  height: 34,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: AppColors.green),
-                      foregroundColor: AppColors.green,
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999)),
-                      textStyle: GoogleFonts.barlow(
-                          fontSize: 13, fontWeight: FontWeight.w500),
-                    ),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Review feature coming soon')),
-                      );
-                    },
-                    child: const Text('Review'),
-                  ),
-                ),
-            ],
+              ],
+            ),
           ),
         ],
-      ),
-    );
-  }
+      );
+    }
 
-  void _showCancelSheet(BuildContext ctx, Map<String, dynamic> b) {
-    showModalBottomSheet(
-      context: ctx,
-      isScrollControlled: true,
-      backgroundColor: AppColors.bgPrimary.withValues(alpha: 0),
-      builder: (_) {
-        return Container(
-          margin: const EdgeInsets.only(top: kNavBarHeight),
-          decoration: BoxDecoration(
-            color: AppColors.bgSurface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+    if (_bookings.isEmpty) {
+      return ListView(
+        children: const [
+          SizedBox(height: 40),
+          EmptyState(
+            icon: Icons.calendar_today_outlined,
+            title: 'No bookings',
+            subtitle: 'Your booking history will appear here',
           ),
-          padding: const EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.borderClr,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text('Cancel Booking?', style: AppText.h2),
-              const SizedBox(height: 4),
-              Text(b['venueName'], style: AppText.bodySm),
-              const SizedBox(height: 20),
-              FutsCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('Refund Policy', style: AppText.h3),
-                    const SizedBox(height: 12),
-                    _RefundRow(
-                      timeLabel: '>24 hrs before',
-                      pctLabel: '100% refund',
-                      amount: 'NPR 1,800',
-                      color: AppColors.green,
-                      isActive: true,
-                    ),
-                    const SizedBox(height: 6),
-                    _RefundRow(
-                      timeLabel: '6–24 hrs before',
-                      pctLabel: '50% refund',
-                      amount: 'NPR 900',
-                      color: AppColors.amber,
-                      isActive: false,
-                    ),
-                    const SizedBox(height: 6),
-                    _RefundRow(
-                      timeLabel: '<6 hrs before',
-                      pctLabel: 'No refund',
-                      amount: 'NPR 0',
-                      color: AppColors.red,
-                      isActive: false,
-                    ),
-                    const Divider(),
-                    Row(
-                      children: [
-                        Text('Your refund:', style: AppText.body),
-                        const Spacer(),
-                        Text(
-                          'NPR 1,800',
-                          style: GoogleFonts.barlow(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.green,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                maxLines: 3,
-                style: AppText.body.copyWith(color: AppColors.txtPrimary),
-                decoration: InputDecoration(
-                  labelText: 'Reason (optional)',
-                  hintText: 'Let the venue know why you\'re cancelling…',
-                  alignLabelWithHint: true,
-                  labelStyle: AppText.label,
-                  hintStyle:
-                      AppText.bodySm.copyWith(color: AppColors.txtDisabled),
-                  filled: true,
-                  fillColor: AppColors.bgElevated,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.green, width: 1.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                            color:
-                                AppColors.txtDisabled.withValues(alpha: 0.5)),
-                        foregroundColor: AppColors.txtPrimary,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        textStyle: GoogleFonts.barlow(
-                            fontSize: 15, fontWeight: AppTextStyles.bold),
-                      ),
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('Keep Booking'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.red.withValues(alpha: 0.10),
-                        foregroundColor: AppColors.red,
-                        elevation: 0,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: AppColors.red),
-                        ),
-                        textStyle: GoogleFonts.barlow(
-                            fontSize: 15, fontWeight: AppTextStyles.bold),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'Booking cancelled. NPR 1,800 refund initiated.')),
-                        );
-                      },
-                      child: const Text('Cancel & Refund'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
+        ],
+      );
+    }
+
+    return ListView.separated(
+      controller: _scrollController,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+      itemCount: _bookings.length + (_isLoadingMore ? 1 : 0),
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs2),
+      itemBuilder: (context, index) {
+        if (index >= _bookings.length) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final booking = _bookings[index];
+        return _BookingCard(
+          booking: booking,
+          onTap: () => _showBookingDetail(booking['id']?.toString() ?? ''),
+          onCancel: booking['status'] == 'CONFIRMED'
+              ? () => _showCancelSheet(booking)
+              : null,
         );
       },
     );
   }
 }
 
+class _BookingCard extends StatelessWidget {
+  const _BookingCard({
+    required this.booking,
+    required this.onTap,
+    required this.onCancel,
+  });
+
+  final Map<String, dynamic> booking;
+  final VoidCallback onTap;
+  final VoidCallback? onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final amount = booking['displayAmount']?.toString().isNotEmpty == true
+        ? booking['displayAmount'].toString()
+        : 'NPR ${booking['priceNPR'] ?? 0}';
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: FutsCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        booking['venueName']?.toString() ?? '-',
+                        style: AppText.h3.copyWith(fontSize: 16),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(booking['courtName']?.toString() ?? '-',
+                          style: AppText.bodySm),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                StatusBadge(
+                  label: booking['status']?.toString() ?? '-',
+                  color: AppColors.statusColor(
+                      booking['status']?.toString() ?? ''),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                _Meta(Icons.calendar_today, booking['date']?.toString() ?? '-'),
+                _Meta(Icons.access_time, booking['time']?.toString() ?? '-'),
+                _Meta(Icons.timelapse_outlined,
+                    booking['duration']?.toString() ?? '-'),
+              ],
+            ),
+            const SizedBox(height: 10),
+            const Divider(),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Text(
+                  amount,
+                  style: GoogleFonts.barlow(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.txtPrimary,
+                  ),
+                ),
+                const Spacer(),
+                if (onCancel != null)
+                  SizedBox(
+                    height: 34,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: AppColors.red),
+                        foregroundColor: AppColors.red,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      onPressed: onCancel,
+                      child: const Text('Cancel'),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _Meta extends StatelessWidget {
+  const _Meta(this.icon, this.text);
+
   final IconData icon;
   final String text;
-
-  const _Meta(this.icon, this.text);
 
   @override
   Widget build(BuildContext context) {
@@ -355,66 +608,25 @@ class _Meta extends StatelessWidget {
   }
 }
 
-class _RefundRow extends StatelessWidget {
-  final String timeLabel;
-  final String pctLabel;
-  final String amount;
-  final Color color;
-  final bool isActive;
+class _DetailRow extends StatelessWidget {
+  const _DetailRow(this.label, this.value);
 
-  const _RefundRow({
-    required this.timeLabel,
-    required this.pctLabel,
-    required this.amount,
-    required this.color,
-    required this.isActive,
-  });
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 200),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs2,
-        vertical: AppSpacing.xs3,
-      ),
-      decoration: BoxDecoration(
-        color: isActive
-            ? color.withValues(alpha: 0.08)
-            : AppColors.bgPrimary.withValues(alpha: 0),
-        borderRadius: BorderRadius.circular(10),
-        border:
-            isActive ? Border.all(color: color.withValues(alpha: 0.35)) : null,
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 9,
-            height: 9,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: color,
-            ),
+          SizedBox(
+            width: 110,
+            child: Text(label,
+                style: AppText.bodySm.copyWith(color: AppColors.txtDisabled)),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              '$timeLabel • $pctLabel',
-              style: AppText.bodySm.copyWith(
-                color: isActive ? AppColors.txtPrimary : AppColors.txtDisabled,
-              ),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            amount,
-            style: GoogleFonts.barlow(
-              fontSize: 13,
-              fontWeight: AppTextStyles.semiBold,
-              color: isActive ? color : AppColors.txtDisabled,
-            ),
-          ),
+          Expanded(child: Text(value, style: AppText.bodySm)),
         ],
       ),
     );

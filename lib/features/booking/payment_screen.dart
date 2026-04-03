@@ -52,6 +52,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   double _amountFromArgs(Map<String, dynamic>? args) {
+    final heldAmount = args?['heldBooking']?['total_amount'];
+    if (heldAmount is num) return heldAmount.toDouble();
+    final heldAmountString = args?['heldBooking']?['total_amount']?.toString();
+    if (heldAmountString != null) {
+      final parsed = double.tryParse(heldAmountString);
+      if (parsed != null) return parsed;
+    }
+
     final price = args?['slot']?['price'];
     if (price is num) return price.toDouble();
     return double.tryParse(price?.toString() ?? '') ?? 1800.0;
@@ -85,6 +93,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
             arguments: {
               'slot': args?['slot'],
               'venue': args?['venue'],
+              'heldBooking': args?['heldBooking'],
+              'bookingDate': args?['bookingDate'],
+              'startTime': args?['startTime'],
+              'endTime': args?['endTime'],
             },
           );
         } else {
@@ -103,6 +115,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
         arguments: {
           'slot': args?['slot'],
           'venue': args?['venue'],
+          'heldBooking': args?['heldBooking'],
+          'bookingDate': args?['bookingDate'],
+          'startTime': args?['startTime'],
+          'endTime': args?['endTime'],
         },
       );
     } finally {
@@ -118,6 +134,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     final rawArgs = ModalRoute.of(context)?.settings.arguments;
     final args = rawArgs is Map ? rawArgs.cast<String, dynamic>() : null;
+    final heldBooking = args?['heldBooking'] is Map
+        ? (args?['heldBooking'] as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+
+    final totalAmount = heldBooking['total_amount']?.toString() ??
+        args?['slot']?['price']?.toString() ??
+        '1800';
+    final selectedCourtName = args?['venue']?['courts'] is List &&
+            args?['courtIdx'] is int &&
+            (args?['venue']?['courts'] as List).length >
+                (args?['courtIdx'] as int)
+        ? ((args?['venue']?['courts'] as List)[args?['courtIdx'] as int]['name']
+                ?.toString() ??
+            'Court')
+        : 'Court';
+    final bookingDate = args?['bookingDate']?.toString() ?? '-';
+    final startTime = args?['startTime']?.toString() ?? '-';
+    final endTime = args?['endTime']?.toString() ?? '-';
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -160,9 +194,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   Divider(height: 20, color: AppColors.borderClr),
                   _SumRow(
                       'Venue', args?['venue']?['name'] ?? 'Futsmandu Arena'),
-                  const _SumRow('Court', 'Court A · 5v5 Turf'),
-                  const _SumRow('Date', 'Sat 14 Oct 2025'),
-                  const _SumRow('Time', '17:00 – 18:00'),
+                  _SumRow('Court', selectedCourtName),
+                  _SumRow('Date', bookingDate),
+                  _SumRow('Time', '$startTime - $endTime'),
                   const _SumRow('Duration', '60 minutes'),
                   Divider(height: 20, color: AppColors.borderClr),
                   Row(
@@ -172,7 +206,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               .copyWith(fontWeight: FontWeight.w600)),
                       const Spacer(),
                       Text(
-                        'NPR ${args?['slot']?['price'] ?? 1800}',
+                        'NPR $totalAmount',
                         style: GoogleFonts.barlow(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -245,7 +279,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             const SizedBox(height: 24),
             FutsButton(
-              label: 'Pay NPR ${args?['slot']?['price'] ?? 1800}',
+              label: 'Pay NPR $totalAmount',
               isLoading: _loading,
               onPressed: _gateway == null ? null : () => _onPayPressed(args),
             ),

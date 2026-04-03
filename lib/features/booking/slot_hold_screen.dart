@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
+import 'data/services/player_booking_service.dart';
 
 class SlotHoldScreen extends StatefulWidget {
   const SlotHoldScreen({super.key});
@@ -12,8 +13,12 @@ class SlotHoldScreen extends StatefulWidget {
   State<SlotHoldScreen> createState() => _SlotHoldScreenState();
 }
 
-class _SlotHoldScreenState extends State<SlotHoldScreen> with SingleTickerProviderStateMixin {
+class _SlotHoldScreenState extends State<SlotHoldScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
+  final PlayerBookingService _bookingService = PlayerBookingService.instance;
+  bool _isHolding = true;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -23,12 +28,63 @@ class _SlotHoldScreenState extends State<SlotHoldScreen> with SingleTickerProvid
       duration: const Duration(milliseconds: 1200),
     )..repeat();
 
-    Future.delayed(const Duration(milliseconds: 2000), () {
-      if (mounted) {
-        final args = ModalRoute.of(context)?.settings.arguments;
-        Navigator.pushReplacementNamed(context, '/payment', arguments: args);
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _holdAndContinue();
     });
+  }
+
+  Future<void> _holdAndContinue() async {
+    final rawArgs = ModalRoute.of(context)?.settings.arguments;
+    final args = rawArgs is Map ? rawArgs.cast<String, dynamic>() : null;
+
+    final courtId = (args?['courtId'] as String?) ?? '';
+    final bookingDate = (args?['bookingDate'] as String?) ?? '';
+    final startTime = (args?['startTime'] as String?) ?? '';
+
+    if (courtId.isEmpty || bookingDate.isEmpty || startTime.isEmpty) {
+      if (!mounted) return;
+      setState(() {
+        _isHolding = false;
+        _errorMessage = 'Missing booking details. Please reselect your slot.';
+      });
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _isHolding = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final heldBooking = await _bookingService.holdSlot(
+        courtId: courtId,
+        date: bookingDate,
+        startTime: startTime,
+      );
+
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(
+        context,
+        '/payment',
+        arguments: {
+          ...?args,
+          'heldBooking': heldBooking,
+        },
+      );
+    } on BookingApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isHolding = false;
+        _errorMessage = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isHolding = false;
+        _errorMessage = 'Unable to hold slot right now. Please try again.';
+      });
+    }
   }
 
   @override
@@ -42,49 +98,72 @@ class _SlotHoldScreenState extends State<SlotHoldScreen> with SingleTickerProvid
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: 120,
-              height: 120,
-              child: Stack(
+        child: _isHolding
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.bgElevated,
+                  SizedBox(
+                    width: 120,
+                    height: 120,
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: double.infinity,
+                          height: double.infinity,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: AppColors.bgElevated,
+                          ),
+                        ),
+                        AnimatedBuilder(
+                          animation: _ctrl,
+                          builder: (context, child) {
+                            return CustomPaint(
+                              size: const Size(120, 120),
+                              painter: _ArcPainter(_ctrl.value),
+                            );
+                          },
+                        ),
+                        Center(
+                          child: Icon(Icons.lock_clock_outlined,
+                              size: 48, color: AppColors.green),
+                        ),
+                      ],
                     ),
                   ),
-                  AnimatedBuilder(
-                    animation: _ctrl,
-                    builder: (context, child) {
-                      return CustomPaint(
-                        size: const Size(120, 120),
-                        painter: _ArcPainter(_ctrl.value),
-                      );
-                    },
+                  const SizedBox(height: 32),
+                  Text('Securing your slot...',
+                      style: AppText.h1, textAlign: TextAlign.center),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Acquiring booking lock from server.',
+                    style: AppText.bodySm,
+                    textAlign: TextAlign.center,
                   ),
-                  Center(
-                    child: Icon(Icons.lock_clock_outlined, size: 48, color: AppColors.green),
-                  ),
+                  const SizedBox(height: 48),
+                  const _PulsingDots(),
                 ],
+              )
+            : Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: AppColors.red),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      _errorMessage ?? 'Unable to hold slot.',
+                      style: AppText.body,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    ElevatedButton(
+                      onPressed: _holdAndContinue,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 32),
-            Text('Securing your slot…', style: AppText.h1, textAlign: TextAlign.center),
-            const SizedBox(height: 8),
-            Text(
-              'Acquiring booking lock.\nThis takes under 3 seconds.',
-              style: AppText.bodySm,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 48),
-            const _PulsingDots(),
-          ],
-        ),
       ),
     );
   }
@@ -97,7 +176,8 @@ class _PulsingDots extends StatefulWidget {
   State<_PulsingDots> createState() => _PulsingDotsState();
 }
 
-class _PulsingDotsState extends State<_PulsingDots> with TickerProviderStateMixin {
+class _PulsingDotsState extends State<_PulsingDots>
+    with TickerProviderStateMixin {
   late final List<AnimationController> _controllers;
 
   @override
@@ -135,7 +215,8 @@ class _PulsingDotsState extends State<_PulsingDots> with TickerProviderStateMixi
       children: List.generate(3, (index) {
         return FadeTransition(
           opacity: Tween<double>(begin: 0.3, end: 1.0).animate(
-            CurvedAnimation(parent: _controllers[index], curve: Curves.easeInOutSine),
+            CurvedAnimation(
+                parent: _controllers[index], curve: Curves.easeInOutSine),
           ),
           child: Container(
             width: 8,
