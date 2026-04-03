@@ -90,7 +90,8 @@ class _BookingCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(b['venueName'], style: AppText.h3.copyWith(fontSize: 16)),
+                  Text(b['venueName'],
+                      style: AppText.h3.copyWith(fontSize: 16)),
                   const SizedBox(height: 2),
                   Text(b['courtName'], style: AppText.bodySm),
                 ],
@@ -131,11 +132,14 @@ class _BookingCard extends StatelessWidget {
                   height: 34,
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: AppColors.red),
+                      side: BorderSide(color: AppColors.red),
                       foregroundColor: AppColors.red,
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                      textStyle: GoogleFonts.barlow(fontSize: 13, fontWeight: FontWeight.w500),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999)),
+                      textStyle: GoogleFonts.barlow(
+                          fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                     onPressed: () => _showCancelSheet(context, b),
                     child: const Text('Cancel'),
@@ -146,15 +150,19 @@ class _BookingCard extends StatelessWidget {
                   height: 34,
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: AppColors.green),
+                      side: BorderSide(color: AppColors.green),
                       foregroundColor: AppColors.green,
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                      textStyle: GoogleFonts.barlow(fontSize: 13, fontWeight: FontWeight.w500),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999)),
+                      textStyle: GoogleFonts.barlow(
+                          fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Review feature coming soon')),
+                        const SnackBar(
+                            content: Text('Review feature coming soon')),
                       );
                     },
                     child: const Text('Review'),
@@ -255,7 +263,8 @@ class _BookingCard extends StatelessWidget {
                   hintText: 'Let the venue know why you\'re cancelling…',
                   alignLabelWithHint: true,
                   labelStyle: AppText.label,
-                  hintStyle: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+                  hintStyle:
+                      AppText.bodySm.copyWith(color: AppColors.txtDisabled),
                   filled: true,
                   fillColor: AppColors.bgElevated,
                   border: OutlineInputBorder(
@@ -274,11 +283,16 @@ class _BookingCard extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppColors.txtDisabled.withValues(alpha: 0.5)),
+                        side: BorderSide(
+                            color:
+                                AppColors.txtDisabled.withValues(alpha: 0.5)),
                         foregroundColor: AppColors.txtPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        textStyle: GoogleFonts.barlow(fontSize: 15, fontWeight: FontWeight.bold),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        textStyle: GoogleFonts.barlow(
+                            fontSize: 15, fontWeight: AppTextStyles.bold),
                       ),
                       onPressed: () => Navigator.pop(ctx),
                       child: const Text('Keep Booking'),
@@ -291,17 +305,21 @@ class _BookingCard extends StatelessWidget {
                         backgroundColor: AppColors.red.withValues(alpha: 0.10),
                         foregroundColor: AppColors.red,
                         elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: AppSpacing.sm),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                           side: BorderSide(color: AppColors.red),
                         ),
-                        textStyle: GoogleFonts.barlow(fontSize: 15, fontWeight: FontWeight.bold),
+                        textStyle: GoogleFonts.barlow(
+                            fontSize: 15, fontWeight: AppTextStyles.bold),
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
                         ScaffoldMessenger.of(ctx).showSnackBar(
-                          const SnackBar(content: Text('Booking cancelled. NPR 1,800 refund initiated.')),
+                          const SnackBar(
+                              content: Text(
+                                  'Booking cancelled. NPR 1,800 refund initiated.')),
                         );
                       },
                       child: const Text('Cancel & Refund'),
@@ -365,7 +383,8 @@ class _RefundRow extends StatelessWidget {
             ? color.withValues(alpha: 0.08)
             : AppColors.bgPrimary.withValues(alpha: 0),
         borderRadius: BorderRadius.circular(10),
-        border: isActive ? Border.all(color: color.withValues(alpha: 0.35)) : null,
+        border:
+            isActive ? Border.all(color: color.withValues(alpha: 0.35)) : null,
       ),
       child: Row(
         children: [
@@ -392,7 +411,7 @@ class _RefundRow extends StatelessWidget {
             amount,
             style: GoogleFonts.barlow(
               fontSize: 13,
-              fontWeight: FontWeight.w700,
+              fontWeight: AppTextStyles.semiBold,
               color: isActive ? color : AppColors.txtDisabled,
             ),
           ),
