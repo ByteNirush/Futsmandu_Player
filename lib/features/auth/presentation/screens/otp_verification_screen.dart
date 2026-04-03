@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
 
 import '../../../../core/design_system/app_spacing.dart';
+import '../../../../core/theme/app_text.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/auth_screen_scaffold.dart';
@@ -33,8 +34,8 @@ class OtpVerificationScreen extends StatelessWidget {
                 width: 50,
                 height: 60,
                 textStyle: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: AppTextStyles.bold,
+                    ),
                 decoration: BoxDecoration(
                   color: Theme.of(
                     context,
@@ -50,8 +51,8 @@ class OtpVerificationScreen extends StatelessWidget {
                 width: 50,
                 height: 60,
                 textStyle: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: AppTextStyles.bold,
+                    ),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
                   border: Border.all(
@@ -65,8 +66,8 @@ class OtpVerificationScreen extends StatelessWidget {
                 width: 50,
                 height: 60,
                 textStyle: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: AppTextStyles.bold,
+                    ),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   border: Border.all(
@@ -95,7 +96,8 @@ class OtpVerificationScreen extends StatelessWidget {
               onPressed: () {
                 ScaffoldMessenger.of(
                   context,
-                ).showSnackBar(const SnackBar(content: Text('OTP sent again!')));
+                ).showSnackBar(
+                    const SnackBar(content: Text('OTP sent again!')));
               },
               child: const Text('Resend Code'),
             ),
