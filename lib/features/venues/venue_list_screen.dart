@@ -1,13 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../../core/mock/mock_data.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/filter_chip_row.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
+import 'data/services/player_venues_service.dart';
 import 'venues_map_view.dart';
 
 enum _VenueViewMode { list, map }
@@ -20,12 +22,66 @@ class VenueListScreen extends StatefulWidget {
 }
 
 class _VenueListScreenState extends State<VenueListScreen> {
+  final PlayerVenuesService _venuesService = PlayerVenuesService.instance;
+
+  List<Map<String, dynamic>> _venues = const [];
+  bool _isLoading = true;
+  String? _errorMessage;
+
   String _search = '';
   String _activeFilter = 'All';
   _VenueViewMode _viewMode = _VenueViewMode.list;
+  Timer? _searchDebounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVenues();
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadVenues() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final data = await _venuesService.browseVenues(query: _search);
+      if (!mounted) return;
+      setState(() {
+        _venues = data;
+        _isLoading = false;
+      });
+    } on VenueApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Could not load venues right now.';
+      });
+    }
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() => _search = value.trim());
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 400), _loadVenues);
+  }
 
   List<Map<String, dynamic>> get _filtered {
-    return MockData.venues.where((v) {
+    return _venues.where((v) {
       if (_search.isNotEmpty) {
         final nameMatches =
             (v['name'] as String).toLowerCase().contains(_search.toLowerCase());
@@ -48,6 +104,45 @@ class _VenueListScreenState extends State<VenueListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.bgPrimary,
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: AppColors.bgPrimary,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.wifi_off_rounded,
+                  size: 48,
+                  color: AppColors.txtDisabled,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  _errorMessage ?? 'Could not load venues.',
+                  textAlign: TextAlign.center,
+                  style: AppText.body.copyWith(color: AppColors.txtDisabled),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                ElevatedButton(
+                  onPressed: _loadVenues,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final filtered = _filtered;
     final totalCourts = filtered.fold<int>(
       0,
@@ -73,8 +168,8 @@ class _VenueListScreenState extends State<VenueListScreen> {
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.sm,
                 AppSpacing.xs,
-                AppSpacing.xs2,
-                AppSpacing.xs,
+                AppSpacing.sm,
+                AppSpacing.sm,
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -87,7 +182,7 @@ class _VenueListScreenState extends State<VenueListScreen> {
                     style: SegmentedButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xs3,
+                        horizontal: AppSpacing.xs,
                         vertical: AppSpacing.xs,
                       ),
                     ),
@@ -126,34 +221,34 @@ class _VenueListScreenState extends State<VenueListScreen> {
       BuildContext context, List<Map<String, dynamic>> filtered) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.xxs),
+      padding: const EdgeInsets.only(top: AppSpacing.xs),
       child: Stack(
         clipBehavior: Clip.none,
         fit: StackFit.expand,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs2),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
             child: VenuesMapView(
               venues: filtered,
               mediaPaddingBottom: bottomInset,
             ),
           ),
           Positioned(
-            top: 8,
-            left: 20,
-            right: 20,
+            top: AppSpacing.sm,
+            left: AppSpacing.sm,
+            right: AppSpacing.sm,
             child: Material(
               elevation: 4,
               shadowColor: Colors.black26,
               borderRadius: BorderRadius.circular(16),
               color: AppColors.bgElevated,
               child: _SearchPanel(
-                onSearchChanged: (value) => setState(() => _search = value),
+                onSearchChanged: _onSearchChanged,
               ),
             ),
           ),
           Positioned(
-            top: 76,
+            top: 80,
             left: 0,
             right: 0,
             child: DecoratedBox(
@@ -199,7 +294,7 @@ class _VenueListScreenState extends State<VenueListScreen> {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
-                AppSpacing.sm, AppSpacing.xs, AppSpacing.sm, 0),
+                AppSpacing.sm, AppSpacing.sm, AppSpacing.sm, 0),
             child: Container(
               padding: const EdgeInsets.all(AppSpacing.sm),
               decoration: BoxDecoration(
@@ -220,7 +315,7 @@ class _VenueListScreenState extends State<VenueListScreen> {
                     child: Icon(Icons.explore_rounded,
                         color: AppColors.green, size: 22),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
                       'Discover top futsal venues near you',
@@ -238,16 +333,16 @@ class _VenueListScreenState extends State<VenueListScreen> {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
-                AppSpacing.sm, AppSpacing.sm, AppSpacing.sm, 0),
+                AppSpacing.sm, AppSpacing.md, AppSpacing.sm, 0),
             child: _SearchPanel(
-              onSearchChanged: (value) => setState(() => _search = value),
+              onSearchChanged: _onSearchChanged,
             ),
           ),
         ),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
-                AppSpacing.sm, AppSpacing.sm, AppSpacing.sm, 0),
+                AppSpacing.sm, AppSpacing.md, AppSpacing.sm, 0),
             child: Row(
               children: [
                 Expanded(
@@ -257,7 +352,7 @@ class _VenueListScreenState extends State<VenueListScreen> {
                     icon: Icons.stadium_rounded,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: _QuickStatCard(
                     title: 'Courts',
@@ -265,7 +360,7 @@ class _VenueListScreenState extends State<VenueListScreen> {
                     icon: Icons.grid_view_rounded,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: _QuickStatCard(
                     title: 'Avg Rating',
@@ -281,9 +376,9 @@ class _VenueListScreenState extends State<VenueListScreen> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.sm,
-              AppSpacing.md,
+              AppSpacing.lg,
               AppSpacing.sm,
-              AppSpacing.xs2,
+              AppSpacing.xs,
             ),
             child: Text(
               'Browse by preference',
@@ -297,7 +392,7 @@ class _VenueListScreenState extends State<VenueListScreen> {
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
             child: FilterChipRow(
               options: const [
                 'All',
@@ -316,7 +411,7 @@ class _VenueListScreenState extends State<VenueListScreen> {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
-                AppSpacing.sm, AppSpacing.sm, AppSpacing.sm, AppSpacing.xs2),
+                AppSpacing.sm, AppSpacing.md, AppSpacing.sm, AppSpacing.xs),
             child: Row(
               children: [
                 Text(
@@ -325,18 +420,22 @@ class _VenueListScreenState extends State<VenueListScreen> {
                       AppText.body.copyWith(fontWeight: AppTextStyles.semiBold),
                 ),
                 const Spacer(),
-                Icon(
-                  Icons.tune_rounded,
-                  size: 18,
-                  color: AppColors.txtDisabled,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Smart sorted',
-                  style: AppText.label.copyWith(
-                    color: AppColors.txtDisabled,
-                    fontWeight: FontWeight.w600,
-                  ),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.tune_rounded,
+                      size: 18,
+                      color: AppColors.txtDisabled,
+                    ),
+                    const SizedBox(width: AppSpacing.xxs),
+                    Text(
+                      'Smart sorted',
+                      style: AppText.label.copyWith(
+                        color: AppColors.txtDisabled,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -356,13 +455,13 @@ class _VenueListScreenState extends State<VenueListScreen> {
                       size: 54,
                       color: AppColors.txtDisabled.withValues(alpha: 0.7),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: AppSpacing.sm),
                     Text(
                       'No venues found',
                       style: AppText.h3.copyWith(fontSize: 22),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.xs),
                     Text(
                       'Try changing your search or filter to discover more courts.',
                       style:
@@ -377,15 +476,15 @@ class _VenueListScreenState extends State<VenueListScreen> {
         if (filtered.isNotEmpty)
           SliverPadding(
             padding: EdgeInsets.fromLTRB(
-              16,
-              4,
-              16,
-              MediaQuery.of(context).padding.bottom + kNavBarHeight + 24,
+              AppSpacing.sm,
+              0,
+              AppSpacing.sm,
+              MediaQuery.of(context).padding.bottom + kNavBarHeight + AppSpacing.lg,
             ),
             sliver: SliverList.builder(
               itemCount: filtered.length,
               itemBuilder: (ctx, i) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
                 child: _VenueCard(venue: filtered[i]),
               ),
             ),
@@ -485,8 +584,8 @@ class _VenueCard extends StatelessWidget {
                       ),
                     ),
                     Positioned(
-                      top: 10,
-                      left: 10,
+                      top: AppSpacing.xs3,
+                      left: AppSpacing.xs3,
                       child: _Pill(
                         icon: venue['isVerified'] == true
                             ? Icons.verified_rounded
@@ -501,9 +600,9 @@ class _VenueCard extends StatelessWidget {
                       ),
                     ),
                     Positioned(
-                      bottom: 10,
-                      left: 10,
-                      right: 10,
+                      bottom: AppSpacing.xs3,
+                      left: AppSpacing.xs3,
+                      right: AppSpacing.xs3,
                       child: Row(
                         children: [
                           Expanded(
@@ -518,7 +617,7 @@ class _VenueCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.sm),
                           _Pill(
                             icon: Icons.location_on_rounded,
                             label: venue['distance'] ?? '',
@@ -545,18 +644,18 @@ class _VenueCard extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.sm),
                     Row(
                       children: [
                         const Icon(Icons.star_rounded,
                             size: 18, color: AppColors.ratingStar),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: AppSpacing.xxs),
                         Text(
                           rating.toStringAsFixed(1),
                           style: AppText.body
                               .copyWith(fontWeight: AppTextStyles.semiBold),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: AppSpacing.xxs),
                         Text(
                           '($reviewCount reviews)',
                           style: AppText.bodySm
@@ -565,7 +664,7 @@ class _VenueCard extends StatelessWidget {
                         const Spacer(),
                         Icon(Icons.sports_soccer_rounded,
                             size: 16, color: AppColors.green),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: AppSpacing.xxs),
                         Text(
                           '${(venue['courts'] as List?)?.length ?? 0} courts',
                           style: AppText.label.copyWith(
@@ -575,16 +674,16 @@ class _VenueCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: AppSpacing.xs),
                     Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
+                      spacing: AppSpacing.xs,
+                      runSpacing: AppSpacing.xs,
                       children: amenities
                           .take(3)
                           .map(
                             (a) => Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.xs3,
+                                horizontal: AppSpacing.xs,
                                 vertical: AppSpacing.xxs,
                               ),
                               decoration: BoxDecoration(
@@ -606,7 +705,7 @@ class _VenueCard extends StatelessWidget {
                           )
                           .toList(),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.sm),
                     Row(
                       children: [
                         Expanded(
@@ -615,7 +714,7 @@ class _VenueCard extends StatelessWidget {
                             text: '$_availableSlots slots available',
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: AppSpacing.sm),
                         Expanded(
                           child: _InfoChip(
                             icon: Icons.local_offer_rounded,
@@ -626,12 +725,12 @@ class _VenueCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.sm),
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xs2,
-                        vertical: AppSpacing.xs2,
+                        horizontal: AppSpacing.sm,
+                        vertical: AppSpacing.sm,
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.green.withValues(alpha: 0.1),
@@ -644,7 +743,7 @@ class _VenueCard extends StatelessWidget {
                         children: [
                           Icon(Icons.touch_app_rounded,
                               size: 18, color: AppColors.green),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
                               'Tap to view details and book your slot',
@@ -727,7 +826,7 @@ class _QuickStatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.xs2),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: AppColors.bgElevated,
         borderRadius: BorderRadius.circular(16),
@@ -736,15 +835,15 @@ class _QuickStatCard extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 30,
-            height: 30,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               color: AppColors.green.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(9),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 17, color: AppColors.green),
+            child: Icon(icon, size: 18, color: AppColors.green),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppSpacing.xs),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -756,7 +855,7 @@ class _QuickStatCard extends StatelessWidget {
                   style:
                       AppText.body.copyWith(fontWeight: AppTextStyles.semiBold),
                 ),
-                const SizedBox(height: 1),
+                const SizedBox(height: AppSpacing.xxs),
                 Text(
                   title,
                   maxLines: 1,
@@ -782,8 +881,8 @@ class _InfoChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs3,
-        vertical: AppSpacing.xs3,
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
         color: AppColors.bgSurface,
@@ -791,8 +890,8 @@ class _InfoChip extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 15, color: AppColors.green),
-          const SizedBox(width: 6),
+          Icon(icon, size: 16, color: AppColors.green),
+          const SizedBox(width: AppSpacing.xs),
           Expanded(
             child: Text(
               text,
@@ -838,7 +937,7 @@ class _Pill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 14, color: fg),
-          const SizedBox(width: 4),
+          const SizedBox(width: AppSpacing.xxs),
           Text(
             label,
             style: GoogleFonts.barlow(

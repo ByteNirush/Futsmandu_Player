@@ -26,7 +26,6 @@ class _FilterChipRowState extends State<FilterChipRow> {
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
       ),
       child: Row(
         children: widget.options.map((option) {
