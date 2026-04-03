@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -11,6 +13,12 @@ import '../../shared/widgets/futs_card.dart';
 import '../../shared/widgets/section_header.dart';
 import '../../shared/widgets/status_badge.dart';
 import 'home_shell.dart' show kNavBarHeight;
+
+String _greetingForHour(int hour) {
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
 
 // --- Email Nudge Banner ---
 class _EmailNudgeBanner extends StatefulWidget {
@@ -60,130 +68,137 @@ class _EmailNudgeBannerState extends State<_EmailNudgeBanner> {
 // --- Match Mini Card ---
 class _MatchMiniCard extends StatelessWidget {
   final Map<String, dynamic> match;
-  
+
   const _MatchMiniCard(this.match);
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/match-detail', arguments: match),
-      child: Container(
-        width: 160,
-        margin: const EdgeInsets.only(right: AppSpacing.xs2),
-        // Used ClipRRect so children fit within bounds
-        child: ClipRRect(
+    return SizedBox(
+      width: 160,
+      child: Padding(
+        padding: const EdgeInsets.only(right: AppSpacing.xs2),
+        child: Material(
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            children: [
-              CachedNetworkImage(
-                imageUrl: match['venueImage'],
-                fit: BoxFit.cover,
-                width: 160,
-                height: 200,
-                placeholder: (context, url) => Container(
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () =>
+                Navigator.pushNamed(context, '/match-detail', arguments: match),
+            child: Stack(
+              children: [
+                CachedNetworkImage(
+                  imageUrl: match['venueImage'],
+                  fit: BoxFit.cover,
                   width: 160,
                   height: 200,
-                  color: AppColors.bgElevated,
-                  alignment: Alignment.center,
-                  child: const SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  width: 160,
-                  height: 200,
-                  color: AppColors.bgElevated,
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.broken_image_outlined,
-                    size: 28,
-                    color: AppColors.txtDisabled,
-                  ),
-                ),
-              ),
-              Container(
-                width: double.infinity,
-                height: double.infinity,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.85),
-                    ],
-                    stops: const [0.3, 1.0],
-                  ),
-                ),
-              ),
-              Positioned(
-                bottom: AppSpacing.xs3,
-                left: AppSpacing.xs3,
-                right: AppSpacing.xs3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    StatusBadge(
-                      label: '${match['spotsLeft']} spots',
-                      color: match['spotsLeft'] <= 2 
-                          ? AppColors.red 
-                          : match['spotsLeft'] <= 4 
-                              ? AppColors.amber 
-                              : AppColors.green,
+                  placeholder: (context, url) => Container(
+                    width: 160,
+                    height: 200,
+                    color: AppColors.bgElevated,
+                    alignment: Alignment.center,
+                    child: const SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                    const SizedBox(height: AppSpacing.xxs),
-                    Text(
-                      match['venueName'],
-                      style: GoogleFonts.barlow(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    width: 160,
+                    height: 200,
+                    color: AppColors.bgElevated,
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.broken_image_outlined,
+                      size: 28,
+                      color: AppColors.txtDisabled,
+                    ),
+                  ),
+                ),
+                Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.85),
+                      ],
+                      stops: const [0.3, 1.0],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: AppSpacing.xs3,
+                  left: AppSpacing.xs3,
+                  right: AppSpacing.xs3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      StatusBadge(
+                        label: '${match['spotsLeft']} spots',
+                        color: match['spotsLeft'] <= 2
+                            ? AppColors.red
+                            : match['spotsLeft'] <= 4
+                                ? AppColors.amber
+                                : AppColors.green,
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Row(
-                      children: [
-                        Icon(Icons.access_time, size: 11, color: Colors.white.withValues(alpha: 0.7)),
-                        const SizedBox(width: AppSpacing.xxs),
-                        Text(
-                          '${match['time']} · ${match['distance']}',
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        match['venueName'],
+                        style: GoogleFonts.barlow(
+                          fontSize: 14,
+                          fontWeight: AppTextStyles.bold,
+                          color: Colors.white,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Row(
+                        children: [
+                          Icon(Icons.access_time,
+                              size: 11,
+                              color: Colors.white.withValues(alpha: 0.7)),
+                          const SizedBox(width: AppSpacing.xxs),
+                          Text(
+                            '${match['time']} · ${match['distance']}',
+                            style: GoogleFonts.barlow(
+                              fontSize: 11,
+                              color: Colors.white.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (match['friendsIn'] > 0)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.green.withValues(alpha: 0.15),
+                        border: Border.all(
+                            color: AppColors.green.withValues(alpha: 0.4)),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '+${match['friendsIn']}',
                           style: GoogleFonts.barlow(
-                            fontSize: 11,
-                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: 10,
+                            color: AppColors.green,
+                            fontWeight: AppTextStyles.semiBold,
                           ),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (match['friendsIn'] > 0)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.green.withValues(alpha: 0.15),
-                      border: Border.all(color: AppColors.green.withValues(alpha: 0.4)),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '+${match['friendsIn']}',
-                        style: GoogleFonts.barlow(
-                          fontSize: 10,
-                          color: AppColors.green,
-                          fontWeight: FontWeight.w700,
-                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -217,8 +232,22 @@ class _UpcomingBookingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final String? matchId = b['matchId'] as String?;
+    Map<String, dynamic>? matchDetail;
+    if (matchId != null) {
+      for (final match in MockData.matches) {
+        if (match['id'] == matchId) {
+          matchDetail = match;
+          break;
+        }
+      }
+    }
+
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/match-detail', arguments: MockData.matches[0]),
+      onTap: matchDetail == null
+          ? null
+          : () => Navigator.pushNamed(context, '/match-detail',
+              arguments: matchDetail),
       child: FutsCard(
         padding: EdgeInsets.zero,
         child: Row(
@@ -249,29 +278,28 @@ class _UpcomingBookingCard extends StatelessWidget {
                       children: [
                         StatusBadge(label: 'CONFIRMED', color: AppColors.green),
                         const Spacer(),
-                        Text(
-                          'NPR ${b['priceNPR']}', 
-                          style: GoogleFonts.barlow(
-                            color: AppColors.green, 
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          )
-                        ),
+                        Text('NPR ${b['priceNPR']}',
+                            style: GoogleFonts.barlow(
+                              color: AppColors.green,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            )),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
-                      b['venueName'], 
+                      b['venueName'],
                       style: AppText.body.copyWith(fontWeight: FontWeight.w600),
                     ),
                     Text(
-                      b['courtName'], 
+                      b['courtName'],
                       style: AppText.bodySm,
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Row(
                       children: [
-                        _MetaChip(Icons.calendar_today, b['date'].split(' ').take(3).join(' ')),
+                        _MetaChip(Icons.calendar_today,
+                            b['date'].split(' ').take(3).join(' ')),
                         const SizedBox(width: AppSpacing.xs2),
                         _MetaChip(Icons.access_time, b['time']),
                       ],
@@ -294,93 +322,97 @@ class _TopFutsalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/venues'),
-      child: Container(
-        width: 220,
-        margin: const EdgeInsets.only(right: AppSpacing.xs2),
-        child: ClipRRect(
+    return SizedBox(
+      width: 220,
+      child: Padding(
+        padding: const EdgeInsets.only(right: AppSpacing.xs2),
+        child: Material(
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            children: [
-              CachedNetworkImage(
-                imageUrl: venue['coverUrl'] ?? '',
-                fit: BoxFit.cover,
-                width: 220,
-                height: 140,
-                placeholder: (context, url) => Container(
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => Navigator.pushNamed(context, '/venues'),
+            child: Stack(
+              children: [
+                CachedNetworkImage(
+                  imageUrl: venue['coverUrl'] ?? '',
+                  fit: BoxFit.cover,
                   width: 220,
                   height: 140,
-                  color: AppColors.bgElevated,
-                  alignment: Alignment.center,
-                  child: const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                  placeholder: (context, url) => Container(
+                    width: 220,
+                    height: 140,
+                    color: AppColors.bgElevated,
+                    alignment: Alignment.center,
+                    child: const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    width: 220,
+                    height: 140,
+                    color: AppColors.bgElevated,
+                    alignment: Alignment.center,
+                    child: Icon(
+                      Icons.broken_image_outlined,
+                      size: 24,
+                      color: AppColors.txtDisabled,
+                    ),
                   ),
                 ),
-                errorWidget: (context, url, error) => Container(
+                Container(
                   width: 220,
                   height: 140,
-                  color: AppColors.bgElevated,
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.broken_image_outlined,
-                    size: 24,
-                    color: AppColors.txtDisabled,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.10),
+                        Colors.black.withValues(alpha: 0.80),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              Container(
-                width: 220,
-                height: 140,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.10),
-                      Colors.black.withValues(alpha: 0.80),
+                Positioned(
+                  left: AppSpacing.xs3,
+                  right: AppSpacing.xs3,
+                  bottom: AppSpacing.xs3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        venue['name'] ?? '',
+                        style: GoogleFonts.barlow(
+                          color: Colors.white,
+                          fontWeight: AppTextStyles.semiBold,
+                          fontSize: 14,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: AppSpacing.xxs),
+                      Row(
+                        children: [
+                          Icon(Icons.star, size: 14, color: AppColors.amber),
+                          const SizedBox(width: AppSpacing.xxs),
+                          Text(
+                            '${venue['rating']}  ·  ${venue['distance']}',
+                            style: GoogleFonts.barlow(
+                              color: Colors.white.withValues(alpha: 0.90),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-              ),
-              Positioned(
-                left: AppSpacing.xs3,
-                right: AppSpacing.xs3,
-                bottom: AppSpacing.xs3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      venue['name'] ?? '',
-                      style: GoogleFonts.barlow(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: AppSpacing.xxs),
-                    Row(
-                      children: [
-                        Icon(Icons.star, size: 14, color: AppColors.amber),
-                        const SizedBox(width: AppSpacing.xxs),
-                        Text(
-                          '${venue['rating']}  ·  ${venue['distance']}',
-                          style: GoogleFonts.barlow(
-                            color: Colors.white.withValues(alpha: 0.90),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -397,15 +429,18 @@ class HomeScreen extends StatelessWidget {
     const Map<String, dynamic> currentUser = MockData.currentUser;
     final int score = currentUser['reliabilityScore'] ?? 100;
     final bool isVerified = currentUser['isVerified'] ?? true;
+    final String greeting = _greetingForHour(DateTime.now().hour);
 
     Map<String, dynamic>? upcomingBooking;
     try {
-      upcomingBooking = MockData.bookings.firstWhere((b) => b['status'] == 'CONFIRMED');
+      upcomingBooking =
+          MockData.bookings.firstWhere((b) => b['status'] == 'CONFIRMED');
     } catch (_) {}
     final List<Map<String, dynamic>> topFutsals =
         List<Map<String, dynamic>>.from(MockData.venues)
           ..sort(
-            (a, b) => ((b['rating'] ?? 0) as num).compareTo((a['rating'] ?? 0) as num),
+            (a, b) => ((b['rating'] ?? 0) as num)
+                .compareTo((a['rating'] ?? 0) as num),
           );
 
     return Scaffold(
@@ -442,7 +477,8 @@ class HomeScreen extends StatelessWidget {
                           ],
                         ),
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: AppColors.borderClr, width: 1),
+                        border:
+                            Border.all(color: AppColors.borderClr, width: 1),
                       ),
                       padding: const EdgeInsets.fromLTRB(
                         AppSpacing.sm,
@@ -457,7 +493,7 @@ class HomeScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Good evening', style: AppText.bodySm),
+                                Text(greeting, style: AppText.bodySm),
                                 Text(
                                   currentUser['name'],
                                   style: AppText.h1,
@@ -499,8 +535,8 @@ class HomeScreen extends StatelessWidget {
                               IconButton(
                                 icon: const Icon(Icons.notifications_outlined),
                                 color: AppColors.txtDisabled,
-                                onPressed: () =>
-                                    Navigator.pushNamed(context, '/notifications'),
+                                onPressed: () => Navigator.pushNamed(
+                                    context, '/notifications'),
                               ),
                               Positioned(
                                 top: 8,
@@ -518,7 +554,7 @@ class HomeScreen extends StatelessWidget {
                                       style: GoogleFonts.barlow(
                                         fontSize: 9,
                                         color: Colors.white,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: AppTextStyles.semiBold,
                                       ),
                                     ),
                                   ),
@@ -533,7 +569,7 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             // Sliver 2: Reliability Warning
             if (score < 70)
               SliverToBoxAdapter(
@@ -553,7 +589,8 @@ class HomeScreen extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded, size: 18, color: AppColors.amber),
+                      Icon(Icons.warning_amber_rounded,
+                          size: 18, color: AppColors.amber),
                       const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Text(
@@ -585,8 +622,10 @@ class HomeScreen extends StatelessWidget {
                       height: 140,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                        itemCount: topFutsals.length >= 4 ? 4 : topFutsals.length,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm),
+                        itemCount:
+                            topFutsals.length >= 4 ? 4 : topFutsals.length,
                         itemBuilder: (ctx, i) => _TopFutsalCard(topFutsals[i]),
                       ),
                     ),
@@ -604,16 +643,19 @@ class HomeScreen extends StatelessWidget {
                   children: [
                     SectionHeader(
                       title: 'Play Tonight',
-                      onAction: () => Navigator.pushNamed(context, '/discovery'),
+                      onAction: () =>
+                          Navigator.pushNamed(context, '/discovery'),
                     ),
                     const SizedBox(height: AppSpacing.xs2),
                     SizedBox(
                       height: 200,
                       child: ListView.builder(
                         scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                        itemCount: 3,
-                        itemBuilder: (ctx, i) => _MatchMiniCard(MockData.matches[i]),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm),
+                        itemCount: math.min(3, MockData.matches.length),
+                        itemBuilder: (ctx, i) =>
+                            _MatchMiniCard(MockData.matches[i]),
                       ),
                     ),
                   ],
@@ -628,7 +670,9 @@ class HomeScreen extends StatelessWidget {
                   0,
                   AppSpacing.md,
                   0,
-                  MediaQuery.of(context).padding.bottom + kNavBarHeight + AppSpacing.sm,
+                  MediaQuery.of(context).padding.bottom +
+                      kNavBarHeight +
+                      AppSpacing.sm,
                 ),
                 child: Column(
                   children: [
@@ -636,25 +680,29 @@ class HomeScreen extends StatelessWidget {
                       title: 'Upcoming',
                       onAction: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Use Bookings tab below')),
+                          const SnackBar(
+                              content: Text('Use Bookings tab below')),
                         );
                       },
                     ),
                     const SizedBox(height: AppSpacing.xs2),
                     if (upcomingBooking != null)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm),
                         child: _UpcomingBookingCard(upcomingBooking),
                       )
                     else
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm),
                         child: EmptyState(
                           icon: Icons.sports_soccer_outlined,
                           title: 'No upcoming bookings',
                           subtitle: 'Find a court and book your next game',
                           buttonLabel: 'Browse Courts',
-                          onButton: () => Navigator.pushNamed(context, '/venues'),
+                          onButton: () =>
+                              Navigator.pushNamed(context, '/venues'),
                         ),
                       ),
                   ],
