@@ -4,6 +4,17 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTextStyles {
+  // Poppins supports 100-900 and is loaded via google_fonts across platforms.
+  // Font Weights
+  static const FontWeight thin = FontWeight.w100;
+  static const FontWeight light = FontWeight.w300;
+  static const FontWeight regular = FontWeight.w400;
+  static const FontWeight normal = regular;
+  static const FontWeight medium = FontWeight.w500;
+  static const FontWeight semiBold = FontWeight.w600;
+  static const FontWeight bold = FontWeight.w700;
+  static const FontWeight extraBold = FontWeight.w800;
+
   static TextStyle poppinsTextTheme({
     required double fontSize,
     required FontWeight fontWeight,
@@ -19,72 +30,90 @@ class AppTextStyles {
   // Headings
   static TextStyle h1(ColorScheme scheme) => poppinsTextTheme(
         fontSize: 28,
-        fontWeight: FontWeight.w700,
+        fontWeight: bold,
         color: scheme.onSurface,
-      );
+      ).copyWith(height: 1.2, letterSpacing: -0.2);
 
   static TextStyle h2(ColorScheme scheme) => poppinsTextTheme(
-        fontSize: 22,
-        fontWeight: FontWeight.w700,
+        fontSize: 24,
+        fontWeight: semiBold,
         color: scheme.onSurface,
-      );
+      ).copyWith(height: 1.25, letterSpacing: -0.1);
 
   static TextStyle h3(ColorScheme scheme) => poppinsTextTheme(
         fontSize: 20,
-        fontWeight: FontWeight.w700,
+        fontWeight: semiBold,
         color: scheme.onSurface,
-      );
+      ).copyWith(height: 1.3);
 
   // Titles
   static TextStyle titleMd(ColorScheme scheme) => poppinsTextTheme(
         fontSize: 16,
-        fontWeight: FontWeight.w700,
+        fontWeight: semiBold,
         color: scheme.onSurface,
-      );
+    ).copyWith(height: 1.35);
 
   static TextStyle titleSm(ColorScheme scheme) => poppinsTextTheme(
         fontSize: 14,
-        fontWeight: FontWeight.w700,
+        fontWeight: medium,
         color: scheme.onSurface,
-      );
+    ).copyWith(height: 1.35);
 
   // Body
   static TextStyle body(ColorScheme scheme) => poppinsTextTheme(
         fontSize: 16,
-        fontWeight: FontWeight.w400,
+        fontWeight: regular,
         color: scheme.onSurface,
-      );
+      ).copyWith(height: 1.5);
 
   static TextStyle bodySm(ColorScheme scheme) => poppinsTextTheme(
         fontSize: 14,
-        fontWeight: FontWeight.w400,
+        fontWeight: regular,
         color: scheme.onSurface,
-      );
+      ).copyWith(height: 1.45);
 
   static TextStyle bodyXs(ColorScheme scheme) => poppinsTextTheme(
         fontSize: 12,
-        fontWeight: FontWeight.w400,
+        fontWeight: regular,
         color: scheme.onSurfaceVariant,
-      );
+      ).copyWith(height: 1.35);
 
-  // Labels
+  // Labels / utility
   static TextStyle label(ColorScheme scheme) => poppinsTextTheme(
-        fontSize: 14,
-        fontWeight: FontWeight.w700,
+        fontSize: 13,
+        fontWeight: medium,
         color: scheme.onSurface,
-      );
+      ).copyWith(height: 1.3, letterSpacing: 0.15);
 
   static TextStyle labelSm(ColorScheme scheme) => poppinsTextTheme(
         fontSize: 12,
-        fontWeight: FontWeight.w600,
+        fontWeight: medium,
         color: scheme.onSurfaceVariant,
-      );
+    ).copyWith(height: 1.3, letterSpacing: 0.2);
 
   static TextStyle labelXs(ColorScheme scheme) => poppinsTextTheme(
         fontSize: 11,
-        fontWeight: FontWeight.w600,
+        fontWeight: medium,
         color: scheme.onSurfaceVariant,
-      );
+    ).copyWith(height: 1.25, letterSpacing: 0.2);
+
+    static TextStyle button(ColorScheme scheme) => poppinsTextTheme(
+      fontSize: 15,
+      fontWeight: semiBold,
+      color: scheme.onPrimary,
+    ).copyWith(height: 1.2, letterSpacing: 0.25);
+
+    static TextStyle buttonSm(ColorScheme scheme) => poppinsTextTheme(
+      fontSize: 13,
+      fontWeight: semiBold,
+      color: scheme.onPrimary,
+    ).copyWith(height: 1.2, letterSpacing: 0.2);
+
+    static TextStyle caption(ColorScheme scheme) => poppinsTextTheme(
+      fontSize: 11,
+      fontWeight: regular,
+      color: scheme.onSurfaceVariant,
+    ).copyWith(height: 1.3);
 
   static TextTheme textTheme(ColorScheme scheme) {
     final base = GoogleFonts.poppinsTextTheme();
@@ -97,9 +126,9 @@ class AppTextStyles {
       bodyLarge: body(scheme),
       bodyMedium: bodySm(scheme),
       bodySmall: bodyXs(scheme),
-      labelLarge: label(scheme),
+      labelLarge: button(scheme),
       labelMedium: labelSm(scheme),
-      labelSmall: labelXs(scheme),
+      labelSmall: caption(scheme),
     );
   }
 }
@@ -113,46 +142,58 @@ class AppText {
   // Headings
   static TextStyle get h1 => GoogleFonts.poppins(
         fontSize: 28,
-        fontWeight: FontWeight.w700,
+        fontWeight: AppTextStyles.bold,
         color: AppColors.txtPrimary,
-      );
+      ).copyWith(height: 1.2, letterSpacing: -0.2);
 
   static TextStyle get h2 => GoogleFonts.poppins(
-        fontSize: 22,
-        fontWeight: FontWeight.w700,
+        fontSize: 24,
+        fontWeight: AppTextStyles.semiBold,
         color: AppColors.txtPrimary,
-      );
+      ).copyWith(height: 1.25, letterSpacing: -0.1);
 
   static TextStyle get h3 => GoogleFonts.poppins(
         fontSize: 20,
-        fontWeight: FontWeight.w700,
+        fontWeight: AppTextStyles.semiBold,
         color: AppColors.txtPrimary,
-      );
+      ).copyWith(height: 1.3);
 
   // Body
   static TextStyle get body => GoogleFonts.poppins(
         fontSize: 16,
-        fontWeight: FontWeight.w400,
+        fontWeight: AppTextStyles.regular,
         color: AppColors.txtPrimary,
-      );
+      ).copyWith(height: 1.5);
 
   static TextStyle get bodySm => GoogleFonts.poppins(
         fontSize: 14,
-        fontWeight: FontWeight.w400,
+        fontWeight: AppTextStyles.regular,
         color: AppColors.txtPrimary,
-      );
+      ).copyWith(height: 1.45);
 
   // Labels / metadata
   static TextStyle get label => GoogleFonts.poppins(
-        fontSize: 14,
-        fontWeight: FontWeight.w700,
+        fontSize: 13,
+        fontWeight: AppTextStyles.medium,
         color: AppColors.txtDisabled,
-      );
+      ).copyWith(height: 1.3, letterSpacing: 0.15);
+
+  static TextStyle get button => GoogleFonts.poppins(
+        fontSize: 15,
+        fontWeight: AppTextStyles.semiBold,
+        color: AppColors.txtPrimary,
+      ).copyWith(height: 1.2, letterSpacing: 0.25);
+
+  static TextStyle get caption => GoogleFonts.poppins(
+        fontSize: 11,
+        fontWeight: AppTextStyles.regular,
+        color: AppColors.txtDisabled,
+      ).copyWith(height: 1.3);
 
   /// Monospaced style for numeric / code-like values.
   static TextStyle get mono => GoogleFonts.robotoMono(
         fontSize: 16,
-        fontWeight: FontWeight.w500,
+        fontWeight: AppTextStyles.medium,
         color: AppColors.txtPrimary,
       );
 }
