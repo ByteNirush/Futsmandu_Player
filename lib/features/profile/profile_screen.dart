@@ -183,7 +183,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 '${(winRate * 100).round()}%',
                                 style: AppText.label.copyWith(
                                   color: AppColors.green,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: AppTextStyles.semiBold,
                                 ),
                               ),
                             ],
@@ -232,7 +232,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       '$score',
                                       style: GoogleFonts.barlow(
                                         fontSize: 24,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: AppTextStyles.semiBold,
                                         color: scoreColor,
                                         height: 1,
                                       ),
@@ -321,11 +321,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                     const _SectionLabel(label: 'Preferences'),
                     const SizedBox(height: 12),
                     FutsCard(
-                      padding:
-                          const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.xxs,
-                            vertical: AppSpacing.xxs,
-                          ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xxs,
+                        vertical: AppSpacing.xxs,
+                      ),
                       child: Column(
                         children: [
                           _SettingsTile(
@@ -395,7 +394,8 @@ class _ProfileScreenState extends State<ProfileScreen>
         content: Text('$featureName coming soon'),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.sm),
+        margin: const EdgeInsets.fromLTRB(
+            AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.sm),
       ),
     );
   }
@@ -428,7 +428,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               'Log Out',
               style: AppText.bodySm.copyWith(
                 color: AppColors.red,
-                fontWeight: FontWeight.w700,
+                fontWeight: AppTextStyles.semiBold,
               ),
             ),
           ),
@@ -703,8 +703,7 @@ class ReliabilityRingPainter extends CustomPainter {
     );
 
     canvas.drawArc(rect, -math.pi / 2, 2 * math.pi, false, bg);
-    canvas.drawArc(
-        rect, -math.pi / 2, (score / 100) * 2 * math.pi, false, fg);
+    canvas.drawArc(rect, -math.pi / 2, (score / 100) * 2 * math.pi, false, fg);
   }
 
   @override
@@ -793,7 +792,7 @@ class _MetricCard extends StatelessWidget {
             value,
             style: GoogleFonts.barlow(
               fontSize: 22,
-              fontWeight: FontWeight.w700,
+              fontWeight: AppTextStyles.semiBold,
               color: AppColors.txtPrimary,
               height: 1,
             ),
@@ -839,7 +838,7 @@ class _InfoChip extends StatelessWidget {
           Text(
             value,
             style: AppText.bodySm.copyWith(
-              fontWeight: FontWeight.w700,
+              fontWeight: AppTextStyles.semiBold,
               color: color,
               fontSize: 13,
             ),
@@ -897,7 +896,8 @@ class _QuickActionsGrid extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      margin: const EdgeInsets.fromLTRB(AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.sm),
+                      margin: const EdgeInsets.fromLTRB(
+                          AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.sm),
                     ),
                   );
                 }
@@ -1006,7 +1006,8 @@ class _SettingsTile extends StatelessWidget {
       children: [
         ListTile(
           minVerticalPadding: 10,
-          contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs3),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: AppSpacing.xs3),
           leading: Container(
             width: 38,
             height: 38,
@@ -1090,7 +1091,8 @@ class _ThemeModeMenu extends StatelessWidget {
               style: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
             ),
             const SizedBox(width: 2),
-            Icon(Icons.expand_more_rounded, color: AppColors.txtDisabled, size: 18),
+            Icon(Icons.expand_more_rounded,
+                color: AppColors.txtDisabled, size: 18),
           ],
         ),
       ),
