@@ -906,7 +906,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                               if (_isLoadingAvailability) {
                                 return const Center(
                                   child: Padding(
-                                    padding: EdgeInsets.symmetric(vertical: 20),
+                                    padding: EdgeInsets.symmetric(vertical: _spaceXl),
                                     child: CircularProgressIndicator(),
                                   ),
                                 );
@@ -1039,7 +1039,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                       horizontalPad,
                       _spaceLg,
                     ),
-                    margin: const EdgeInsets.only(top: 48),
+                    margin: const EdgeInsets.only(top: _space2xl * 2),
                     decoration: BoxDecoration(
                       color: AppColors.bgSurface,
                       borderRadius: const BorderRadius.vertical(
