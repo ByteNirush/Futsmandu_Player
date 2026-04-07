@@ -1,5 +1,6 @@
 name: futsmandu
 description: Book football courts in Kathmandu
+publish_to: 'none'
 version: 1.0.0+1
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -7,7 +8,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  futsmandu_design_system:
+    path: ../futsmandu_design_system
+  dio: ^5.7.0
   flutter_secure_storage: ^10.0.0
+  flutter_riverpod: ^2.6.1
   google_fonts: ^6.2.1
   cached_network_image: ^3.3.1
   intl: ^0.20.2
