@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:futsmandu_design_system/components/buttons/primary_button.dart';
+import 'package:futsmandu_design_system/components/buttons/secondary_button.dart';
 
 import '../../core/design_system/app_radius.dart';
 import '../../core/design_system/app_spacing.dart';
 
-class FutsButton extends StatefulWidget {
+class FutsButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final bool isLoading;
@@ -20,56 +22,32 @@ class FutsButton extends StatefulWidget {
   });
 
   @override
-  State<FutsButton> createState() => _FutsButtonState();
-}
-
-class _FutsButtonState extends State<FutsButton> {
-  bool _pressed = false;
-
-  void _handleTapDown(TapDownDetails details) {
-    if (widget.onPressed != null && !widget.isLoading) {
-      setState(() => _pressed = true);
-    }
-  }
-
-  void _handleTapUp(TapUpDetails details) {
-    if (widget.onPressed != null && !widget.isLoading) {
-      setState(() => _pressed = false);
-      widget.onPressed!();
-    }
-  }
-
-  void _handleTapCancel() {
-    if (widget.onPressed != null && !widget.isLoading) {
-      setState(() => _pressed = false);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final bool disabled = widget.onPressed == null || widget.isLoading;
+    final bool disabled = onPressed == null || isLoading;
 
-    return AnimatedScale(
-      scale: _pressed ? 0.97 : 1.0,
-      duration: const Duration(milliseconds: 120),
-      curve: Curves.easeInOut,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: disabled ? null : _handleTapDown,
-        onTapUp: disabled ? null : _handleTapUp,
-        onTapCancel: disabled ? null : _handleTapCancel,
-        child: widget.outlined
-            ? _buildOutlined(disabled)
-            : _buildFilled(disabled),
-      ),
-    );
+    if (customColor == null) {
+      return outlined
+          ? SecondaryButton(
+              label: label,
+              onPressed: disabled ? null : onPressed,
+              fullWidth: true,
+            )
+          : PrimaryButton(
+              label: label,
+              onPressed: disabled ? null : onPressed,
+              isLoading: isLoading,
+              fullWidth: true,
+            );
+    }
+
+    return outlined ? _buildOutlined(context, disabled) : _buildFilled(context, disabled);
   }
 
-  Widget _buildFilled(bool disabled) {
+  Widget _buildFilled(BuildContext context, bool disabled) {
     return FilledButton(
-      onPressed: disabled ? null : widget.onPressed,
+      onPressed: disabled ? null : onPressed,
       style: FilledButton.styleFrom(
-        backgroundColor: widget.customColor ?? Theme.of(context).colorScheme.primary,
+        backgroundColor: customColor ?? Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 0,
         minimumSize: const Size(double.infinity, AppSpacing.buttonHeight),
@@ -78,15 +56,15 @@ class _FutsButtonState extends State<FutsButton> {
         ),
         textStyle: Theme.of(context).textTheme.labelLarge,
       ),
-      child: _buildContent(),
+      child: _buildContent(context),
     );
   }
 
-  Widget _buildOutlined(bool disabled) {
+  Widget _buildOutlined(BuildContext context, bool disabled) {
     final outlineColor =
-        widget.customColor ?? Theme.of(context).colorScheme.primary;
+        customColor ?? Theme.of(context).colorScheme.primary;
     return OutlinedButton(
-      onPressed: disabled ? null : widget.onPressed,
+      onPressed: disabled ? null : onPressed,
       style: OutlinedButton.styleFrom(
         foregroundColor: outlineColor,
         elevation: 0,
@@ -100,21 +78,22 @@ class _FutsButtonState extends State<FutsButton> {
         ),
         textStyle: Theme.of(context).textTheme.labelLarge,
       ),
-      child: _buildContent(),
+      child: _buildContent(context),
     );
   }
 
-  Widget _buildContent() {
-    if (widget.isLoading) {
-      return const SizedBox(
+  Widget _buildContent(BuildContext context) {
+    if (isLoading) {
+      final onPrimary = Theme.of(context).colorScheme.onPrimary;
+      return SizedBox(
         width: 24,
         height: 24,
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
-          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          valueColor: AlwaysStoppedAnimation<Color>(onPrimary),
         ),
       );
     }
-    return Text(widget.label);
+    return Text(label);
   }
 }
