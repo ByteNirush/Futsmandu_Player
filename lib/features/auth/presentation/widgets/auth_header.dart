@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:futsmandu_design_system/components/text/custom_text.dart';
 
 import '../../../../core/design_system/app_spacing.dart';
 
@@ -17,9 +18,9 @@ class AuthHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.headlineSmall),
+        CustomText(title, variant: CustomTextVariant.heading),
         const SizedBox(height: AppSpacing.xs),
-        Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+        CustomText(subtitle, variant: CustomTextVariant.body),
       ],
     );
   }
