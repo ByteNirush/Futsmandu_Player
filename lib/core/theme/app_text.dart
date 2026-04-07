@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 
 import 'app_colors.dart';
 
@@ -7,13 +8,13 @@ class AppTextStyles {
   // Poppins supports 100-900 and is loaded via google_fonts across platforms.
   // Font Weights
   static const FontWeight thin = FontWeight.w100;
-  static const FontWeight light = FontWeight.w300;
-  static const FontWeight regular = FontWeight.w400;
+  static const FontWeight light = AppFontWeights.light;
+  static const FontWeight regular = AppFontWeights.regular;
   static const FontWeight normal = regular;
-  static const FontWeight medium = FontWeight.w500;
-  static const FontWeight semiBold = FontWeight.w600;
-  static const FontWeight bold = FontWeight.w700;
-  static const FontWeight extraBold = FontWeight.w800;
+  static const FontWeight medium = AppFontWeights.medium;
+  static const FontWeight semiBold = AppFontWeights.semiBold;
+  static const FontWeight bold = AppFontWeights.bold;
+  static const FontWeight extraBold = AppFontWeights.extraBold;
 
   static TextStyle poppinsTextTheme({
     required double fontSize,
@@ -116,20 +117,7 @@ class AppTextStyles {
     ).copyWith(height: 1.3);
 
   static TextTheme textTheme(ColorScheme scheme) {
-    final base = GoogleFonts.poppinsTextTheme();
-    return base.copyWith(
-      headlineMedium: h1(scheme),
-      headlineSmall: h2(scheme),
-      titleLarge: h3(scheme),
-      titleMedium: titleMd(scheme),
-      titleSmall: titleSm(scheme),
-      bodyLarge: body(scheme),
-      bodyMedium: bodySm(scheme),
-      bodySmall: bodyXs(scheme),
-      labelLarge: button(scheme),
-      labelMedium: labelSm(scheme),
-      labelSmall: caption(scheme),
-    );
+    return AppTypography.textTheme(scheme);
   }
 }
 
@@ -141,42 +129,42 @@ class AppTextStyles {
 class AppText {
   // Headings
   static TextStyle get h1 => GoogleFonts.poppins(
-        fontSize: 28,
-        fontWeight: AppTextStyles.bold,
+        fontSize: 34,
+        fontWeight: AppTextStyles.extraBold,
         color: AppColors.txtPrimary,
-      ).copyWith(height: 1.2, letterSpacing: -0.2);
+      ).copyWith(height: 1.18, letterSpacing: -0.2);
 
   static TextStyle get h2 => GoogleFonts.poppins(
-        fontSize: 24,
-        fontWeight: AppTextStyles.semiBold,
+        fontSize: 22,
+        fontWeight: AppTextStyles.bold,
         color: AppColors.txtPrimary,
-      ).copyWith(height: 1.25, letterSpacing: -0.1);
+      ).copyWith(height: 1.24, letterSpacing: -0.1);
 
   static TextStyle get h3 => GoogleFonts.poppins(
         fontSize: 20,
-        fontWeight: AppTextStyles.semiBold,
+        fontWeight: AppTextStyles.bold,
         color: AppColors.txtPrimary,
-      ).copyWith(height: 1.3);
+      ).copyWith(height: 1.28);
 
   // Body
   static TextStyle get body => GoogleFonts.poppins(
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: AppTextStyles.regular,
         color: AppColors.txtPrimary,
-      ).copyWith(height: 1.5);
+      ).copyWith(height: 1.45);
 
   static TextStyle get bodySm => GoogleFonts.poppins(
         fontSize: 14,
         fontWeight: AppTextStyles.regular,
         color: AppColors.txtPrimary,
-      ).copyWith(height: 1.45);
+      ).copyWith(height: 1.42);
 
   // Labels / metadata
   static TextStyle get label => GoogleFonts.poppins(
         fontSize: 13,
-        fontWeight: AppTextStyles.medium,
+        fontWeight: AppTextStyles.semiBold,
         color: AppColors.txtDisabled,
-      ).copyWith(height: 1.3, letterSpacing: 0.15);
+      ).copyWith(height: 1.26, letterSpacing: 0.15);
 
   static TextStyle get button => GoogleFonts.poppins(
         fontSize: 15,
@@ -185,14 +173,14 @@ class AppText {
       ).copyWith(height: 1.2, letterSpacing: 0.25);
 
   static TextStyle get caption => GoogleFonts.poppins(
-        fontSize: 11,
+      fontSize: 12,
         fontWeight: AppTextStyles.regular,
         color: AppColors.txtDisabled,
       ).copyWith(height: 1.3);
 
   /// Monospaced style for numeric / code-like values.
   static TextStyle get mono => GoogleFonts.robotoMono(
-        fontSize: 16,
+      fontSize: 15,
         fontWeight: AppTextStyles.medium,
         color: AppColors.txtPrimary,
       );
