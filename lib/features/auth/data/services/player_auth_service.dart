@@ -1,11 +1,8 @@
-import 'dart:convert';
-
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 
 import '../../../../core/config/api_config.dart';
-import '../../../../core/services/player_auth_storage_service.dart';
-import '../../../../core/services/player_http_client.dart';
+import '../../../../core/network/player_dio_client.dart';
+import '../models/player_auth_models.dart';
 
 class AuthException implements Exception {
   const AuthException({required this.message, required this.statusCode});
@@ -22,10 +19,9 @@ class PlayerAuthService {
 
   static final PlayerAuthService instance = PlayerAuthService._internal();
 
-  final http.Client _client = createPlayerHttpClient();
-  final PlayerAuthStorageService _storage = PlayerAuthStorageService.instance;
+  final Dio _client = createPlayerDioClient();
 
-  Future<Map<String, dynamic>> register({
+  Future<PlayerAuthProfile> register({
     required String name,
     required String email,
     required String phone,
@@ -33,94 +29,60 @@ class PlayerAuthService {
   }) async {
     final response = await _postJson(
       ApiConfig.registerEndpoint,
-      body: {
+      data: {
         'name': name.trim(),
-        'email': email.trim(),
+        'email': email.trim().toLowerCase(),
         'phone': phone.trim(),
         'password': password,
       },
     );
 
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toAuthException(decoded, response.statusCode);
-    }
-
-    return _asMap(decoded);
+    return PlayerAuthProfile.fromJson(_asMap(_unwrap(response.data)));
   }
 
-  Future<Map<String, dynamic>> login({
+  Future<PlayerAuthLoginResult> login({
     required String email,
     required String password,
   }) async {
     final response = await _postJson(
       ApiConfig.loginEndpoint,
-      body: {
-        'email': email.trim(),
+      data: {
+        'email': email.trim().toLowerCase(),
         'password': password,
       },
     );
 
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toAuthException(decoded, response.statusCode);
-    }
-
-    final data = _asMap(decoded);
-    final accessToken = _requireString(data['accessToken'], 'accessToken');
-    final user = _asMap(data['user']);
-
-    await _storage.saveAccessToken(accessToken);
-    await _storage.saveUser(user);
-    await _persistRefreshTokenFromResponse(response, data);
-
-    return data;
+    final data = _asMap(_unwrap(response.data));
+    return PlayerAuthLoginResult(
+      accessToken: _requireString(data['accessToken'], 'accessToken'),
+      user: PlayerAuthProfile.fromJson(_asMap(data['user'])),
+    );
   }
 
   Future<String> refresh() async {
-    final response = await _postJson(
-      ApiConfig.refreshEndpoint,
-      includeRefreshCookie: true,
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toAuthException(decoded, response.statusCode);
-    }
-
-    final data = _asMap(decoded);
-    final accessToken = _requireString(data['accessToken'], 'accessToken');
-    await _storage.saveAccessToken(accessToken);
-    await _persistRefreshTokenFromResponse(response, data);
-    return accessToken;
+    final response = await _postJson(ApiConfig.refreshEndpoint);
+    final data = _asMap(_unwrap(response.data));
+    return _requireString(data['accessToken'], 'accessToken');
   }
 
-  Future<void> logout() async {
-    final response = await _postJson(
-      ApiConfig.logoutEndpoint,
-      includeRefreshCookie: true,
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toAuthException(decoded, response.statusCode);
-    }
-
-    await _storage.clearSession();
+  Future<String> logout() async {
+    final response = await _postJson(ApiConfig.logoutEndpoint);
+    final data = _unwrap(response.data);
+    final map =
+        data is Map ? data.cast<String, dynamic>() : const <String, dynamic>{};
+    final message = map['message'];
+    return message is String && message.isNotEmpty
+        ? message
+        : 'Logged out successfully';
   }
 
   Future<String> forgotPassword({required String email}) async {
     final response = await _postJson(
       ApiConfig.forgotPasswordEndpoint,
-      body: {'email': email.trim()},
+      data: {'email': email.trim().toLowerCase()},
     );
 
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toAuthException(decoded, response.statusCode);
-    }
-
-    final data = _asMap(decoded);
+    final data = _asMap(_unwrap(response.data));
     return _requireString(data['message'], 'message');
   }
 
@@ -130,114 +92,42 @@ class PlayerAuthService {
   }) async {
     final response = await _postJson(
       ApiConfig.resetPasswordEndpoint,
-      body: {
+      data: {
         'token': token.trim(),
         'newPassword': newPassword,
       },
     );
 
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toAuthException(decoded, response.statusCode);
-    }
-
-    final data = _asMap(decoded);
+    final data = _asMap(_unwrap(response.data));
     return _requireString(data['message'], 'message');
   }
 
   Future<String> verifyEmail({required String token}) async {
     final response = await _postJson(
       ApiConfig.verifyEmailEndpoint,
-      body: {'token': token.trim()},
+      data: {'token': token.trim()},
     );
 
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toAuthException(decoded, response.statusCode);
-    }
-
-    final data = _asMap(decoded);
+    final data = _asMap(_unwrap(response.data));
     return _requireString(data['message'], 'message');
   }
 
-  Future<http.Response> _postJson(
+  Future<Response<dynamic>> _postJson(
     String endpoint, {
-    Map<String, dynamic>? body,
-    bool includeRefreshCookie = false,
+    Map<String, dynamic>? data,
   }) async {
-    final headers = await _buildHeaders(includeRefreshCookie: includeRefreshCookie);
-
-    if (kDebugMode) {
-      print('POST ${ApiConfig.baseUrl}$endpoint');
-    }
-
-    return _client.post(
-      Uri.parse('${ApiConfig.baseUrl}$endpoint'),
-      headers: headers,
-      body: body == null ? null : jsonEncode(body),
-    );
-  }
-
-  Future<Map<String, String>> _buildHeaders({
-    bool includeRefreshCookie = false,
-  }) async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-
-    if (includeRefreshCookie && !kIsWeb) {
-      final refreshToken = await _storage.getRefreshToken();
-      if (refreshToken != null && refreshToken.isNotEmpty) {
-        headers['Cookie'] = 'refreshToken=$refreshToken';
-      }
-    }
-
-    return headers;
-  }
-
-  Future<void> _persistRefreshTokenFromResponse(
-    http.Response response,
-    dynamic responseData,
-  ) async {
-    if (kIsWeb) return;
-
-    final header = response.headers['set-cookie'];
-    if (header != null && header.contains('refreshToken=')) {
-      final token = _extractRefreshToken(header);
-      if (token != null && token.isNotEmpty) {
-        await _storage.saveRefreshToken(token);
-      }
-      return;
-    }
-
-    if (responseData is Map && responseData['refreshToken'] is String) {
-      final token = responseData['refreshToken'] as String;
-      if (token.isNotEmpty) {
-        await _storage.saveRefreshToken(token);
-      }
-    }
-  }
-
-  String? _extractRefreshToken(String setCookieHeader) {
-    final match = RegExp(r'refreshToken=([^;]+)').firstMatch(setCookieHeader);
-    if (match == null) return null;
-    return Uri.decodeComponent(match.group(1) ?? '');
-  }
-
-  dynamic _decodeBody(String body) {
-    final trimmed = body.trim();
-    if (trimmed.isEmpty) return null;
-
     try {
-      final decoded = jsonDecode(trimmed);
-      if (decoded is Map && decoded.containsKey('data')) {
-        return decoded['data'];
-      }
-      return decoded;
-    } catch (_) {
-      return trimmed;
+      return await _client.post<dynamic>(endpoint, data: data);
+    } on DioException catch (error) {
+      throw _toAuthException(error);
     }
+  }
+
+  dynamic _unwrap(dynamic body) {
+    if (body is Map && body.containsKey('data')) {
+      return body['data'];
+    }
+    return body;
   }
 
   Map<String, dynamic> _asMap(dynamic value) {
@@ -257,14 +147,29 @@ class PlayerAuthService {
     );
   }
 
-  AuthException _toAuthException(dynamic decoded, int statusCode) {
-    if (decoded is Map) {
-      final message = decoded['message'] ?? decoded['error'] ?? decoded['detail'];
+  AuthException _toAuthException(DioException error) {
+    final statusCode = error.response?.statusCode ?? 500;
+    final data = _unwrap(error.response?.data);
+
+    if (data is Map) {
+      final message = data['message'] ?? data['error'] ?? data['detail'];
       if (message is String && message.isNotEmpty) {
         return AuthException(message: message, statusCode: statusCode);
       }
-    } else if (decoded is String && decoded.isNotEmpty) {
-      return AuthException(message: decoded, statusCode: statusCode);
+
+      final validation = data['message'];
+      if (validation is List && validation.isNotEmpty) {
+        final combined = validation.whereType<String>().join('\n');
+        if (combined.isNotEmpty) {
+          return AuthException(message: combined, statusCode: statusCode);
+        }
+      }
+    } else if (data is String && data.isNotEmpty) {
+      return AuthException(message: data, statusCode: statusCode);
+    }
+
+    if (error.message != null && error.message!.isNotEmpty) {
+      return AuthException(message: error.message!, statusCode: statusCode);
     }
 
     return AuthException(
