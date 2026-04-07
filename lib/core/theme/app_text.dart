@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:futsmandu_design_system/futsmandu_design_system.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 
 import 'app_colors.dart';
 
@@ -8,10 +8,10 @@ class AppTextStyles {
   // Poppins supports 100-900 and is loaded via google_fonts across platforms.
   // Font Weights
   static const FontWeight thin = FontWeight.w100;
-  static const FontWeight light = AppFontWeights.light;
+  static const FontWeight light = FontWeight.w300;
   static const FontWeight regular = AppFontWeights.regular;
   static const FontWeight normal = regular;
-  static const FontWeight medium = AppFontWeights.medium;
+  static const FontWeight medium = FontWeight.w500;
   static const FontWeight semiBold = AppFontWeights.semiBold;
   static const FontWeight bold = AppFontWeights.bold;
   static const FontWeight extraBold = AppFontWeights.extraBold;
@@ -178,9 +178,8 @@ class AppText {
         color: AppColors.txtDisabled,
       ).copyWith(height: 1.3);
 
-  /// Monospaced style for numeric / code-like values.
-  static TextStyle get mono => GoogleFonts.robotoMono(
-      fontSize: 15,
+  static TextStyle get mono => GoogleFonts.poppins(
+        fontSize: 15,
         fontWeight: AppTextStyles.medium,
         color: AppColors.txtPrimary,
       );
