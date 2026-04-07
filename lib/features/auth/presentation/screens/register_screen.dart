@@ -1,27 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/app_spacing.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_input_field.dart';
 import '../../data/services/player_auth_service.dart';
+import '../providers/auth_controller.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/auth_screen_scaffold.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authService = PlayerAuthService.instance;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -37,13 +38,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   String? _validateName(String? value) {
-    if ((value ?? '').trim().isEmpty) return 'Name is required';
+    final trimmed = value?.trim() ?? '';
+    if (trimmed.isEmpty) return 'Name is required';
+    if (trimmed.length < 2) return 'Name must be at least 2 characters';
+    if (trimmed.length > 100) return 'Name must be 100 characters or less';
     return null;
   }
 
   String? _validateEmail(String? value) {
     final trimmed = value?.trim() ?? '';
     if (trimmed.isEmpty) return 'Email is required';
+    if (trimmed.length > 254) return 'Email must be 254 characters or less';
     if (!trimmed.contains('@') || !trimmed.contains('.')) {
       return 'Enter a valid email';
     }
@@ -64,6 +69,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final password = value ?? '';
     if (password.isEmpty) return 'Password is required';
     if (password.length < 8) return 'Password must be at least 8 characters';
+    if (password.length > 64) return 'Password must be 64 characters or less';
     if (!RegExp(r'[A-Z]').hasMatch(password)) {
       return 'Password must contain an uppercase letter';
     }
@@ -88,18 +94,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
     });
 
     try {
-      await _authService.register(
-        name: _nameController.text,
-        email: _emailController.text,
-        phone: _phoneController.text,
-        password: _passwordController.text,
-      );
+      await ref.read(authSessionProvider.notifier).register(
+            name: _nameController.text,
+            email: _emailController.text,
+            phone: _phoneController.text,
+            password: _passwordController.text,
+          );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account created successfully. Please log in.')),
+        const SnackBar(
+            content: Text(
+                'Account created successfully. Please verify your email.')),
       );
-      Navigator.pushReplacementNamed(context, '/login');
+      Navigator.pushReplacementNamed(
+        context,
+        '/verify-email',
+        arguments: {'email': _emailController.text.trim()},
+      );
     } on AuthException catch (e) {
       if (!mounted) return;
       setState(() => _errorMessage = e.message);
@@ -145,7 +157,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Text(
                         _errorMessage!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onErrorContainer,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onErrorContainer,
                             ),
                       ),
                     ),
@@ -158,6 +172,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               label: 'Full Name',
               hint: 'Enter your full name',
               prefixIcon: Icons.person_outline,
+              maxLength: 100,
+              showCounter: false,
               controller: _nameController,
               validator: _validateName,
             ),
@@ -167,6 +183,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               hint: 'Enter your email',
               prefixIcon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
+              maxLength: 254,
+              showCounter: false,
               controller: _emailController,
               validator: _validateEmail,
             ),
@@ -176,6 +194,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               hint: 'Enter phone number',
               prefixIcon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
+              maxLength: 14,
+              showCounter: false,
               controller: _phoneController,
               validator: _validatePhone,
             ),
@@ -185,6 +205,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               hint: 'Create password',
               prefixIcon: Icons.lock_outline,
               isPassword: true,
+              maxLength: 64,
+              showCounter: false,
               controller: _passwordController,
               validator: _validatePassword,
             ),
@@ -195,6 +217,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               prefixIcon: Icons.lock_outline,
               isPassword: true,
               textInputAction: TextInputAction.done,
+              maxLength: 64,
+              showCounter: false,
               controller: _confirmPasswordController,
               validator: _validateConfirmPassword,
             ),

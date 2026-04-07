@@ -1,23 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/app_spacing.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_input_field.dart';
 import '../../data/services/player_auth_service.dart';
+import '../providers/auth_controller.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/auth_screen_scaffold.dart';
 
-class ForgotPasswordScreen extends StatefulWidget {
+class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+  ConsumerState<ForgotPasswordScreen> createState() =>
+      _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
-  final _authService = PlayerAuthService.instance;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -31,6 +33,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   String? _validateEmail(String? value) {
     final trimmed = value?.trim() ?? '';
     if (trimmed.isEmpty) return 'Email is required';
+    if (trimmed.length > 254) return 'Email must be 254 characters or less';
     if (!trimmed.contains('@') || !trimmed.contains('.')) {
       return 'Enter a valid email';
     }
@@ -46,12 +49,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     });
 
     try {
-      final message = await _authService.forgotPassword(
-        email: _emailController.text,
-      );
+      final message =
+          await ref.read(authSessionProvider.notifier).forgotPassword(
+                email: _emailController.text,
+              );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
       Navigator.pushNamed(
         context,
         '/reset-password',
@@ -102,7 +107,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       child: Text(
                         _errorMessage!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onErrorContainer,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onErrorContainer,
                             ),
                       ),
                     ),
@@ -116,6 +123,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               hint: 'Enter your email',
               prefixIcon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
+              maxLength: 254,
+              showCounter: false,
               controller: _emailController,
               validator: _validateEmail,
             ),

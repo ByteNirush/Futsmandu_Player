@@ -1,23 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/app_spacing.dart';
 import '../../../../shared/widgets/app_input_field.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../data/services/player_auth_service.dart';
+import '../providers/auth_controller.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/auth_screen_scaffold.dart';
 
-class OtpVerificationScreen extends StatefulWidget {
+class OtpVerificationScreen extends ConsumerStatefulWidget {
   const OtpVerificationScreen({super.key});
 
   @override
-  State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
+  ConsumerState<OtpVerificationScreen> createState() =>
+      _OtpVerificationScreenState();
 }
 
-class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
+class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _tokenController = TextEditingController();
-  final _authService = PlayerAuthService.instance;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -35,7 +37,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   String? _validateToken(String? value) {
-    if ((value ?? '').trim().isEmpty) return 'Verification token is required';
+    final token = value?.trim() ?? '';
+    if (token.isEmpty) return 'Verification token is required';
+    if (token.length < 6) return 'Verification token is invalid';
+    if (token.length > 256) return 'Verification token is too long';
     return null;
   }
 
@@ -48,9 +53,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     });
 
     try {
-      final message = await _authService.verifyEmail(token: _tokenController.text);
+      final message = await ref.read(authSessionProvider.notifier).verifyEmail(
+            token: _tokenController.text,
+          );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     } on AuthException catch (e) {
       if (!mounted) return;
@@ -103,7 +111,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       child: Text(
                         _errorMessage!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onErrorContainer,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onErrorContainer,
                             ),
                       ),
                     ),
@@ -116,6 +126,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               label: 'Verification Token',
               hint: 'Paste the token from your email',
               prefixIcon: Icons.verified_user_outlined,
+              maxLength: 256,
+              showCounter: false,
               controller: _tokenController,
               validator: _validateToken,
             ),

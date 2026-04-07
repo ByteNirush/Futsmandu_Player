@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/app_spacing.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_input_field.dart';
 import '../../data/services/player_auth_service.dart';
+import '../providers/auth_controller.dart';
 import '../widgets/auth_header.dart';
 import '../widgets/auth_screen_scaffold.dart';
 
-class ResetPasswordScreen extends StatefulWidget {
+class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key});
 
   @override
-  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
+  ConsumerState<ResetPasswordScreen> createState() =>
+      _ResetPasswordScreenState();
 }
 
-class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
+class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _tokenController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authService = PlayerAuthService.instance;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -39,7 +41,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }
 
   String? _validateToken(String? value) {
-    if ((value ?? '').trim().isEmpty) return 'Reset token is required';
+    final token = value?.trim() ?? '';
+    if (token.isEmpty) return 'Reset token is required';
+    if (token.length < 32) return 'Reset token is invalid';
+    if (token.length > 256) return 'Reset token is too long';
     return null;
   }
 
@@ -47,6 +52,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     final password = value ?? '';
     if (password.isEmpty) return 'Password is required';
     if (password.length < 8) return 'Password must be at least 8 characters';
+    if (password.length > 64) return 'Password must be 64 characters or less';
     if (!RegExp(r'[A-Z]').hasMatch(password)) {
       return 'Password must contain an uppercase letter';
     }
@@ -71,13 +77,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     });
 
     try {
-      final message = await _authService.resetPassword(
-        token: _tokenController.text,
-        newPassword: _newPasswordController.text,
-      );
+      final message =
+          await ref.read(authSessionProvider.notifier).resetPassword(
+                token: _tokenController.text,
+                newPassword: _newPasswordController.text,
+              );
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     } on AuthException catch (e) {
       if (!mounted) return;
@@ -130,7 +138,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       child: Text(
                         _errorMessage!,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context).colorScheme.onErrorContainer,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onErrorContainer,
                             ),
                       ),
                     ),
@@ -143,6 +153,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               label: 'Reset Token',
               hint: 'Paste the token from your email',
               prefixIcon: Icons.confirmation_number_outlined,
+              maxLength: 256,
+              showCounter: false,
               controller: _tokenController,
               validator: _validateToken,
             ),
@@ -152,6 +164,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               hint: 'Create new password',
               prefixIcon: Icons.lock_outline,
               isPassword: true,
+              maxLength: 64,
+              showCounter: false,
               controller: _newPasswordController,
               validator: _validatePassword,
             ),
@@ -162,6 +176,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               prefixIcon: Icons.lock_outline,
               isPassword: true,
               textInputAction: TextInputAction.done,
+              maxLength: 64,
+              showCounter: false,
               controller: _confirmPasswordController,
               validator: _validateConfirmPassword,
             ),

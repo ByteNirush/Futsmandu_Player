@@ -1,24 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/app_spacing.dart';
+import '../../data/services/player_auth_service.dart';
 import '../../../../shared/widgets/app_button.dart';
 import '../../../../shared/widgets/app_input_field.dart';
 import '../../../../shared/widgets/app_logo.dart';
-import '../../data/services/player_auth_service.dart';
+import '../providers/auth_controller.dart';
 import '../widgets/auth_header.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = PlayerAuthService.instance;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -40,7 +41,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   String? _validatePassword(String? value) {
-    if ((value ?? '').isEmpty) return 'Password is required';
+    final password = value ?? '';
+    if (password.isEmpty) return 'Password is required';
+    if (password.length > 128) return 'Password is too long';
     return null;
   }
 
@@ -53,10 +56,10 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await _authService.login(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
+      await ref.read(authSessionProvider.notifier).login(
+            email: _emailController.text,
+            password: _passwordController.text,
+          );
 
       if (!mounted) return;
       Navigator.pushReplacementNamed(context, '/shell');
@@ -137,6 +140,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         hint: 'Enter your email',
                         prefixIcon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
+                        maxLength: 254,
+                        showCounter: false,
                         controller: _emailController,
                         validator: _validateEmail,
                       ),
@@ -147,6 +152,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         prefixIcon: Icons.lock_outline,
                         isPassword: true,
                         textInputAction: TextInputAction.done,
+                        maxLength: 128,
+                        showCounter: false,
                         controller: _passwordController,
                         validator: _validatePassword,
                       ),
@@ -161,7 +168,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: const Text('Forgot Password?'),
                         ),
                       ),
-
                       const SizedBox(height: AppSpacing.md),
                       AppButton(
                         label: 'Login',
