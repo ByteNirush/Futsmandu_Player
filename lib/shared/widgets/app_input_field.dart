@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'futs_input.dart';
+import 'package:futsmandu_design_system/components/inputs/app_text_field.dart';
 
 class AppInputField extends StatefulWidget {
   final String label;
@@ -53,10 +53,10 @@ class _AppInputFieldState extends State<AppInputField> {
 
   @override
   Widget build(BuildContext context) {
-    return FutsInput(
-      label: widget.label,
+    return AppTextField(
+      labelText: widget.label,
       controller: widget.controller,
-      hint: widget.hint,
+      hintText: widget.hint,
       prefixIcon: _buildIcon(widget.prefixIcon),
       suffixIcon: widget.isPassword
           ? IconButton(
