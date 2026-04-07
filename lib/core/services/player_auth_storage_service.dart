@@ -34,6 +34,24 @@ class PlayerAuthStorageService {
     await _storage.write(key: _userKey, value: jsonEncode(user));
   }
 
+  Future<void> saveSession({
+    required String accessToken,
+    required String refreshToken,
+    required Map<String, dynamic> user,
+  }) async {
+    await saveAccessToken(accessToken);
+    await saveRefreshToken(refreshToken);
+    await saveUser(user);
+  }
+
+  Future<void> saveAccessAndUser({
+    required String accessToken,
+    required Map<String, dynamic> user,
+  }) async {
+    await saveAccessToken(accessToken);
+    await saveUser(user);
+  }
+
   Future<Map<String, dynamic>?> getUser() async {
     final raw = await _storage.read(key: _userKey);
     if (raw == null || raw.isEmpty) return null;
@@ -52,5 +70,10 @@ class PlayerAuthStorageService {
     await _storage.delete(key: _accessTokenKey);
     await _storage.delete(key: _refreshTokenKey);
     await _storage.delete(key: _userKey);
+  }
+
+  Future<bool> hasStoredRefreshToken() async {
+    final refreshToken = await getRefreshToken();
+    return refreshToken != null && refreshToken.isNotEmpty;
   }
 }
