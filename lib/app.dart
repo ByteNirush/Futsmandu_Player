@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:futsmandu_design_system/futsmandu_design_system.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import 'dart:async';
 
 import 'core/design_system/app_spacing.dart';
