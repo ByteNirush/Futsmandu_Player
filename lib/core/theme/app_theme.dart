@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-
-import 'dark_theme.dart';
-import 'light_theme.dart';
+import 'package:futsmandu_design_system/core/theme/app_theme.dart' as ds;
 
 class AppTheme {
-  static ThemeData get light => LightTheme.data;
-  static ThemeData get dark => DarkTheme.data;
+  static ThemeData get light => ds.AppTheme.light();
+  static ThemeData get dark => ds.AppTheme.dark();
 }
