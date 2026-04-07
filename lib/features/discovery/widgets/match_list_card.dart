@@ -153,7 +153,7 @@ class MatchListCard extends StatelessWidget {
                                       MockData.friends.length > i
                                           ? MockData.friends[i]['name'][0]
                                           : '?',
-                                      style: GoogleFonts.barlow(
+                                      style: GoogleFonts.poppins(
                                         fontSize: 10,
                                         color: AppColors.txtDisabled,
                                         fontWeight: FontWeight.w600,
@@ -180,7 +180,7 @@ class MatchListCard extends StatelessWidget {
                         const Spacer(),
                       Text(
                         'NPR ${match['priceNPR']}',
-                        style: GoogleFonts.barlow(
+                        style: GoogleFonts.poppins(
                           fontSize: 16,
                           color: AppColors.success,
                           fontWeight: AppTextStyles.semiBold,

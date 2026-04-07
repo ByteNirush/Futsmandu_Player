@@ -894,7 +894,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                                 ),
                                 child: Text(
                                   label,
-                                  style: GoogleFonts.barlow(
+                                  style: GoogleFonts.poppins(
                                     fontSize: 15,
                                     fontWeight: AppTextStyles.semiBold,
                                     color: isSelected
@@ -1000,7 +1000,7 @@ class _TeamColumn extends StatelessWidget {
                 child: Center(
                   child: Text(
                     team,
-                    style: GoogleFonts.barlow(
+                    style: GoogleFonts.poppins(
                       fontSize: 14,
                       fontWeight: AppTextStyles.semiBold,
                       color: color,

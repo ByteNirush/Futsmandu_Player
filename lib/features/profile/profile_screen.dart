@@ -3,25 +3,26 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/services/player_auth_storage_service.dart';
-import '../auth/data/services/player_auth_service.dart';
 import 'data/services/player_profile_service.dart';
+import '../auth/presentation/providers/auth_controller.dart';
 import '../../shared/widgets/futs_card.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen>
+class _ProfileScreenState extends ConsumerState<ProfileScreen>
     with SingleTickerProviderStateMixin {
   static const Map<String, dynamic> _fallbackUser = <String, dynamic>{
     'name': 'Player',
@@ -306,7 +307,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   children: [
                                     Text(
                                       '$score',
-                                      style: GoogleFonts.barlow(
+                                      style: GoogleFonts.poppins(
                                         fontSize: 24,
                                         fontWeight: AppTextStyles.semiBold,
                                         color: scoreColor,
@@ -813,11 +814,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              try {
-                await PlayerAuthService.instance.logout();
-              } catch (_) {
-                await PlayerAuthStorageService.instance.clearSession();
-              }
+              await ref.read(authSessionProvider.notifier).logout();
               if (!context.mounted) return;
               Navigator.pushReplacementNamed(context, '/login');
             },
@@ -1213,7 +1210,7 @@ class _MetricCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: GoogleFonts.barlow(
+            style: GoogleFonts.poppins(
               fontSize: 22,
               fontWeight: AppTextStyles.semiBold,
               color: AppColors.txtPrimary,

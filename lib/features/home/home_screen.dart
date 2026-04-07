@@ -48,7 +48,7 @@ class _EmailNudgeBannerState extends State<_EmailNudgeBanner> {
           Expanded(
             child: Text(
               'Verify your email to enable bookings.',
-              style: GoogleFonts.barlow(fontSize: 13, color: AppColors.amber),
+              style: GoogleFonts.poppins(fontSize: 13, color: AppColors.amber),
             ),
           ),
           TextButton(
@@ -148,7 +148,7 @@ class _MatchMiniCard extends StatelessWidget {
                       const SizedBox(height: AppSpacing.xxs),
                       Text(
                         match['venueName'],
-                        style: GoogleFonts.barlow(
+                        style: GoogleFonts.poppins(
                           fontSize: 14,
                           fontWeight: AppTextStyles.bold,
                           color: Colors.white,
@@ -163,7 +163,7 @@ class _MatchMiniCard extends StatelessWidget {
                           const SizedBox(width: AppSpacing.xxs),
                           Text(
                             '${match['time']} · ${match['distance']}',
-                            style: GoogleFonts.barlow(
+                            style: GoogleFonts.poppins(
                               fontSize: 11,
                               color: Colors.white.withValues(alpha: 0.7),
                             ),
@@ -189,7 +189,7 @@ class _MatchMiniCard extends StatelessWidget {
                       child: Center(
                         child: Text(
                           '+${match['friendsIn']}',
-                          style: GoogleFonts.barlow(
+                          style: GoogleFonts.poppins(
                             fontSize: 10,
                             color: AppColors.green,
                             fontWeight: AppTextStyles.semiBold,
@@ -280,7 +280,7 @@ class _UpcomingBookingCard extends StatelessWidget {
                         StatusBadge(label: 'CONFIRMED', color: AppColors.green),
                         const Spacer(),
                         Text('NPR ${b['priceNPR']}',
-                            style: GoogleFonts.barlow(
+                            style: GoogleFonts.poppins(
                               color: AppColors.green,
                               fontWeight: FontWeight.w600,
                               fontSize: 16,
@@ -386,7 +386,7 @@ class _TopFutsalCard extends StatelessWidget {
                     children: [
                       Text(
                         venue['name'] ?? '',
-                        style: GoogleFonts.barlow(
+                        style: GoogleFonts.poppins(
                           color: Colors.white,
                           fontWeight: AppTextStyles.semiBold,
                           fontSize: 14,
@@ -401,7 +401,7 @@ class _TopFutsalCard extends StatelessWidget {
                           const SizedBox(width: AppSpacing.xxs),
                           Text(
                             '${venue['rating']}  ·  ${venue['distance']}',
-                            style: GoogleFonts.barlow(
+                            style: GoogleFonts.poppins(
                               color: Colors.white.withValues(alpha: 0.90),
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
@@ -586,7 +586,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: Center(
                                     child: Text(
                                       '3',
-                                      style: GoogleFonts.barlow(
+                                      style: GoogleFonts.poppins(
                                         fontSize: 9,
                                         color: Colors.white,
                                         fontWeight: AppTextStyles.semiBold,
@@ -630,7 +630,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Expanded(
                         child: Text(
                           'Reliability score is $score. Attend bookings to improve.',
-                          style: GoogleFonts.barlow(
+                          style: GoogleFonts.poppins(
                             fontSize: 13,
                             color: AppColors.amber,
                           ),

@@ -222,7 +222,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                     ),
                     child: Text(
                       label,
-                      style: GoogleFonts.barlow(
+                      style: GoogleFonts.poppins(
                         fontSize: 14,
                         fontWeight:
                             isSelected ? FontWeight.w600 : FontWeight.w500,

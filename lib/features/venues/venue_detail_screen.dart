@@ -995,7 +995,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(999),
                         ),
-                        textStyle: GoogleFonts.barlow(
+                        textStyle: GoogleFonts.poppins(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -1108,7 +1108,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             const Spacer(),
                             Text(
                               'Price shown at payment',
-                              style: GoogleFonts.barlow(
+                              style: GoogleFonts.poppins(
                                 color: AppColors.green,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
@@ -1333,7 +1333,7 @@ class _SlotChip extends StatelessWidget {
           children: [
             Text(
               slot['time'],
-              style: GoogleFonts.barlow(
+              style: GoogleFonts.poppins(
                 fontSize: 17,
                 fontWeight: AppTextStyles.semiBold,
                 color: isSelected

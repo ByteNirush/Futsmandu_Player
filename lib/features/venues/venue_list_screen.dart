@@ -940,7 +940,7 @@ class _Pill extends StatelessWidget {
           const SizedBox(width: AppSpacing.xxs),
           Text(
             label,
-            style: GoogleFonts.barlow(
+            style: GoogleFonts.poppins(
               fontSize: 11,
               fontWeight: AppTextStyles.semiBold,
               color: fg,

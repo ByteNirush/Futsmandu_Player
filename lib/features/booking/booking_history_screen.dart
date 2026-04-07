@@ -556,7 +556,7 @@ class _BookingCard extends StatelessWidget {
               children: [
                 Text(
                   amount,
-                  style: GoogleFonts.barlow(
+                  style: GoogleFonts.poppins(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: AppColors.txtPrimary,

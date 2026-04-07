@@ -151,7 +151,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           TextButton(
             style: TextButton.styleFrom(
               foregroundColor: AppColors.green,
-              textStyle: GoogleFonts.barlow(fontSize: 13),
+              textStyle: GoogleFonts.poppins(fontSize: 13),
             ),
             onPressed: _items.isEmpty ? null : _markAllRead,
             child: const Text('Mark all read'),

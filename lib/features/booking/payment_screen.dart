@@ -207,7 +207,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       const Spacer(),
                       Text(
                         'NPR $totalAmount',
-                        style: GoogleFonts.barlow(
+                        style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: AppColors.green,
@@ -317,7 +317,7 @@ class _TimerPill extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             text,
-            style: GoogleFonts.barlow(
+            style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: AppTextStyles.semiBold,
               color: color,
@@ -404,7 +404,7 @@ class _PaymentCard extends StatelessWidget {
                     child: Center(
                       child: Text(
                         name,
-                        style: GoogleFonts.barlow(
+                        style: GoogleFonts.poppins(
                           fontSize: 12,
                           color: Theme.of(context).colorScheme.onPrimary,
                           fontWeight: AppTextStyles.semiBold,

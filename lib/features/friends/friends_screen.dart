@@ -570,7 +570,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                           ),
                                           child: Text(
                                             isSent ? 'Requested' : 'Add Friend',
-                                            style: GoogleFonts.barlow(
+                                            style: GoogleFonts.poppins(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w500,
                                               color: isSent
@@ -730,7 +730,7 @@ class _SkillBadge extends StatelessWidget {
       ),
       child: Text(
         skill,
-        style: GoogleFonts.barlow(
+        style: GoogleFonts.poppins(
           fontSize: 10,
           color: c,
           fontWeight: FontWeight.w500,
