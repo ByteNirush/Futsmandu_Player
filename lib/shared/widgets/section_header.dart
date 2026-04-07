@@ -28,7 +28,7 @@ class SectionHeader extends StatelessWidget {
               onPressed: onAction,
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.green,
-                textStyle: GoogleFonts.barlow(fontSize: 13),
+                textStyle: GoogleFonts.poppins(fontSize: 13),
               ),
               child: Text(actionLabel ?? 'See all'),
             ),

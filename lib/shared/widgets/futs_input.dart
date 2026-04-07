@@ -11,6 +11,8 @@ class FutsInput extends StatelessWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onChanged;
   final int maxLines;
+  final int? maxLength;
+  final bool showCounter;
   final FormFieldValidator<String>? validator;
   final bool enabled;
   final String? prefixText;
@@ -27,6 +29,8 @@ class FutsInput extends StatelessWidget {
     this.textInputAction,
     this.onChanged,
     this.maxLines = 1,
+    this.maxLength,
+    this.showCounter = true,
     this.validator,
     this.enabled = true,
     this.prefixText,
@@ -41,6 +45,17 @@ class FutsInput extends StatelessWidget {
       keyboardType: keyboardType,
       onChanged: onChanged,
       maxLines: maxLines,
+      maxLength: maxLength,
+      buildCounter: showCounter
+          ? null
+          : (
+              BuildContext context, {
+              required int currentLength,
+              required bool isFocused,
+              required int? maxLength,
+            }) {
+              return null;
+            },
       validator: validator,
       enabled: enabled,
       decoration: InputDecoration(
@@ -49,6 +64,7 @@ class FutsInput extends StatelessWidget {
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
         prefixText: prefixText,
+        counterText: showCounter ? null : '',
       ),
     );
   }

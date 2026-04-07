@@ -12,6 +12,8 @@ class AppInputField extends StatefulWidget {
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onChanged;
   final int maxLines;
+  final int? maxLength;
+  final bool showCounter;
   final FormFieldValidator<String>? validator;
   final bool enabled;
   final String? errorText;
@@ -28,6 +30,8 @@ class AppInputField extends StatefulWidget {
     this.textInputAction,
     this.onChanged,
     this.maxLines = 1,
+    this.maxLength,
+    this.showCounter = true,
     this.validator,
     this.enabled = true,
     this.errorText,
@@ -69,6 +73,8 @@ class _AppInputFieldState extends State<AppInputField> {
       keyboardType: widget.keyboardType,
       onChanged: widget.onChanged,
       maxLines: widget.maxLines,
+      maxLength: widget.maxLength,
+      showCounter: widget.showCounter,
       validator: widget.validator,
       enabled: widget.enabled,
     );
