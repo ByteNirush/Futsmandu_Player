@@ -10,6 +10,7 @@ class ApiConfig {
   static const String authEndpoint = '$apiPrefix/auth';
   static const String venuesEndpoint = '$apiPrefix/venues';
   static const String bookingsEndpoint = '$apiPrefix/bookings';
+  static const String paymentsEndpoint = '$apiPrefix/payments';
   static const String matchesEndpoint = '$apiPrefix/matches';
   static const String inviteEndpoint = '$apiPrefix/invite';
   static const String friendsEndpoint = '$apiPrefix/friends';
@@ -32,6 +33,17 @@ class ApiConfig {
 
   static String cancelBookingEndpoint(String bookingId) =>
       '$bookingsEndpoint/$bookingId/cancel';
+
+  static const String khaltiInitiateEndpoint =
+      '$paymentsEndpoint/khalti-initiate';
+  static const String khaltiVerifyEndpoint = '$paymentsEndpoint/khalti-verify';
+  static const String esewaInitiateEndpoint =
+      '$paymentsEndpoint/esewa-initiate';
+  static const String esewaVerifyEndpoint = '$paymentsEndpoint/esewa-verify';
+  static const String paymentHistoryEndpoint = '$paymentsEndpoint/history';
+
+  static String paymentDetailEndpoint(String paymentId) =>
+      '$paymentsEndpoint/$paymentId';
 
   static String matchDetailEndpoint(String matchId) =>
       '$matchesEndpoint/$matchId';
