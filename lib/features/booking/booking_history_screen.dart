@@ -208,6 +208,34 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                           onPressed: isCancelling
                               ? null
                               : () async {
+                                  // Show confirmation dialog
+                                  final shouldCancel = await showDialog<bool>(
+                                    context: sheetContext,
+                                    builder: (dialogContext) => AlertDialog(
+                                      title: const Text('Confirm Cancellation'),
+                                      content: const Text(
+                                        'Are you sure you want to cancel this booking? This action cannot be undone.',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(dialogContext, false),
+                                          child: const Text('Keep Booking'),
+                                        ),
+                                        ElevatedButton(
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.red,
+                                          ),
+                                          onPressed: () =>
+                                              Navigator.pop(dialogContext, true),
+                                          child: const Text('Cancel Booking'),
+                                        ),
+                                      ],
+                                    ),
+                                  ) ?? false;
+
+                                  if (!shouldCancel) return;
+
                                   setSheetState(() => isCancelling = true);
                                   try {
                                     final response =

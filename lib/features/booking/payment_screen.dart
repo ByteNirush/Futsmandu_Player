@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:app_links/app_links.dart';
 import 'package:esewa_flutter/esewa_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/esewa_payment_config.dart';
 import '../../core/design_system/app_spacing.dart';
@@ -11,6 +13,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';
+import 'data/services/player_payments_service.dart';
 
 class PaymentScreen extends StatefulWidget {
   const PaymentScreen({super.key});
@@ -19,15 +22,44 @@ class PaymentScreen extends StatefulWidget {
   State<PaymentScreen> createState() => _PaymentScreenState();
 }
 
-class _PaymentScreenState extends State<PaymentScreen> {
+class _PaymentScreenState extends State<PaymentScreen>
+    with WidgetsBindingObserver {
+  final PlayerPaymentsService _paymentsService = PlayerPaymentsService.instance;
+  final AppLinks _appLinks = AppLinks();
+
   String? _gateway;
   int _seconds = 420;
   bool _loading = false;
   Timer? _timer;
+  bool _timerInitialized = false;
+  StreamSubscription<Uri>? _khaltiLinkSubscription;
+
+  String? _pendingKhaltiPidx;
+  String? _pendingKhaltiBookingId;
+  Map<String, dynamic>? _pendingKhaltiArgs;
+  bool _isAwaitingKhaltiCallback = false;
+  bool _isVerifyingKhaltiCallback = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _listenForKhaltiCallbackLinks();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_timerInitialized) return;
+    _timerInitialized = true;
+
+    final rawArgs = ModalRoute.of(context)?.settings.arguments;
+    final args = rawArgs is Map ? rawArgs.cast<String, dynamic>() : null;
+    final heldBooking = args?['heldBooking'] is Map
+        ? (args?['heldBooking'] as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+
+    _seconds = _secondsUntilExpiry(heldBooking['hold_expires_at']);
     _startTimer();
   }
 
@@ -45,19 +77,129 @@ class _PaymentScreenState extends State<PaymentScreen> {
     });
   }
 
+  int _secondsUntilExpiry(dynamic rawExpiry) {
+    if (rawExpiry is! String || rawExpiry.isEmpty) return 420;
+    final parsed = DateTime.tryParse(rawExpiry);
+    if (parsed == null) return 420;
+    final diff = parsed.toLocal().difference(DateTime.now()).inSeconds;
+    if (diff <= 0) return 1;
+    return diff;
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
+    _khaltiLinkSubscription?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _verifyPendingKhaltiPayment(trigger: 'resume');
+    }
+  }
+
+  Future<void> _listenForKhaltiCallbackLinks() async {
+    try {
+      final initialUri = await _appLinks.getInitialLink();
+      _handleKhaltiCallbackUri(initialUri);
+    } catch (_) {}
+
+    _khaltiLinkSubscription = _appLinks.uriLinkStream.listen(
+      _handleKhaltiCallbackUri,
+      onError: (_) {},
+    );
+  }
+
+  bool _isKhaltiCallbackUri(Uri uri) {
+    return uri.scheme == 'futsmandu' && uri.host == 'khalti-callback';
+  }
+
+  void _handleKhaltiCallbackUri(Uri? uri) {
+    if (uri == null || !_isKhaltiCallbackUri(uri)) return;
+
+    final status = (uri.queryParameters['status'] ?? '').toLowerCase();
+    if (status == 'cancelled' || status == 'canceled' || status == 'failed') {
+      if (!mounted) return;
+      setState(() {
+        _isAwaitingKhaltiCallback = false;
+        _pendingKhaltiPidx = null;
+        _pendingKhaltiBookingId = null;
+        _pendingKhaltiArgs = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Khalti payment was not completed.')),
+      );
+      return;
+    }
+
+    _verifyPendingKhaltiPayment(trigger: 'deeplink');
+  }
+
+  Future<void> _verifyPendingKhaltiPayment({required String trigger}) async {
+    if (!mounted || !_isAwaitingKhaltiCallback || _isVerifyingKhaltiCallback) {
+      return;
+    }
+
+    final pidx = _pendingKhaltiPidx;
+    final bookingId = _pendingKhaltiBookingId;
+    final args = _pendingKhaltiArgs;
+    if (pidx == null || pidx.isEmpty || bookingId == null || bookingId.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _isVerifyingKhaltiCallback = true;
+      _loading = true;
+    });
+
+    try {
+      final verification =
+          await _paymentsService.verifyKhalti(pidx: pidx, bookingId: bookingId);
+      if (!mounted) return;
+
+      setState(() {
+        _isAwaitingKhaltiCallback = false;
+        _pendingKhaltiPidx = null;
+        _pendingKhaltiBookingId = null;
+        _pendingKhaltiArgs = null;
+      });
+
+      _goToConfirmation(args, verification: verification, gateway: 'KHALTI');
+    } on PaymentsApiException catch (e) {
+      if (!mounted) return;
+      if (trigger == 'resume') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Waiting for Khalti confirmation: ${e.message}')),
+        );
+      } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unable to verify Khalti payment yet.')),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isVerifyingKhaltiCallback = false;
+        _loading = false;
+      });
+    }
   }
 
   double _amountFromArgs(Map<String, dynamic>? args) {
     final heldAmount = args?['heldBooking']?['total_amount'];
-    if (heldAmount is num) return heldAmount.toDouble();
+    if (heldAmount is num) return heldAmount.toDouble() / 100.0;
+
     final heldAmountString = args?['heldBooking']?['total_amount']?.toString();
     if (heldAmountString != null) {
       final parsed = double.tryParse(heldAmountString);
-      if (parsed != null) return parsed;
+      if (parsed != null) return parsed / 100.0;
     }
 
     final price = args?['slot']?['price'];
@@ -65,65 +207,153 @@ class _PaymentScreenState extends State<PaymentScreen> {
     return double.tryParse(price?.toString() ?? '') ?? 1800.0;
   }
 
+  String _bookingId(Map<String, dynamic>? args) {
+    final heldBooking = args?['heldBooking'];
+    if (heldBooking is Map && heldBooking['id'] is String) {
+      return heldBooking['id'] as String;
+    }
+    return '';
+  }
+
   Future<void> _onPayPressed(Map<String, dynamic>? args) async {
-    final navigator = Navigator.of(context);
+    if (_gateway == 'khalti' && _isAwaitingKhaltiCallback) {
+      await _verifyPendingKhaltiPayment(trigger: 'manual-check');
+      return;
+    }
+
+    final bookingId = _bookingId(args);
+
+    if (bookingId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Booking hold not found. Please retry.')),
+      );
+      return;
+    }
+
     setState(() => _loading = true);
 
     try {
       if (_gateway == 'esewa') {
+        await _paymentsService.initiateEsewa(bookingId: bookingId);
+
         final config = ESewaConfig.dev(
           amount: _amountFromArgs(args),
           successUrl: EsewaPaymentConfig.devSuccessUrl,
           failureUrl: EsewaPaymentConfig.devFailureUrl,
           secretKey: EsewaPaymentConfig.secretKey,
-          transactionUuid: 'FM-${DateTime.now().millisecondsSinceEpoch}',
+          transactionUuid: bookingId,
         );
 
         final result =
             await Esewa.i.init(context: context, eSewaConfig: config);
         if (!mounted) return;
 
-        if (result.hasData && result.data != null) {
-          final base64Payload = result.data!.data ?? '';
-          if (kDebugMode) {
-            debugPrint('eSewa success payload (base64): $base64Payload');
-          }
-          navigator.pushReplacementNamed(
-            '/booking-confirm',
-            arguments: {
-              'slot': args?['slot'],
-              'venue': args?['venue'],
-              'heldBooking': args?['heldBooking'],
-              'bookingDate': args?['bookingDate'],
-              'startTime': args?['startTime'],
-              'endTime': args?['endTime'],
-            },
-          );
-        } else {
+        if (!result.hasData || result.data == null) {
           final message = result.error ?? 'Payment failed';
           ScaffoldMessenger.of(context)
               .showSnackBar(SnackBar(content: Text(message)));
+          return;
         }
+
+        final base64Payload = result.data!.data ?? '';
+        if (base64Payload.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content:
+                  Text('eSewa callback data is missing. Please try again.'),
+            ),
+          );
+          return;
+        }
+
+        if (kDebugMode) {
+          debugPrint('eSewa success payload (base64): $base64Payload');
+        }
+
+        final verification =
+            await _paymentsService.verifyEsewa(data: base64Payload);
+
+        _goToConfirmation(args, verification: verification, gateway: 'ESEWA');
         return;
       }
 
-      // Khalti (or other gateways): placeholder until integrated
-      await Future<void>.delayed(const Duration(milliseconds: 2000));
+      final init = await _paymentsService.initiateKhalti(bookingId: bookingId);
+      final paymentUrl = init['payment_url']?.toString() ?? '';
+      final pidx = init['pidx']?.toString() ?? '';
+
+      if (paymentUrl.isEmpty || pidx.isEmpty) {
+        throw const PaymentsApiException(
+          message: 'Khalti initiation response is incomplete.',
+          statusCode: 500,
+        );
+      }
+
+      setState(() {
+        _pendingKhaltiPidx = pidx;
+        _pendingKhaltiBookingId = bookingId;
+        _pendingKhaltiArgs = args;
+        _isAwaitingKhaltiCallback = true;
+      });
+
+      final opened = await launchUrl(
+        Uri.parse(paymentUrl),
+        mode: LaunchMode.externalApplication,
+      );
+
       if (!mounted) return;
-      navigator.pushReplacementNamed(
-        '/booking-confirm',
-        arguments: {
-          'slot': args?['slot'],
-          'venue': args?['venue'],
-          'heldBooking': args?['heldBooking'],
-          'bookingDate': args?['bookingDate'],
-          'startTime': args?['startTime'],
-          'endTime': args?['endTime'],
-        },
+      if (!opened) {
+        setState(() {
+          _isAwaitingKhaltiCallback = false;
+          _pendingKhaltiPidx = null;
+          _pendingKhaltiBookingId = null;
+          _pendingKhaltiArgs = null;
+        });
+        throw const PaymentsApiException(
+          message: 'Could not open Khalti payment page.',
+          statusCode: 500,
+        );
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Complete payment in Khalti and return to this app.'),
+        ),
+      );
+      return;
+    } on PaymentsApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Payment failed. Please try again.')),
       );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _goToConfirmation(
+    Map<String, dynamic>? args, {
+    required Map<String, dynamic> verification,
+    required String gateway,
+  }) {
+    Navigator.pushReplacementNamed(
+      context,
+      '/booking-confirm',
+      arguments: {
+        'slot': args?['slot'],
+        'venue': args?['venue'],
+        'heldBooking': args?['heldBooking'],
+        'bookingDate': args?['bookingDate'],
+        'startTime': args?['startTime'],
+        'endTime': args?['endTime'],
+        'paymentGateway': gateway,
+        'verification': verification,
+      },
+    );
   }
 
   @override
@@ -138,9 +368,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ? (args?['heldBooking'] as Map).cast<String, dynamic>()
         : const <String, dynamic>{};
 
-    final totalAmount = heldBooking['total_amount']?.toString() ??
-        args?['slot']?['price']?.toString() ??
-        '1800';
+    final totalAmount =
+        heldBooking['displayAmount']?.toString().isNotEmpty == true
+            ? heldBooking['displayAmount'].toString()
+            : heldBooking['total_amount']?.toString() ??
+                args?['slot']?['price']?.toString() ??
+                '1800';
+
     final selectedCourtName = args?['venue']?['courts'] is List &&
             args?['courtIdx'] is int &&
             (args?['venue']?['courts'] as List).length >
@@ -270,7 +504,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'You will be redirected to the payment page. Do not close the app.',
+                      _isAwaitingKhaltiCallback
+                          ? 'Waiting for Khalti callback. We will verify automatically when you return.'
+                          : 'You will be redirected to the payment page. Return to auto-verify and confirm your booking.',
                       style: AppText.bodySm.copyWith(color: AppColors.blue),
                     ),
                   ),
@@ -279,7 +515,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             const SizedBox(height: 24),
             FutsButton(
-              label: 'Pay NPR $totalAmount',
+              label: _gateway == 'khalti' && _isAwaitingKhaltiCallback
+                  ? 'Check Khalti Payment Status'
+                  : 'Pay NPR $totalAmount',
               isLoading: _loading,
               onPressed: _gateway == null ? null : () => _onPayPressed(args),
             ),

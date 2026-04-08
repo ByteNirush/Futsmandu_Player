@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-import '../../core/mock/mock_data.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
@@ -59,9 +58,23 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen>
     final bookingDate = args?['bookingDate']?.toString() ?? '-';
     final startTime = args?['startTime']?.toString() ?? '-';
     final endTime = args?['endTime']?.toString() ?? '-';
-    final totalAmount = heldBooking['total_amount']?.toString() ??
-        args?['slot']?['price']?.toString() ??
-        '1800';
+    final totalAmount =
+        heldBooking['displayAmount']?.toString().isNotEmpty == true
+            ? heldBooking['displayAmount'].toString()
+            : heldBooking['total_amount']?.toString() ??
+                args?['slot']?['price']?.toString() ??
+                '1800';
+    final verification = args?['verification'] is Map
+        ? (args?['verification'] as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    final confirmed = verification['confirmed'] is Map
+        ? (verification['confirmed'] as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    final matchGroup = verification['matchGroup'] is Map
+        ? (verification['matchGroup'] as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    final matchGroupId = matchGroup['id']?.toString() ?? '';
+    final gateway = args?['paymentGateway']?.toString() ?? '';
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -143,9 +156,13 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen>
                                         Icon(Icons.group_outlined,
                                             size: 15, color: AppColors.blue),
                                         const SizedBox(width: 4),
-                                        Text('Created — invite friends',
-                                            style: AppText.bodySm.copyWith(
-                                                color: AppColors.blue)),
+                                        Text(
+                                          matchGroupId.isNotEmpty
+                                              ? 'Created and ready to join'
+                                              : 'Preparing match group',
+                                          style: AppText.bodySm
+                                              .copyWith(color: AppColors.blue),
+                                        ),
                                       ],
                                     ),
                                   ],
@@ -157,7 +174,9 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen>
                                         size: 15, color: AppColors.green),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'Paid NPR $totalAmount',
+                                      gateway.isNotEmpty
+                                          ? '${gateway.toUpperCase()} paid NPR $totalAmount'
+                                          : 'Paid NPR $totalAmount',
                                       style: AppText.mono.copyWith(
                                           fontSize: 14,
                                           color: AppColors.green,
@@ -167,16 +186,28 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen>
                                 ),
                               ],
                             ),
+                            if (confirmed['id'] != null) ...[
+                              const SizedBox(height: 8),
+                              _ConfirmRow(
+                                'Booking ID',
+                                confirmed['id']?.toString() ?? '-',
+                              ),
+                            ],
                           ],
                         ),
                       ),
                       const SizedBox(height: 24),
                       FutsButton(
                         label: 'View Match Group',
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/match-detail',
-                              arguments: MockData.matches[0]);
-                        },
+                        onPressed: matchGroupId.isEmpty
+                            ? null
+                            : () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/match-detail',
+                                  arguments: {'id': matchGroupId},
+                                );
+                              },
                       ),
                       const SizedBox(height: 12),
                       FutsButton(
