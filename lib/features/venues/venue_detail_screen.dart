@@ -246,7 +246,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   Slider(
                     min: 1,
                     max: 5,
-                    divisions: 8,
+                    divisions: 4,
                     value: rating,
                     label: rating.toStringAsFixed(1),
                     onChanged: (value) => setSheetState(() => rating = value),
