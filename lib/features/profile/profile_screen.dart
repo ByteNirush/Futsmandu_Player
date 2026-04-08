@@ -1292,7 +1292,7 @@ class _QuickActionsGrid extends StatelessWidget {
     const actions = [
       (Icons.edit_outlined, 'Edit Profile', null),
       (Icons.calendar_month_rounded, 'My Bookings', '/bookings'),
-      (Icons.history_rounded, 'Match History', null),
+      (Icons.receipt_long_rounded, 'Payment History', '/payment-history'),
       (Icons.group_outlined, 'Friends', '/friends'),
       (Icons.privacy_tip_outlined, 'Privacy', null),
       (Icons.star_border_rounded, 'Reviews', null),

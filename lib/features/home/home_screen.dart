@@ -462,6 +462,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? currentUser['name'].toString().trim()
             : 'Player';
     final String avatarUrl = currentUser['avatarUrl']?.toString() ?? '';
+    final int notificationCount = MockData.notifications.length;
 
     Map<String, dynamic>? upcomingBooking;
     try {
@@ -585,7 +586,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                   child: Center(
                                     child: Text(
-                                      '3',
+                                      notificationCount.toString(),
                                       style: GoogleFonts.poppins(
                                         fontSize: 9,
                                         color: Colors.white,
