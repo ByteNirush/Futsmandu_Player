@@ -19,6 +19,7 @@ import 'features/venues/venue_list_screen.dart';
 import 'features/venues/venue_detail_screen.dart';
 import 'features/booking/slot_hold_screen.dart';
 import 'features/booking/payment_screen.dart';
+import 'features/booking/payment_history_screen.dart';
 import 'features/booking/booking_confirm_screen.dart';
 import 'features/booking/booking_history_screen.dart';
 import 'features/booking/hold_expired_screen.dart';
@@ -142,6 +143,8 @@ class _FutsmanduAppState extends ConsumerState<FutsmanduApp> {
           '/venue-detail': (_) => _themeAware(() => const VenueDetailScreen()),
           '/booking-hold': (_) => _themeAware(() => const SlotHoldScreen()),
           '/payment': (_) => _themeAware(() => const PaymentScreen()),
+          '/payment-history': (_) =>
+              _themeAware(() => const PaymentHistoryScreen()),
           '/booking-confirm': (_) =>
               _themeAware(() => const BookingConfirmScreen()),
           '/bookings': (_) => _themeAware(() => const BookingHistoryScreen()),
