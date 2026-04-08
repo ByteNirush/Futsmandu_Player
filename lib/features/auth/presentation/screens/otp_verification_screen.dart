@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/design_system/app_spacing.dart';
 import '../../../../shared/widgets/app_input_field.dart';
 import '../../../../shared/widgets/app_button.dart';
+import '../../../../shared/widgets/error_message_widget.dart';
 import '../../data/services/player_auth_service.dart';
 import '../providers/auth_controller.dart';
 import '../widgets/auth_header.dart';
@@ -93,32 +94,10 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: AppSpacing.sm),
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      color: Theme.of(context).colorScheme.onErrorContainer,
-                      size: 20,
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Expanded(
-                      child: Text(
-                        _errorMessage!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onErrorContainer,
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
+              ErrorMessageWidget(
+                message: _errorMessage!,
+                backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
               ),
             ],
             const SizedBox(height: AppSpacing.md),

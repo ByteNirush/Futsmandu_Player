@@ -4,6 +4,7 @@ import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 
 import '../../data/services/player_auth_service.dart';
 import '../../../../shared/widgets/app_logo.dart';
+import '../../../../shared/widgets/error_message_widget.dart';
 import '../providers/auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -115,32 +116,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 ),
                                 const SizedBox(height: AppSpacing.xs),
                                 CustomText(
-                                  'Sign in to manage your futsal venue',
+                                  'Sign in to book and play futsal',
                                   variant: CustomTextVariant.body,
                                   color: theme.colorScheme.onSurfaceVariant,
                                 ),
                                 if (_errorMessage != null) ...[
                                   const SizedBox(height: AppSpacing.md),
-                                  AppContainer(
-                                    padding: const EdgeInsets.all(AppSpacing.sm),
+                                  ErrorMessageWidget(
+                                    message: _errorMessage!,
                                     backgroundColor: theme.colorScheme.errorContainer,
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.error_outline,
-                                          color: theme.colorScheme.onErrorContainer,
-                                          size: 20,
-                                        ),
-                                        const SizedBox(width: AppSpacing.xs),
-                                        Expanded(
-                                          child: CustomText(
-                                            _errorMessage!,
-                                            variant: CustomTextVariant.caption,
-                                            color: theme.colorScheme.onErrorContainer,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                    foregroundColor: theme.colorScheme.onErrorContainer,
                                   ),
                                 ],
                                 const SizedBox(height: AppSpacing.lg),
