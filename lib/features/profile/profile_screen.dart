@@ -5,11 +5,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/design_system/app_radius.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/services/player_auth_storage_service.dart';
+import 'data/models/player_profile_models.dart';
 import 'data/services/player_profile_service.dart';
 import '../auth/presentation/providers/auth_controller.dart';
 import '../../shared/widgets/futs_card.dart';
@@ -48,10 +50,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   bool _notificationsEnabled = true;
   bool _isLoading = true;
-  bool _isSavingProfile = false;
   bool _isUploadingAvatar = false;
+  bool _isSavingProfile = false;
   String? _errorMessage;
   Map<String, dynamic> _user = _fallbackUser;
+
+  static String _themeModeLabel(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.system:
+        return 'System';
+      case ThemeMode.light:
+        return 'Light';
+      case ThemeMode.dark:
+        return 'Dark';
+    }
+  }
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -93,6 +106,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final int draw = user['draw'] as int;
     final double winRate = matchesPlayed == 0 ? 0 : won / matchesPlayed;
     final double bottomPad = MediaQuery.of(context).padding.bottom;
+    final colorScheme = Theme.of(context).colorScheme;
 
     if (_isLoading) {
       return Scaffold(
@@ -398,64 +412,101 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     const SizedBox(height: 24),
 
                     // Preferences Section
-                    const _SectionLabel(label: 'Preferences'),
-                    const SizedBox(height: 12),
-                    FutsCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xxs,
-                        vertical: AppSpacing.xxs,
-                      ),
-                      child: Column(
-                        children: [
-                          _SettingsTile(
-                            icon: Icons.notifications_outlined,
-                            title: 'Notifications',
-                            subtitle: _notificationsEnabled ? 'On' : 'Off',
-                            trailing: Switch.adaptive(
-                              value: _notificationsEnabled,
-                              activeThumbColor: AppColors.green,
-                              onChanged: (value) {
-                                setState(() => _notificationsEnabled = value);
-                              },
-                            ),
-                            onTap: () {
-                              setState(
-                                () => _notificationsEnabled =
-                                    !_notificationsEnabled,
-                              );
-                            },
+                    const _SectionHeader(
+                      title: 'Preferences',
+                      subtitle: 'Tune how the player workspace behaves.',
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    AnimatedBuilder(
+                      animation: ThemeProvider.instance,
+                      builder: (context, _) {
+                        final themeMode = ThemeProvider.instance.themeMode;
+                        return FutsCard(
+                          padding: EdgeInsets.zero,
+                          child: Column(
+                            children: [
+                              _PreferenceTile(
+                                icon: Icons.notifications_outlined,
+                                title: 'Notifications',
+                                subtitle: 'Booking alerts and account updates',
+                                trailing: Switch.adaptive(
+                                  value: _notificationsEnabled,
+                                  onChanged: (value) {
+                                    setState(
+                                      () => _notificationsEnabled = value,
+                                    );
+                                  },
+                                ),
+                              ),
+                              const Divider(height: 1),
+                              _PreferenceTile(
+                                icon: Icons.brightness_6_outlined,
+                                title: 'Theme',
+                                subtitle: _themeModeLabel(themeMode),
+                                trailing: ToggleButtons(
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.md,
+                                  ),
+                                  constraints: const BoxConstraints(
+                                    minHeight: 36,
+                                    minWidth: 44,
+                                  ),
+                                  isSelected: [
+                                    themeMode == ThemeMode.light,
+                                    themeMode == ThemeMode.dark,
+                                  ],
+                                  onPressed: (index) {
+                                    ThemeProvider.instance.setThemeMode(
+                                      index == 0
+                                          ? ThemeMode.light
+                                          : ThemeMode.dark,
+                                    );
+                                  },
+                                  children: const [
+                                    Icon(Icons.light_mode_outlined, size: 18),
+                                    Icon(Icons.dark_mode_outlined, size: 18),
+                                  ],
+                                ),
+                              ),
+                              const Divider(height: 1),
+                              _PreferenceTile(
+                                icon: Icons.help_outline_rounded,
+                                title: 'Help & Support',
+                                subtitle:
+                                    'See FAQs or contact the support team',
+                                trailing: Icon(
+                                  Icons.chevron_right_rounded,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                onTap: () => _showSupportSheet(context),
+                              ),
+                            ],
                           ),
-                          const _SettingsTile(
-                            icon: Icons.dark_mode_outlined,
-                            title: 'Theme',
-                            subtitle: 'Appearance',
-                            trailing: _ThemeModeMenu(),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: AppSpacing.md),
+
+                    // Account Section
+                    const _SectionHeader(
+                      title: 'Account',
+                      subtitle: 'Manage access to this player workspace.',
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () => _showLogoutConfirm(context),
+                        icon: const Icon(Icons.logout_rounded),
+                        label: const Text('Logout'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: colorScheme.errorContainer,
+                          foregroundColor: colorScheme.onErrorContainer,
+                          minimumSize: const Size.fromHeight(
+                            AppSpacing.buttonHeight,
                           ),
-                          _SettingsTile(
-                            icon: Icons.shield_outlined,
-                            title: 'Account Security',
-                            subtitle: 'Password & 2FA',
-                            onTap: () =>
-                                _showComingSoon(context, 'Account Security'),
-                          ),
-                          _SettingsTile(
-                            icon: Icons.help_outline_rounded,
-                            title: 'Help & Support',
-                            subtitle: 'FAQs & contact',
-                            onTap: () =>
-                                _showComingSoon(context, 'Help & Support'),
-                          ),
-                          _SettingsTile(
-                            icon: Icons.logout_rounded,
-                            title: 'Log Out',
-                            iconColor: AppColors.red,
-                            textColor: AppColors.red,
-                            showDivider: false,
-                            onTap: () {
-                              _showLogoutConfirm(context);
-                            },
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ]),
@@ -468,54 +519,59 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     );
   }
 
-  void _showComingSoon(BuildContext context, String featureName) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$featureName coming soon'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.fromLTRB(
-            AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.sm),
-      ),
+  void _showSupportSheet(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              0,
+              AppSpacing.md,
+              AppSpacing.md,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.email_outlined,
+                    color: colorScheme.primary,
+                  ),
+                  title: const Text('Email support'),
+                  subtitle: const Text('support@futsmandu.com'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Support email copied')),
+                    );
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.phone_outlined,
+                    color: colorScheme.primary,
+                  ),
+                  title: const Text('Call support'),
+                  subtitle: const Text('+977 98XXXXXXXX'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Support call requested')),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
-  }
-
-  Future<void> _loadProfile() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final raw = await _profileService.getOwnProfile();
-      final mapped = _mapProfile(raw);
-      if (!mounted) return;
-      setState(() {
-        _user = mapped;
-      });
-      await PlayerAuthStorageService.instance.saveUser({
-        'id': mapped['id'],
-        'name': mapped['name'],
-        'email': mapped['email'],
-        'phone': mapped['phone'],
-        'profile_image_url': mapped['avatarUrl'],
-      });
-    } on ProfileApiException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = e.message;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = 'Failed to load profile';
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-    }
   }
 
   Future<void> _openEditProfileSheet() async {
@@ -648,10 +704,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     setState(() => _isSavingProfile = true);
     try {
       await _profileService.updateOwnProfile(
-        name: trimmedName,
-        skillLevel: selectedSkill,
-        preferredRoles: selectedRoles.toList(growable: false),
-        showMatchHistory: showMatchHistory,
+        UpdateProfileRequest(
+          name: trimmedName,
+          skillLevel: selectedSkill,
+          preferredRoles: selectedRoles.toList(growable: false),
+          showMatchHistory: showMatchHistory,
+        ),
       );
       await _loadProfile();
       if (!mounted) return;
@@ -709,65 +767,80 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     }
   }
 
-  Map<String, dynamic> _mapProfile(Map<String, dynamic> raw) {
+  Future<void> _loadProfile() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final raw = await _profileService.getOwnProfile();
+      final mapped = _mapProfile(raw);
+      if (!mounted) return;
+      setState(() {
+        _user = mapped;
+      });
+      await PlayerAuthStorageService.instance.saveUser({
+        'id': mapped['id'],
+        'name': mapped['name'],
+        'email': mapped['email'],
+        'phone': mapped['phone'],
+        'profile_image_url': mapped['avatarUrl'],
+      });
+    } on ProfileApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Failed to load profile';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Map<String, dynamic> _mapProfile(PlayerProfile raw) {
     final mapped = Map<String, dynamic>.from(_fallbackUser);
-    final email = _string(raw['email']);
-    final name = _string(raw['name']).isEmpty
-        ? mapped['name'] as String
-        : _string(raw['name']);
+    final email = raw.email;
+    final name = raw.name.isEmpty ? mapped['name'] as String : raw.name;
 
     mapped.addAll({
-      'id': _string(raw['id']),
+      'id': raw.id,
       'name': name,
       'email': email,
-      'phone': _string(raw['phone']),
+      'phone': raw.phone,
       'handle': _buildHandle(name: name, email: email),
-      'avatarUrl': _string(raw['profile_image_url']).isEmpty
+      'avatarUrl': raw.profileImageUrl.isEmpty
           ? mapped['avatarUrl']
-          : _string(raw['profile_image_url']),
-      'isVerified': raw['is_verified'] == true,
-      'skillLevelRaw': _string(raw['skill_level']).isEmpty
-          ? 'beginner'
-          : _string(raw['skill_level']),
-      'skillLevel': _displaySkill(_string(raw['skill_level'])),
-      'eloRating': _toInt(raw['elo_rating']),
-      'reliabilityScore': _toInt(raw['reliability_score']),
-      'matchesPlayed': _toInt(raw['matches_played']),
-      'won': _toInt(raw['matches_won']),
-      'lost': _toInt(raw['matches_lost']),
-      'draw': _toInt(raw['matches_draw']),
-      'noShows': _toInt(raw['total_no_shows']),
-      'lateCancels': _toInt(raw['total_late_cancels']),
-      'showMatchHistory': raw['show_match_history'] != false,
-      'preferredRoles': _extractPreferredRoles(raw['preferred_roles']),
+          : raw.profileImageUrl,
+      'isVerified': raw.isVerified,
+      'skillLevelRaw': raw.skillLevel.isEmpty ? 'beginner' : raw.skillLevel,
+      'skillLevel': _displaySkill(raw.skillLevel),
+      'eloRating': raw.eloRating,
+      'reliabilityScore': raw.reliabilityScore,
+      'matchesPlayed': raw.matchesPlayed,
+      'won': raw.matchesWon,
+      'lost': raw.matchesLost,
+      'draw': raw.matchesDraw,
+      'noShows': raw.totalNoShows,
+      'lateCancels': raw.totalLateCancels,
+      'showMatchHistory': raw.showMatchHistory,
+      'preferredRoles': raw.preferredRoles,
     });
 
     return mapped;
   }
 
-  List<String> _extractPreferredRoles(dynamic value) {
-    if (value is! List) return const <String>[];
-    return value
-        .map((item) {
-          if (item is Map<String, dynamic>) return _string(item['role']);
-          if (item is Map) return _string(item['role']);
-          if (item is String) return item;
-          return '';
-        })
-        .where((role) => role.isNotEmpty)
-        .toList(growable: false);
-  }
-
   List<String> _asStringList(dynamic value) {
     if (value is! List) return const <String>[];
     return value.whereType<String>().toList(growable: false);
-  }
-
-  int _toInt(dynamic value) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    if (value is String) return int.tryParse(value) ?? 0;
-    return 0;
   }
 
   String _string(dynamic value) {
@@ -1404,127 +1477,108 @@ class _QuickActionTile extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Settings tile
+// Section header
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final Widget? trailing;
-  final VoidCallback? onTap;
-  final Color? iconColor;
-  final Color? textColor;
-  final bool showDivider;
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.subtitle});
 
-  const _SettingsTile({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-    this.trailing,
-    this.onTap,
-    this.iconColor,
-    this.textColor,
-    this.showDivider = true,
-  });
+  final String title;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Column(
-      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ListTile(
-          minVerticalPadding: 10,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: AppSpacing.xs3),
-          leading: Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppColors.bgElevated,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.borderClr),
-            ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: iconColor ?? AppColors.txtDisabled,
-            ),
-          ),
-          title: Text(
-            title,
-            style: AppText.body.copyWith(
-              color: textColor ?? AppColors.txtPrimary,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-          subtitle: subtitle != null
-              ? Text(
-                  subtitle!,
-                  style: AppText.label.copyWith(fontSize: 12),
-                )
-              : null,
-          trailing: trailing ??
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: AppColors.txtDisabled,
-              ),
-          onTap: onTap,
+        Text(
+          title,
+          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
         ),
-        if (showDivider)
-          Divider(
-            height: 1,
-            thickness: 1,
-            color: AppColors.borderClr,
-            indent: 48,
-            endIndent: 10,
+        const SizedBox(height: AppSpacing.xxs),
+        Text(
+          subtitle,
+          style: textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
           ),
+        ),
       ],
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Theme mode selector
+// Preferences tile
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _ThemeModeMenu extends StatelessWidget {
-  const _ThemeModeMenu();
+class _PreferenceTile extends StatelessWidget {
+  const _PreferenceTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.trailing,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget trailing;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final provider = ThemeProvider.instance;
-    return AnimatedBuilder(
-      animation: provider,
-      builder: (_, __) => PopupMenuButton<ThemeMode>(
-        initialValue: provider.themeMode,
-        onSelected: provider.setThemeMode,
-        itemBuilder: (context) => const [
-          PopupMenuItem(value: ThemeMode.system, child: Text('System')),
-          PopupMenuItem(value: ThemeMode.light, child: Text('Light')),
-          PopupMenuItem(value: ThemeMode.dark, child: Text('Dark')),
-        ],
-        color: Theme.of(context).colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              switch (provider.themeMode) {
-                ThemeMode.system => 'System',
-                ThemeMode.light => 'Light',
-                ThemeMode.dark => 'Dark',
-              },
-              style: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+    final colorScheme = Theme.of(context).colorScheme;
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            const SizedBox(width: 2),
-            Icon(Icons.expand_more_rounded,
-                color: AppColors.txtDisabled, size: 18),
-          ],
-        ),
+            child: Icon(icon, color: colorScheme.onPrimaryContainer, size: 20),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          trailing,
+        ],
       ),
     );
+
+    if (onTap == null) {
+      return content;
+    }
+
+    return InkWell(onTap: onTap, child: content);
   }
 }

@@ -227,13 +227,13 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
 
   Future<void> _joinMatch() async {
     if (!_isLoggedIn) {
-      if (!mounted) return;
-      Navigator.pushNamed(context, '/login');
+      _goToLogin();
       return;
     }
 
     if (_matchId.isEmpty) return;
 
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _isSubmitting = true);
     try {
       await _matchService.joinMatch(
@@ -242,16 +242,15 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       );
       if (!mounted) return;
       await _loadMatch(refresh: true);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Requested to join match')),
       );
     } on MatchApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Could not join match right now')),
       );
     } finally {
@@ -262,21 +261,21 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
   Future<void> _leaveMatch() async {
     if (_matchId.isEmpty) return;
 
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _isSubmitting = true);
     try {
       await _matchService.leaveMatch(_matchId);
       if (!mounted) return;
       await _loadMatch(refresh: true);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Left match')),
       );
     } on MatchApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Could not leave match right now')),
       );
     } finally {
@@ -336,6 +335,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
 
   Future<void> _approveMember(String userId) async {
     if (_matchId.isEmpty) return;
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _isSubmitting = true);
     try {
       await _matchService.approveMember(matchId: _matchId, userId: userId);
@@ -343,8 +343,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       await _loadMatch(refresh: true);
     } on MatchApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -352,6 +351,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
 
   Future<void> _rejectMember(String userId) async {
     if (_matchId.isEmpty) return;
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _isSubmitting = true);
     try {
       await _matchService.rejectMember(matchId: _matchId, userId: userId);
@@ -359,8 +359,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       await _loadMatch(refresh: true);
     } on MatchApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -384,19 +383,19 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       }
     }
 
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _isSubmitting = true);
     try {
       await _matchService.updateTeams(
           matchId: _matchId, teamA: teamA, teamB: teamB);
       if (!mounted) return;
       await _loadMatch(refresh: true);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Teams updated')),
       );
     } on MatchApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -404,22 +403,27 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
 
   Future<void> _recordResult() async {
     if (_matchId.isEmpty) return;
+    final messenger = ScaffoldMessenger.of(context);
     setState(() => _isSubmitting = true);
     try {
       await _matchService.recordResult(
           matchId: _matchId, winner: _selectedWinner);
       if (!mounted) return;
       await _loadMatch(refresh: true);
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Result recorded')),
       );
     } on MatchApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  void _goToLogin() {
+    if (!mounted) return;
+    Navigator.of(context).pushNamed('/login');
   }
 
   Color _skillColor(String skillLevel) {
@@ -726,7 +730,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                             children: [
                               Expanded(
                                 child: DropdownButtonFormField<String>(
-                                  value: _selectedWinner,
+                                  initialValue: _selectedWinner,
                                   items: const [
                                     DropdownMenuItem(
                                         value: 'A', child: Text('Team A')),

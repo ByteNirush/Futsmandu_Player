@@ -8,6 +8,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/filter_chip_row.dart';
 import '../../shared/widgets/futs_card.dart';
+import 'data/models/player_friends_models.dart';
 import 'data/services/player_friends_service.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 
@@ -31,7 +32,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   List<Map<String, dynamic>> _allFriends = const <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _friendRequests = const <Map<String, dynamic>>[];
-  List<Map<String, dynamic>> _searchPlayers = const <Map<String, dynamic>>[];
+  List<SearchPlayer> _searchPlayers = const <SearchPlayer>[];
 
   final String _playerFilter = 'All';
 
@@ -71,8 +72,9 @@ class _FriendsScreenState extends State<FriendsScreen> {
       if (!mounted) return;
       setState(() => _error = 'Failed to load friends data');
     } finally {
-      if (!mounted) return;
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -80,7 +82,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     if (query.trim().isEmpty) {
       if (!mounted) return;
       setState(() {
-        _searchPlayers = const <Map<String, dynamic>>[];
+        _searchPlayers = const <SearchPlayer>[];
         _isSearchingPlayers = false;
       });
       return;
@@ -100,18 +102,19 @@ class _FriendsScreenState extends State<FriendsScreen> {
     } on FriendsApiException catch (e) {
       if (!mounted) return;
       setState(() {
-        _searchPlayers = const <Map<String, dynamic>>[];
+        _searchPlayers = const <SearchPlayer>[];
         _error = e.message;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _searchPlayers = const <Map<String, dynamic>>[];
+        _searchPlayers = const <SearchPlayer>[];
         _error = 'Failed to search players';
       });
     } finally {
-      if (!mounted) return;
-      setState(() => _isSearchingPlayers = false);
+      if (mounted) {
+        setState(() => _isSearchingPlayers = false);
+      }
     }
   }
 
@@ -166,7 +169,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     if (friendshipId.isEmpty) return;
 
     try {
-      await _friendsService.removeFriendship(friendshipId: friendshipId);
+      await _friendsService.removeFriend(friendshipId: friendshipId);
       if (!mounted) return;
 
       await _loadFriendsData();
@@ -501,9 +504,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               itemCount: _searchPlayers.length,
                               itemBuilder: (context, index) {
                                 final p = _searchPlayers[index];
-                                final String playerId =
-                                    (p['id'] ?? '').toString();
-                                final bool isSent = _sent.contains(playerId);
+                                final bool isSent = _sent.contains(p.id);
 
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(
@@ -516,7 +517,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                         radius: 20,
                                         backgroundColor: AppColors.bgElevated,
                                         backgroundImage:
-                                            _avatarProvider(p['avatarUrl']),
+                                            _avatarProvider(p.avatarUrl),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -525,7 +526,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              p['name'] ?? '',
+                                              p.name,
                                               style: AppText.body.copyWith(
                                                   fontWeight: FontWeight.w600),
                                             ),
@@ -533,11 +534,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                             Row(
                                               children: [
                                                 _SkillBadge(
-                                                    skill: p['skillLevel'] ??
-                                                        'Intermediate'),
+                                                    skill: p.skillLevel),
                                                 const SizedBox(width: 8),
                                                 Text(
-                                                    '${p['matchesPlayed'] ?? 0} matches',
+                                                    '${p.matchesPlayed} matches',
                                                     style: AppText.label),
                                               ],
                                             ),
@@ -547,7 +547,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                       GestureDetector(
                                         onTap: isSent
                                             ? null
-                                            : () => _sendFriendRequest(p),
+                                            : () => _sendFriendRequest({
+                                                  'id': p.id,
+                                                  'name': p.name,
+                                                }),
                                         child: AnimatedContainer(
                                           duration:
                                               const Duration(milliseconds: 200),

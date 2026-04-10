@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -9,24 +10,20 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/filter_chip_row.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
-import 'data/services/player_venues_service.dart';
+import 'presentation/providers/venues_controller.dart';
 import 'venues_map_view.dart';
 
 enum _VenueViewMode { list, map }
 
-class VenueListScreen extends StatefulWidget {
+class VenueListScreen extends ConsumerStatefulWidget {
   const VenueListScreen({super.key});
 
   @override
-  State<VenueListScreen> createState() => _VenueListScreenState();
+  ConsumerState<VenueListScreen> createState() => _VenueListScreenState();
 }
 
-class _VenueListScreenState extends State<VenueListScreen> {
-  final PlayerVenuesService _venuesService = PlayerVenuesService.instance;
-
-  List<Map<String, dynamic>> _venues = const [];
-  bool _isLoading = true;
-  String? _errorMessage;
+class _VenueListScreenState extends ConsumerState<VenueListScreen> {
+  final ScrollController _scrollController = ScrollController();
 
   String _search = '';
   String _activeFilter = 'All';
@@ -36,52 +33,35 @@ class _VenueListScreenState extends State<VenueListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadVenues();
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _searchDebounce?.cancel();
     super.dispose();
   }
 
-  Future<void> _loadVenues() async {
-    if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final data = await _venuesService.browseVenues(query: _search);
-      if (!mounted) return;
-      setState(() {
-        _venues = data;
-        _isLoading = false;
-      });
-    } on VenueApiException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage = e.message;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Could not load venues right now.';
-      });
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.pixels >= position.maxScrollExtent - 320) {
+      ref.read(venueDiscoveryControllerProvider.notifier).loadMore();
     }
   }
 
   void _onSearchChanged(String value) {
     setState(() => _search = value.trim());
     _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 400), _loadVenues);
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 400),
+      () => ref.read(venueDiscoveryControllerProvider.notifier).search(_search),
+    );
   }
 
-  List<Map<String, dynamic>> get _filtered {
-    return _venues.where((v) {
+  List<Map<String, dynamic>> _filteredFrom(List<Map<String, dynamic>> venues) {
+    return venues.where((v) {
       if (_search.isNotEmpty) {
         final nameMatches =
             (v['name'] as String).toLowerCase().contains(_search.toLowerCase());
@@ -104,14 +84,16 @@ class _VenueListScreenState extends State<VenueListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    final venuesState = ref.watch(venueDiscoveryControllerProvider);
+
+    if (venuesState.isLoading) {
       return Scaffold(
         backgroundColor: AppColors.bgPrimary,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    if (_errorMessage != null) {
+    if (venuesState.hasError) {
       return Scaffold(
         backgroundColor: AppColors.bgPrimary,
         body: Center(
@@ -127,13 +109,15 @@ class _VenueListScreenState extends State<VenueListScreen> {
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
-                  _errorMessage ?? 'Could not load venues.',
+                  venuesState.error.toString(),
                   textAlign: TextAlign.center,
                   style: AppText.body.copyWith(color: AppColors.txtDisabled),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 ElevatedButton(
-                  onPressed: _loadVenues,
+                  onPressed: () => ref
+                      .read(venueDiscoveryControllerProvider.notifier)
+                      .refresh(),
                   child: const Text('Retry'),
                 ),
               ],
@@ -143,7 +127,8 @@ class _VenueListScreenState extends State<VenueListScreen> {
       );
     }
 
-    final filtered = _filtered;
+    final discovery = venuesState.value ?? VenueDiscoveryState.initial();
+    final filtered = _filteredFrom(discovery.items);
     final totalCourts = filtered.fold<int>(
       0,
       (sum, venue) => sum + ((venue['courts'] as List?)?.length ?? 0),
@@ -289,6 +274,7 @@ class _VenueListScreenState extends State<VenueListScreen> {
     double avgRating,
   ) {
     return CustomScrollView(
+      controller: _scrollController,
       physics: const BouncingScrollPhysics(),
       slivers: [
         SliverToBoxAdapter(
@@ -479,7 +465,9 @@ class _VenueListScreenState extends State<VenueListScreen> {
               AppSpacing.sm,
               0,
               AppSpacing.sm,
-              MediaQuery.of(context).padding.bottom + kNavBarHeight + AppSpacing.lg,
+              MediaQuery.of(context).padding.bottom +
+                  kNavBarHeight +
+                  AppSpacing.lg,
             ),
             sliver: SliverList.builder(
               itemCount: filtered.length,
@@ -489,6 +477,21 @@ class _VenueListScreenState extends State<VenueListScreen> {
               ),
             ),
           ),
+        SliverToBoxAdapter(
+          child: Consumer(
+            builder: (context, ref, _) {
+              final state = ref.watch(venueDiscoveryControllerProvider).value;
+              if (state == null || !state.isLoadingMore) {
+                return const SizedBox.shrink();
+              }
+
+              return const Padding(
+                padding: EdgeInsets.only(bottom: AppSpacing.lg),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            },
+          ),
+        ),
       ],
     );
   }

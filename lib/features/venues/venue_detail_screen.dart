@@ -9,7 +9,6 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';
-import '../booking/data/services/player_booking_service.dart';
 import 'data/services/player_venues_service.dart';
 
 class _VenueDetailSpacing {
@@ -32,7 +31,6 @@ class VenueDetailScreen extends StatefulWidget {
 
 class _VenueDetailScreenState extends State<VenueDetailScreen> {
   final PlayerVenuesService _venuesService = PlayerVenuesService.instance;
-  final PlayerBookingService _bookingService = PlayerBookingService.instance;
 
   static const double _spaceXs = 4;
   static const double _spaceSm = 8;
@@ -167,7 +165,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
     });
 
     try {
-      final slots = await _bookingService.getAvailability(
+      final slots = await _venuesService.getVenueAvailability(
         venueId: venueId,
         courtId: courtId,
         date: _formatApiDate(selectedDate),
@@ -178,7 +176,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
         _availabilitySlots = slots;
         _isLoadingAvailability = false;
       });
-    } on BookingApiException catch (e) {
+    } on VenueApiException catch (e) {
       if (!mounted) return;
       setState(() {
         _availabilitySlots = const <Map<String, dynamic>>[];
@@ -280,7 +278,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             comment: commentController.text,
                           );
                           if (!mounted) return;
-                          Navigator.pop(sheetContext);
+                          Navigator.of(this.context).pop();
                           ScaffoldMessenger.of(this.context).showSnackBar(
                             const SnackBar(
                                 content: Text('Review submitted successfully')),
@@ -906,7 +904,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                               if (_isLoadingAvailability) {
                                 return const Center(
                                   child: Padding(
-                                    padding: EdgeInsets.symmetric(vertical: _spaceXl),
+                                    padding: EdgeInsets.symmetric(
+                                        vertical: _spaceXl),
                                     child: CircularProgressIndicator(),
                                   ),
                                 );

@@ -1,11 +1,12 @@
-import 'dart:convert';
 import 'dart:math';
 
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 
 import '../../../../core/config/api_config.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/network/error_handler.dart';
 import '../../../../core/services/player_auth_storage_service.dart';
-import '../../../../core/services/player_http_client.dart';
+import '../models/player_match_models.dart';
 
 class MatchApiException implements Exception {
   const MatchApiException({required this.message, required this.statusCode});
@@ -22,113 +23,112 @@ class PlayerMatchService {
 
   static final PlayerMatchService instance = PlayerMatchService._internal();
 
-  final http.Client _client = createPlayerHttpClient();
+  final ApiClient _client = ApiClient.instance;
   final PlayerAuthStorageService _authStorage =
       PlayerAuthStorageService.instance;
+
+  Future<List<MatchSummary>> fetchTonightMatches({
+    double latitude = 0,
+    double longitude = 0,
+  }) async {
+    return _fetchDiscoveryMatches(
+      ApiConfig.tonightMatchesEndpoint,
+      latitude: latitude,
+      longitude: longitude,
+    );
+  }
+
+  Future<List<MatchSummary>> fetchTomorrowMatches({
+    double latitude = 0,
+    double longitude = 0,
+  }) async {
+    return _fetchDiscoveryMatches(
+      ApiConfig.tomorrowMatchesEndpoint,
+      latitude: latitude,
+      longitude: longitude,
+    );
+  }
+
+  Future<List<MatchSummary>> fetchWeekendMatches({
+    double latitude = 0,
+    double longitude = 0,
+  }) async {
+    return _fetchDiscoveryMatches(
+      ApiConfig.weekendMatchesEndpoint,
+      latitude: latitude,
+      longitude: longitude,
+    );
+  }
+
+  Future<List<MatchSummary>> fetchOpenMatches({
+    String? date,
+    String? skill,
+    int limit = 20,
+    double latitude = 0,
+    double longitude = 0,
+  }) async {
+    try {
+      final response = await _client.get(
+        ApiConfig.openMatchesEndpoint,
+        queryParameters: {
+          if (date != null && date.isNotEmpty) 'date': date,
+          if (skill != null && skill.isNotEmpty) 'skill': skill,
+          'limit': '$limit',
+          'lat': '$latitude',
+          'lng': '$longitude',
+        },
+      );
+
+      final currentUserId = await _currentUserId();
+      final records = _asMapList(_extractDiscoveryList(_unwrap(response.data)));
+      return records
+          .map(
+            (raw) => MatchSummary.fromMap(
+              _normalizeDiscoveryMatch(
+                raw,
+                latitude: latitude,
+                longitude: longitude,
+                currentUserId: currentUserId,
+              ),
+            ),
+          )
+          .toList(growable: false);
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
+    }
+  }
 
   Future<List<Map<String, dynamic>>> getTonightMatches({
     double latitude = 0,
     double longitude = 0,
   }) async {
-    final uri =
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.tonightMatchesEndpoint}')
-            .replace(queryParameters: {
-      'lat': '$latitude',
-      'lng': '$longitude',
-    });
-
-    final response = await _client.get(
-      uri,
-      headers: await _buildHeaders(includeAuthToken: true),
+    final items = await fetchTonightMatches(
+      latitude: latitude,
+      longitude: longitude,
     );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toMatchApiException(decoded, response.statusCode);
-    }
-
-    final records = _asMapList(_extractDiscoveryList(decoded));
-    final currentUserId = await _currentUserId();
-    return records
-        .map(
-          (raw) => _normalizeDiscoveryMatch(
-            raw,
-            latitude: latitude,
-            longitude: longitude,
-            currentUserId: currentUserId,
-          ),
-        )
-        .toList(growable: false);
+    return items.map((item) => item.toMap()).toList(growable: false);
   }
 
   Future<List<Map<String, dynamic>>> getTomorrowMatches({
     double latitude = 0,
     double longitude = 0,
   }) async {
-    final uri =
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.tomorrowMatchesEndpoint}')
-            .replace(queryParameters: {
-      'lat': '$latitude',
-      'lng': '$longitude',
-    });
-
-    final response = await _client.get(
-      uri,
-      headers: await _buildHeaders(includeAuthToken: true),
+    final items = await fetchTomorrowMatches(
+      latitude: latitude,
+      longitude: longitude,
     );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toMatchApiException(decoded, response.statusCode);
-    }
-
-    final records = _asMapList(_extractDiscoveryList(decoded));
-    final currentUserId = await _currentUserId();
-    return records
-        .map(
-          (raw) => _normalizeDiscoveryMatch(
-            raw,
-            latitude: latitude,
-            longitude: longitude,
-            currentUserId: currentUserId,
-          ),
-        )
-        .toList(growable: false);
+    return items.map((item) => item.toMap()).toList(growable: false);
   }
 
   Future<List<Map<String, dynamic>>> getWeekendMatches({
     double latitude = 0,
     double longitude = 0,
   }) async {
-    final uri =
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.weekendMatchesEndpoint}')
-            .replace(queryParameters: {
-      'lat': '$latitude',
-      'lng': '$longitude',
-    });
-
-    final response = await _client.get(
-      uri,
-      headers: await _buildHeaders(includeAuthToken: true),
+    final items = await fetchWeekendMatches(
+      latitude: latitude,
+      longitude: longitude,
     );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toMatchApiException(decoded, response.statusCode);
-    }
-
-    final records = _asMapList(_extractDiscoveryList(decoded));
-    final currentUserId = await _currentUserId();
-    return records
-        .map(
-          (raw) => _normalizeDiscoveryMatch(
-            raw,
-            latitude: latitude,
-            longitude: longitude,
-            currentUserId: currentUserId,
-          ),
-        )
-        .toList(growable: false);
+    return items.map((item) => item.toMap()).toList(growable: false);
   }
 
   Future<List<Map<String, dynamic>>> getOpenMatches({
@@ -138,124 +138,100 @@ class PlayerMatchService {
     double latitude = 0,
     double longitude = 0,
   }) async {
-    final uri =
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.openMatchesEndpoint}')
-            .replace(queryParameters: {
-      if (date != null && date.isNotEmpty) 'date': date,
-      if (skill != null && skill.isNotEmpty) 'skill': skill,
-      'limit': '$limit',
-      'lat': '$latitude',
-      'lng': '$longitude',
-    });
-
-    final response = await _client.get(
-      uri,
-      headers: await _buildHeaders(includeAuthToken: true),
+    final items = await fetchOpenMatches(
+      date: date,
+      skill: skill,
+      limit: limit,
+      latitude: latitude,
+      longitude: longitude,
     );
+    return items.map((item) => item.toMap()).toList(growable: false);
+  }
 
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toMatchApiException(decoded, response.statusCode);
+  Future<MatchDetail> fetchMatch(String matchId) async {
+    try {
+      final response =
+          await _client.get(ApiConfig.matchDetailEndpoint(matchId));
+      final currentUserId = await _currentUserId();
+      final normalized = _normalizeMatch(_asMap(_unwrap(response.data)),
+          currentUserId: currentUserId);
+      return MatchDetail.fromMap(normalized);
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
     }
-
-    final records = _asMapList(_extractDiscoveryList(decoded));
-    final currentUserId = await _currentUserId();
-    return records
-        .map(
-          (raw) => _normalizeDiscoveryMatch(
-            raw,
-            latitude: latitude,
-            longitude: longitude,
-            currentUserId: currentUserId,
-          ),
-        )
-        .toList(growable: false);
   }
 
   Future<Map<String, dynamic>> getMatch(String matchId) async {
-    final response = await _client.get(
-      Uri.parse(
-          '${ApiConfig.baseUrl}${ApiConfig.matchDetailEndpoint(matchId)}'),
-      headers: await _buildHeaders(),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toMatchApiException(decoded, response.statusCode);
-    }
-
-    final currentUserId = await _currentUserId();
-    return _normalizeMatch(_asMap(decoded), currentUserId: currentUserId);
+    final detail = await fetchMatch(matchId);
+    return detail.toMap();
   }
 
   Future<Map<String, dynamic>> joinMatch({
     required String matchId,
     String? position,
   }) async {
-    final response = await _client.post(
-      Uri.parse('${ApiConfig.baseUrl}${ApiConfig.joinMatchEndpoint(matchId)}'),
-      headers: await _buildHeaders(includeAuthToken: true),
-      body: jsonEncode({
-        if (position != null && position.isNotEmpty) 'position': position,
-      }),
-    );
+    try {
+      final response = await _client.post(
+        ApiConfig.joinMatchEndpoint(matchId),
+        data: {
+          if (position != null && position.isNotEmpty) 'position': position,
+        },
+      );
 
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toMatchApiException(decoded, response.statusCode);
+      final data = _unwrap(response.data);
+      return data is Map
+          ? data.cast<String, dynamic>()
+          : const <String, dynamic>{};
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
     }
-
-    return _asMap(decoded);
   }
 
   Future<Map<String, dynamic>> approveMember({
     required String matchId,
     required String userId,
   }) async {
-    final response = await _client.put(
-      Uri.parse(
-          '${ApiConfig.baseUrl}${ApiConfig.approveMatchMemberEndpoint(matchId, userId)}'),
-      headers: await _buildHeaders(includeAuthToken: true),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toMatchApiException(decoded, response.statusCode);
+    try {
+      final response = await _client.put(
+        ApiConfig.approveMatchMemberEndpoint(matchId, userId),
+      );
+      final data = _unwrap(response.data);
+      return data is Map
+          ? data.cast<String, dynamic>()
+          : const <String, dynamic>{};
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
     }
-
-    return _asMap(decoded);
   }
 
   Future<Map<String, dynamic>> rejectMember({
     required String matchId,
     required String userId,
   }) async {
-    final response = await _client.put(
-      Uri.parse(
-          '${ApiConfig.baseUrl}${ApiConfig.rejectMatchMemberEndpoint(matchId, userId)}'),
-      headers: await _buildHeaders(includeAuthToken: true),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toMatchApiException(decoded, response.statusCode);
+    try {
+      final response = await _client.put(
+        ApiConfig.rejectMatchMemberEndpoint(matchId, userId),
+      );
+      final data = _unwrap(response.data);
+      return data is Map
+          ? data.cast<String, dynamic>()
+          : const <String, dynamic>{};
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
     }
-
-    return _asMap(decoded);
   }
 
   Future<Map<String, dynamic>> leaveMatch(String matchId) async {
-    final response = await _client.delete(
-      Uri.parse('${ApiConfig.baseUrl}${ApiConfig.leaveMatchEndpoint(matchId)}'),
-      headers: await _buildHeaders(includeAuthToken: true),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toMatchApiException(decoded, response.statusCode);
+    try {
+      final response =
+          await _client.delete(ApiConfig.leaveMatchEndpoint(matchId));
+      final data = _unwrap(response.data);
+      return data is Map
+          ? data.cast<String, dynamic>()
+          : const <String, dynamic>{};
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
     }
-
-    return _asMap(decoded);
   }
 
   Future<Map<String, dynamic>> updateTeams({
@@ -263,104 +239,182 @@ class PlayerMatchService {
     required List<String> teamA,
     required List<String> teamB,
   }) async {
-    final response = await _client.put(
-      Uri.parse(
-          '${ApiConfig.baseUrl}${ApiConfig.updateMatchTeamsEndpoint(matchId)}'),
-      headers: await _buildHeaders(includeAuthToken: true),
-      body: jsonEncode({
-        'A': teamA,
-        'B': teamB,
-      }),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toMatchApiException(decoded, response.statusCode);
+    try {
+      final response = await _client.put(
+        ApiConfig.updateMatchTeamsEndpoint(matchId),
+        data: {
+          'A': teamA,
+          'B': teamB,
+        },
+      );
+      final data = _unwrap(response.data);
+      return data is Map
+          ? data.cast<String, dynamic>()
+          : const <String, dynamic>{};
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
     }
-
-    return _asMap(decoded);
   }
 
   Future<Map<String, dynamic>> recordResult({
     required String matchId,
     required String winner,
   }) async {
-    final response = await _client.post(
-      Uri.parse(
-          '${ApiConfig.baseUrl}${ApiConfig.matchResultEndpoint(matchId)}'),
-      headers: await _buildHeaders(includeAuthToken: true),
-      body: jsonEncode({'winner': winner}),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toMatchApiException(decoded, response.statusCode);
+    try {
+      final response = await _client.post(
+        ApiConfig.matchResultEndpoint(matchId),
+        data: {'winner': winner},
+      );
+      final data = _unwrap(response.data);
+      return data is Map
+          ? data.cast<String, dynamic>()
+          : const <String, dynamic>{};
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
     }
+  }
 
-    return _asMap(decoded);
+  Future<MatchInviteLink> fetchInviteLink(String matchId) async {
+    try {
+      final response =
+          await _client.post(ApiConfig.matchInviteLinkEndpoint(matchId));
+      return MatchInviteLink.fromMap(_asMap(_unwrap(response.data)));
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
+    }
   }
 
   Future<Map<String, dynamic>> generateInviteLink(String matchId) async {
-    final response = await _client.post(
-      Uri.parse(
-          '${ApiConfig.baseUrl}${ApiConfig.matchInviteLinkEndpoint(matchId)}'),
-      headers: await _buildHeaders(includeAuthToken: true),
-    );
+    final invite = await fetchInviteLink(matchId);
+    return invite.toMap();
+  }
 
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toMatchApiException(decoded, response.statusCode);
+  Future<MatchInvitePreview> fetchInvitePreview(String token) async {
+    try {
+      final response =
+          await _client.get(ApiConfig.invitePreviewEndpoint(token));
+      final normalized =
+          _normalizeInvitePreview(_asMap(_unwrap(response.data)));
+      return MatchInvitePreview.fromMap(normalized);
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
     }
-
-    return _asMap(decoded);
   }
 
   Future<Map<String, dynamic>> getInvitePreview(String token) async {
-    final response = await _client.get(
-      Uri.parse(
-          '${ApiConfig.baseUrl}${ApiConfig.invitePreviewEndpoint(token)}'),
-      headers: await _buildHeaders(),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toMatchApiException(decoded, response.statusCode);
-    }
-
-    return _normalizeInvitePreview(_asMap(decoded));
+    final preview = await fetchInvitePreview(token);
+    return preview.toMap();
   }
 
-  Future<Map<String, String>> _buildHeaders({
-    bool includeAuthToken = false,
+  Future<MatchJoinRequest> requestToJoinMatch({
+    required String matchId,
+    String? position,
   }) async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
+    try {
+      final response = await _client.post(
+        '${ApiConfig.matchesEndpoint}/join',
+        data: {
+          'matchId': matchId,
+          if (position != null && position.isNotEmpty) 'position': position,
+        },
+      );
 
-    if (includeAuthToken) {
-      final token = await _authStorage.getAccessToken();
-      if (token != null && token.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $token';
-      }
+      return MatchJoinRequest.fromMap(_asMap(_unwrap(response.data)));
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
     }
-
-    return headers;
   }
 
-  dynamic _decodeBody(String body) {
-    final trimmed = body.trim();
-    if (trimmed.isEmpty) return null;
-
+  Future<MatchJoinResponse> respondToJoinRequest({
+    required String requestId,
+    required String action,
+  }) async {
     try {
-      final decoded = jsonDecode(trimmed);
-      if (decoded is Map && decoded.containsKey('data')) {
-        return decoded['data'];
-      }
-      return decoded;
-    } catch (_) {
-      return trimmed;
+      final response = await _client.post(
+        '${ApiConfig.matchesEndpoint}/join-requests/$requestId/respond',
+        data: {'action': action},
+      );
+
+      return MatchJoinResponse.fromMap(_asMap(_unwrap(response.data)));
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
     }
+  }
+
+  Future<List<MatchMember>> getMatchMembers(String matchId) async {
+    try {
+      final response = await _client.get(
+        '${ApiConfig.matchesEndpoint}/$matchId/members',
+      );
+
+      final records = _asMapList(_unwrap(response.data));
+      return records.map(MatchMember.fromMap).toList(growable: false);
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
+    }
+  }
+
+  Future<MatchMemberAddResult> addFriendToMatch({
+    required String matchId,
+    required String friendId,
+  }) async {
+    try {
+      final response = await _client.post(
+        '${ApiConfig.matchesEndpoint}/$matchId/members/add-friend',
+        data: {'friendId': friendId},
+      );
+
+      return MatchMemberAddResult.fromMap(_asMap(_unwrap(response.data)));
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
+    }
+  }
+
+  Future<List<MatchSummary>> _fetchDiscoveryMatches(
+    String endpoint, {
+    required double latitude,
+    required double longitude,
+  }) async {
+    try {
+      final response = await _client.get(
+        endpoint,
+        queryParameters: {
+          'lat': '$latitude',
+          'lng': '$longitude',
+        },
+      );
+
+      final currentUserId = await _currentUserId();
+      final records = _asMapList(_extractDiscoveryList(_unwrap(response.data)));
+      return records
+          .map(
+            (raw) => MatchSummary.fromMap(
+              _normalizeDiscoveryMatch(
+                raw,
+                latitude: latitude,
+                longitude: longitude,
+                currentUserId: currentUserId,
+              ),
+            ),
+          )
+          .toList(growable: false);
+    } on DioException catch (error) {
+      throw _toMatchApiExceptionFromDio(error);
+    }
+  }
+
+  dynamic _unwrap(dynamic body) {
+    if (body is Map && body.containsKey('data')) {
+      return body['data'];
+    }
+    return body;
+  }
+
+  MatchApiException _toMatchApiExceptionFromDio(DioException error) {
+    return MatchApiException(
+      message: ErrorHandler.messageFor(error),
+      statusCode: error.response?.statusCode ?? 500,
+    );
   }
 
   Map<String, dynamic> _normalizeMatch(
@@ -638,21 +692,4 @@ class PlayerMatchService {
   }
 
   double _degToRad(double deg) => deg * (pi / 180);
-
-  MatchApiException _toMatchApiException(dynamic decoded, int statusCode) {
-    if (decoded is Map) {
-      final message =
-          decoded['message'] ?? decoded['error'] ?? decoded['detail'];
-      if (message is String && message.isNotEmpty) {
-        return MatchApiException(message: message, statusCode: statusCode);
-      }
-    } else if (decoded is String && decoded.isNotEmpty) {
-      return MatchApiException(message: decoded, statusCode: statusCode);
-    }
-
-    return MatchApiException(
-      message: 'Request failed with status $statusCode',
-      statusCode: statusCode,
-    );
-  }
 }

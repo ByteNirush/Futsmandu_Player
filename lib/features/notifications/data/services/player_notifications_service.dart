@@ -1,10 +1,9 @@
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 
 import '../../../../core/config/api_config.dart';
-import '../../../../core/services/player_auth_storage_service.dart';
-import '../../../../core/services/player_http_client.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/network/error_handler.dart';
+import '../models/player_notification_models.dart';
 
 class NotificationsApiException implements Exception {
   const NotificationsApiException({
@@ -25,148 +24,145 @@ class PlayerNotificationsService {
   static final PlayerNotificationsService instance =
       PlayerNotificationsService._internal();
 
-  final http.Client _client = createPlayerHttpClient();
-  final PlayerAuthStorageService _authStorage =
-      PlayerAuthStorageService.instance;
+  final ApiClient _client = ApiClient.instance;
 
-  Future<List<Map<String, dynamic>>> getNotifications({
+  Future<NotificationsPage> getNotifications({
     int page = 1,
     int limit = 30,
   }) async {
-    final uri = Uri.parse(
-      '${ApiConfig.baseUrl}${ApiConfig.notificationsEndpoint}',
-    ).replace(
-      queryParameters: {
-        'page': '$page',
-        'limit': '$limit',
-      },
-    );
+    try {
+      final response = await _client.get(
+        ApiConfig.notificationsEndpoint,
+        queryParameters: {
+          'page': page,
+          'limit': limit,
+        },
+      );
 
-    final response = await _client.get(
-      uri,
-      headers: await _buildHeaders(includeAuthToken: true),
-    );
+      final body = _asMap(response.data);
+      final payload = _unwrapData(body);
+      final records = _extractNotificationRecords(payload);
+      final items = records
+          .map(PlayerNotification.fromMap)
+          .toList(growable: false);
 
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toNotificationsApiException(decoded, response.statusCode);
+      final hasMore = _resolveHasMore(
+        body: body,
+        payload: payload,
+        page: page,
+        limit: limit,
+        fetchedCount: items.length,
+      );
+
+      return NotificationsPage(
+        items: items,
+        page: page,
+        limit: limit,
+        hasMore: hasMore,
+      );
+    } on DioException catch (error) {
+      throw _toNotificationsApiExceptionFromDio(error);
     }
-
-    final payload = _asMap(decoded);
-    final items = _asMapList(payload['data']);
-    return items.map(_normalizeNotification).toList(growable: false);
   }
 
   Future<void> markAllRead() async {
-    final response = await _client.put(
-      Uri.parse(
-          '${ApiConfig.baseUrl}${ApiConfig.markAllNotificationsReadEndpoint}'),
-      headers: await _buildHeaders(includeAuthToken: true),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toNotificationsApiException(decoded, response.statusCode);
+    try {
+      await _client.put(ApiConfig.markAllNotificationsReadEndpoint);
+    } on DioException catch (error) {
+      throw _toNotificationsApiExceptionFromDio(error);
     }
   }
 
   Future<void> markOneRead({required String notificationId}) async {
-    final response = await _client.put(
-      Uri.parse(
-        '${ApiConfig.baseUrl}${ApiConfig.markNotificationReadEndpoint(notificationId)}',
-      ),
-      headers: await _buildHeaders(includeAuthToken: true),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toNotificationsApiException(decoded, response.statusCode);
-    }
-  }
-
-  Future<Map<String, String>> _buildHeaders({
-    bool includeAuthToken = false,
-  }) async {
-    final headers = <String, String>{
-      'Accept': 'application/json',
-    };
-
-    if (includeAuthToken) {
-      final token = await _authStorage.getAccessToken();
-      if (token != null && token.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $token';
-      }
-    }
-
-    return headers;
-  }
-
-  Map<String, dynamic> _normalizeNotification(Map<String, dynamic> raw) {
-    final createdAt = _parseDate(raw['created_at']);
-    return {
-      'id': _string(raw['id']),
-      'type': _string(raw['type']),
-      'title': _string(raw['title']),
-      'body': _string(raw['body']),
-      'isRead': _bool(raw['is_read']),
-      'timeAgo': _formatTimeAgo(createdAt),
-      'createdAt': createdAt,
-    };
-  }
-
-  dynamic _decodeBody(String body) {
-    final trimmed = body.trim();
-    if (trimmed.isEmpty) return null;
-
     try {
-      return jsonDecode(trimmed);
-    } catch (_) {
-      return trimmed;
+      await _client.put(ApiConfig.markNotificationReadEndpoint(notificationId));
+    } on DioException catch (error) {
+      throw _toNotificationsApiExceptionFromDio(error);
     }
   }
 
-  NotificationsApiException _toNotificationsApiException(
-    dynamic decoded,
-    int statusCode,
-  ) {
-    if (decoded is Map) {
-      final message =
-          decoded['message'] ?? decoded['error'] ?? decoded['detail'];
-      if (message is String && message.isNotEmpty) {
-        return NotificationsApiException(
-            message: message, statusCode: statusCode);
-      }
+  dynamic _unwrapData(Map<String, dynamic> body) {
+    if (body.containsKey('data')) {
+      return body['data'];
+    }
+    return body;
+  }
 
-      final nestedData = decoded['data'];
-      if (nestedData is Map) {
-        final nestedMessage = nestedData['message'] ??
-            nestedData['error'] ??
-            nestedData['detail'];
-        if (nestedMessage is String && nestedMessage.isNotEmpty) {
-          return NotificationsApiException(
-            message: nestedMessage,
-            statusCode: statusCode,
-          );
-        }
-      }
-    } else if (decoded is String && decoded.isNotEmpty) {
-      return NotificationsApiException(
-          message: decoded, statusCode: statusCode);
+  List<Map<String, dynamic>> _extractNotificationRecords(dynamic payload) {
+    if (payload is List) return _asMapList(payload);
+
+    if (payload is Map) {
+      final mapPayload = payload.cast<String, dynamic>();
+      final items = mapPayload['items'];
+      if (items is List) return _asMapList(items);
+
+      final records = mapPayload['records'];
+      if (records is List) return _asMapList(records);
+
+      final notifications = mapPayload['notifications'];
+      if (notifications is List) return _asMapList(notifications);
     }
 
+    return const <Map<String, dynamic>>[];
+  }
+
+  bool _resolveHasMore({
+    required Map<String, dynamic> body,
+    required dynamic payload,
+    required int page,
+    required int limit,
+    required int fetchedCount,
+  }) {
+    final meta = _extractMeta(body, payload);
+
+    final hasMoreFlag = _boolFromUnknown(meta['hasMore']) ??
+        _boolFromUnknown(meta['hasNext']) ??
+        _boolFromUnknown(meta['hasNextPage']);
+    if (hasMoreFlag != null) {
+      return hasMoreFlag;
+    }
+
+    final nextPage = _intFromUnknown(meta['nextPage']);
+    if (nextPage != null) {
+      return nextPage > page;
+    }
+
+    final total = _intFromUnknown(meta['total']) ?? _intFromUnknown(meta['count']);
+    if (total != null && total >= 0) {
+      return (page * limit) < total;
+    }
+
+    return fetchedCount >= limit;
+  }
+
+  Map<String, dynamic> _extractMeta(Map<String, dynamic> body, dynamic payload) {
+    if (body['meta'] is Map) {
+      return _asMap(body['meta']);
+    }
+
+    if (payload is Map) {
+      final mapPayload = _asMap(payload);
+      if (mapPayload['meta'] is Map) {
+        return _asMap(mapPayload['meta']);
+      }
+    }
+
+    return const <String, dynamic>{};
+  }
+
+  NotificationsApiException _toNotificationsApiExceptionFromDio(
+    DioException error,
+  ) {
     return NotificationsApiException(
-      message: 'Request failed with status $statusCode',
-      statusCode: statusCode,
+      message: ErrorHandler.messageFor(error),
+      statusCode: error.response?.statusCode ?? 500,
     );
   }
 
   Map<String, dynamic> _asMap(dynamic value) {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) return value.cast<String, dynamic>();
-    throw const NotificationsApiException(
-      message: 'Unexpected server response',
-      statusCode: 500,
-    );
+    return const <String, dynamic>{};
   }
 
   List<Map<String, dynamic>> _asMapList(dynamic value) {
@@ -174,51 +170,21 @@ class PlayerNotificationsService {
     return value.map(_asMap).toList(growable: false);
   }
 
-  String _string(dynamic value) {
-    if (value is String) return value;
-    return '';
-  }
-
-  bool _bool(dynamic value) {
-    if (value is bool) return value;
-    if (value is num) return value != 0;
-    if (value is String) {
-      return value.toLowerCase() == 'true' || value == '1';
-    }
-    return false;
-  }
-
-  DateTime? _parseDate(dynamic value) {
-    if (value is String && value.isNotEmpty) {
-      return DateTime.tryParse(value)?.toLocal();
-    }
+  int? _intFromUnknown(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
     return null;
   }
 
-  String _formatTimeAgo(DateTime? date) {
-    if (date == null) return '';
-    final now = DateTime.now();
-    final diff = now.difference(date);
-
-    if (diff.inSeconds < 60) return 'Just now';
-    if (diff.inMinutes < 60) {
-      final mins = diff.inMinutes;
-      return mins == 1 ? '1 min ago' : '$mins mins ago';
+  bool? _boolFromUnknown(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true' || normalized == '1') return true;
+      if (normalized == 'false' || normalized == '0') return false;
     }
-    if (diff.inHours < 24) {
-      final hours = diff.inHours;
-      return hours == 1 ? '1 hr ago' : '$hours hrs ago';
-    }
-    if (diff.inDays < 7) {
-      final days = diff.inDays;
-      return days == 1 ? 'Yesterday' : '$days days ago';
-    }
-    final weeks = (diff.inDays / 7).floor();
-    if (weeks < 5) {
-      return weeks == 1 ? '1 week ago' : '$weeks weeks ago';
-    }
-    return '${date.year}-${_twoDigits(date.month)}-${_twoDigits(date.day)}';
+    return null;
   }
-
-  String _twoDigits(int value) => value.toString().padLeft(2, '0');
 }
