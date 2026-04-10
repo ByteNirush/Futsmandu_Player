@@ -9,7 +9,6 @@ class AppButton extends StatelessWidget {
   final bool isLoading;
   final AppButtonVariant variant;
   final Color? customColor;
-  final bool expand;
 
   const AppButton({
     super.key,
@@ -18,25 +17,18 @@ class AppButton extends StatelessWidget {
     this.isLoading = false,
     this.variant = AppButtonVariant.primary,
     this.customColor,
-    this.expand = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    Widget button = FutsButton(
+    // FutsButton always uses fullWidth=true via design system buttons,
+    // and maintains proper size behavior without forcing infinite width.
+    return FutsButton(
       label: label,
       onPressed: onPressed,
       isLoading: isLoading,
       outlined: variant == AppButtonVariant.outlined,
       customColor: customColor,
     );
-    
-    if (expand) {
-      return SizedBox(
-        width: double.infinity,
-        child: button,
-      );
-    }
-    return button;
   }
 }

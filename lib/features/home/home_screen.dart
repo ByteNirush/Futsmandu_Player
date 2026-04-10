@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../../core/mock/mock_data.dart';
 import '../../core/design_system/app_spacing.dart';
+import '../../core/mock/mock_data.dart';
 import '../../core/services/player_auth_storage_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
+import '../../features/venues/data/services/player_venues_service.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/futs_card.dart';
 import '../../shared/widgets/section_header.dart';
@@ -400,7 +401,7 @@ class _TopFutsalCard extends StatelessWidget {
                           Icon(Icons.star, size: 14, color: AppColors.amber),
                           const SizedBox(width: AppSpacing.xxs),
                           Text(
-                            '${venue['rating']}  ·  ${venue['distance']}',
+                            '${venue['rating']}${venue['distance'] != null && venue['distance'].toString().isNotEmpty ? '  ·  ${venue['distance']}' : ''}',
                             style: GoogleFonts.poppins(
                               color: Colors.white.withValues(alpha: 0.90),
                               fontSize: 12,
@@ -432,11 +433,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   Map<String, dynamic> _currentUser =
       Map<String, dynamic>.from(MockData.currentUser);
+  List<Map<String, dynamic>> _topFutsals = [];
+  bool _isLoadingFutsals = true;
+  String? _futsalsError;
 
   @override
   void initState() {
     super.initState();
     _loadCurrentUser();
+    _loadTopFutsals();
   }
 
   Future<void> _loadCurrentUser() async {
@@ -449,6 +454,39 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _currentUser = mergedUser;
     });
+  }
+
+  Future<void> _loadTopFutsals() async {
+    setState(() {
+      _isLoadingFutsals = true;
+      _futsalsError = null;
+    });
+
+    try {
+      final venues = await PlayerVenuesService.instance.browseVenues(
+        limit: 4,
+      );
+
+      if (!mounted) return;
+
+      // Sort by rating (highest first)
+      final sortedVenues = venues.toList()
+        ..sort(
+          (a, b) => ((b['rating'] ?? 0) as num)
+              .compareTo((a['rating'] ?? 0) as num),
+        );
+
+      setState(() {
+        _topFutsals = sortedVenues;
+        _isLoadingFutsals = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _futsalsError = e.toString();
+        _isLoadingFutsals = false;
+      });
+    }
   }
 
   @override
@@ -469,12 +507,6 @@ class _HomeScreenState extends State<HomeScreen> {
       upcomingBooking =
           MockData.bookings.firstWhere((b) => b['status'] == 'CONFIRMED');
     } catch (_) {}
-    final List<Map<String, dynamic>> topFutsals =
-        List<Map<String, dynamic>>.from(MockData.venues)
-          ..sort(
-            (a, b) => ((b['rating'] ?? 0) as num)
-                .compareTo((a['rating'] ?? 0) as num),
-          );
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -654,17 +686,86 @@ class _HomeScreenState extends State<HomeScreen> {
                       onAction: () => Navigator.pushNamed(context, '/venues'),
                     ),
                     const SizedBox(height: AppSpacing.xs2),
-                    SizedBox(
-                      height: 140,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
+                    if (_isLoadingFutsals)
+                      const SizedBox(
+                        height: 140,
+                        child: Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      )
+                    else if (_futsalsError != null)
+                      Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm),
-                        itemCount:
-                            topFutsals.length >= 4 ? 4 : topFutsals.length,
-                        itemBuilder: (ctx, i) => _TopFutsalCard(topFutsals[i]),
+                        child: Container(
+                          height: 140,
+                          decoration: BoxDecoration(
+                            color: AppColors.bgElevated,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  color: AppColors.red,
+                                  size: 24,
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  'Failed to load venues',
+                                  style: AppText.bodySm.copyWith(
+                                    color: AppColors.txtDisabled,
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: _loadTopFutsals,
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (_topFutsals.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm),
+                        child: Container(
+                          height: 140,
+                          decoration: BoxDecoration(
+                            color: AppColors.bgElevated,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'No venues available',
+                              style: AppText.bodySm.copyWith(
+                                color: AppColors.txtDisabled,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        height: 140,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm),
+                          itemCount: _topFutsals.length >= 4
+                              ? 4
+                              : _topFutsals.length,
+                          itemBuilder: (ctx, i) =>
+                              _TopFutsalCard(_topFutsals[i]),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),

@@ -7,11 +7,12 @@ import '../../../core/mock/mock_data.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text.dart';
 import '../../../core/design_system/app_spacing.dart';
+import '../../matches/data/models/player_match_models.dart';
 import '../../../shared/widgets/futs_card.dart';
 import '../../../shared/widgets/status_badge.dart';
 
 class MatchListCard extends StatelessWidget {
-  final Map<String, dynamic> match;
+  final MatchSummary match;
   final int index;
 
   const MatchListCard({
@@ -23,21 +24,21 @@ class MatchListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Determine skill color
-    final skillColor = match['skillLevel'] == 'Advanced'
+    final skillColor = match.skillLevel == 'Advanced'
         ? AppColors.error
-        : match['skillLevel'] == 'Intermediate'
+        : match.skillLevel == 'Intermediate'
             ? AppColors.warning
             : AppColors.success;
 
     // Spot color
-    final int spotsLeft = match['spotsLeft'] ?? 0;
+    final int spotsLeft = match.spotsLeft;
     final spotColor = spotsLeft == 1
         ? AppColors.error
         : spotsLeft <= 3
             ? AppColors.warning
             : AppColors.success;
 
-    final friendsCount = match['friendsIn'] as int? ?? 0;
+    final friendsCount = match.friendsIn;
 
     return TweenAnimationBuilder<double>(
       duration: Duration(milliseconds: 400 + (index * 100).clamp(0, 500)),
@@ -53,8 +54,8 @@ class MatchListCard extends StatelessWidget {
         );
       },
       child: FutsCard(
-        onTap: () =>
-            Navigator.pushNamed(context, '/match-detail', arguments: match),
+        onTap: () => Navigator.pushNamed(context, '/match-detail',
+            arguments: match.toMap()),
         // Use default FutsCard padding instead of incorrectly overriding it
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,11 +63,11 @@ class MatchListCard extends StatelessWidget {
             // Venue Image
             Hero(
               tag:
-                  'match_image_${match['id'] ?? index}', // Ideal to have unique match ID
+                  'match_image_${match.id.isNotEmpty ? match.id : index}', // Ideal to have unique match ID
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: CachedNetworkImage(
-                  imageUrl: match['venueImage'] ?? '',
+                  imageUrl: match.venueImage,
                   width: 90,
                   height: 90,
                   fit: BoxFit.cover,
@@ -97,7 +98,9 @@ class MatchListCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          match['venueName'] ?? 'Unknown Venue',
+                          match.venueName.isEmpty
+                              ? 'Unknown Venue'
+                              : match.venueName,
                           style: AppText.h3.copyWith(
                               fontSize: 16, fontWeight: FontWeight.w600),
                           overflow: TextOverflow.ellipsis,
@@ -112,7 +115,7 @@ class MatchListCard extends StatelessWidget {
                   ),
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
-                    match['courtName'] ?? '',
+                    match.courtName,
                     style:
                         AppText.bodySm.copyWith(color: AppColors.txtDisabled),
                   ),
@@ -123,11 +126,9 @@ class MatchListCard extends StatelessWidget {
                     spacing: 16,
                     runSpacing: 8,
                     children: [
-                      _InfoChip(
-                          Icons.access_time_outlined, match['time'] ?? ''),
-                      _InfoChip(
-                          Icons.location_on_outlined, match['distance'] ?? ''),
-                      _InfoChip(Icons.bolt_rounded, match['skillLevel'] ?? '',
+                      _InfoChip(Icons.access_time_outlined, match.time),
+                      _InfoChip(Icons.location_on_outlined, match.distance),
+                      _InfoChip(Icons.bolt_rounded, match.skillLevel,
                           color: skillColor),
                     ],
                   ),
@@ -179,7 +180,7 @@ class MatchListCard extends StatelessWidget {
                       else
                         const Spacer(),
                       Text(
-                        'NPR ${match['priceNPR']}',
+                        'NPR ${match.priceNpr}',
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           color: AppColors.success,

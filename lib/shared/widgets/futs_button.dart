@@ -50,7 +50,7 @@ class FutsButton extends StatelessWidget {
         backgroundColor: customColor ?? Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 0,
-        minimumSize: const Size(double.infinity, AppSpacing.buttonHeight),
+        minimumSize: const Size(0, AppSpacing.buttonHeight),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
         ),
@@ -68,7 +68,7 @@ class FutsButton extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         foregroundColor: outlineColor,
         elevation: 0,
-        minimumSize: const Size(double.infinity, AppSpacing.buttonHeight),
+        minimumSize: const Size(0, AppSpacing.buttonHeight),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
         ),

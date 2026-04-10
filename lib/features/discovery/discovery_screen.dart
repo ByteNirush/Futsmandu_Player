@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/design_system/app_spacing.dart';
@@ -7,28 +8,24 @@ import '../../core/theme/app_text.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/filter_chip_row.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
-import '../matches/data/services/player_match_service.dart';
+import '../matches/data/models/player_match_models.dart';
+import '../matches/presentation/providers/matches_controller.dart';
 import 'widgets/match_list_card.dart';
 
-class DiscoveryScreen extends StatefulWidget {
+class DiscoveryScreen extends ConsumerStatefulWidget {
   const DiscoveryScreen({super.key});
 
   @override
-  State<DiscoveryScreen> createState() => _DiscoveryScreenState();
+  ConsumerState<DiscoveryScreen> createState() => _DiscoveryScreenState();
 }
 
-class _DiscoveryScreenState extends State<DiscoveryScreen> {
-  static const double _fallbackLatitude = 27.7172;
-  static const double _fallbackLongitude = 85.3240;
-
-  final PlayerMatchService _matchService = PlayerMatchService.instance;
-
-  int _tabIndex = 0;
-  String _activeSkill = 'All';
-  bool _isLoading = false;
-  String? _error;
-  final Map<int, List<Map<String, dynamic>>> _tabMatches =
-      <int, List<Map<String, dynamic>>>{};
+class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
+  static const List<MatchDiscoveryTab> _tabs = <MatchDiscoveryTab>[
+    MatchDiscoveryTab.tonight,
+    MatchDiscoveryTab.tomorrow,
+    MatchDiscoveryTab.weekend,
+    MatchDiscoveryTab.open,
+  ];
 
   static const List<String> _tabLabels = [
     'Tonight',
@@ -40,110 +37,30 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   @override
   void initState() {
     super.initState();
-    _loadTabMatches(_tabIndex);
-  }
-
-  bool _isEveningMatch(Map<String, dynamic> match) {
-    final time = (match['time'] ?? '').toString();
-    final hour = int.tryParse(time.split(':').first) ?? 0;
-    return hour >= 17;
-  }
-
-  bool _passesTab(Map<String, dynamic> match) {
-    switch (_tabIndex) {
-      case 0:
-        return _isEveningMatch(match);
-      case 1:
-        return !_isEveningMatch(match);
-      case 2:
-        final date = (match['date'] ?? '').toString();
-        return date.startsWith('Sat') || date.startsWith('Sun');
-      case 3:
-        return match['isOpen'] == true;
-      default:
-        return true;
-    }
-  }
-
-  List<Map<String, dynamic>> get _filteredMatches {
-    final currentTabMatches =
-        _tabMatches[_tabIndex] ?? const <Map<String, dynamic>>[];
-    return currentTabMatches.where((match) {
-      if (!_passesTab(match)) return false;
-      if (_activeSkill == 'All') return true;
-      if (_activeSkill == 'Friends') return (match['friendsIn'] ?? 0) > 0;
-      return match['skillLevel'] == _activeSkill;
-    }).toList();
-  }
-
-  Future<void> _loadTabMatches(int tabIndex, {bool forceReload = false}) async {
-    if (!forceReload && _tabMatches.containsKey(tabIndex)) {
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _error = null;
+    Future<void>.microtask(() {
+      ref.read(matchDiscoveryControllerProvider.notifier).setTab(_tabs.first);
     });
+  }
 
-    try {
-      late final List<Map<String, dynamic>> matches;
-      switch (tabIndex) {
-        case 0:
-          matches = await _matchService.getTonightMatches(
-            latitude: _fallbackLatitude,
-            longitude: _fallbackLongitude,
-          );
-          break;
-        case 1:
-          matches = await _matchService.getTomorrowMatches(
-            latitude: _fallbackLatitude,
-            longitude: _fallbackLongitude,
-          );
-          break;
-        case 2:
-          matches = await _matchService.getWeekendMatches(
-            latitude: _fallbackLatitude,
-            longitude: _fallbackLongitude,
-          );
-          break;
-        case 3:
-          matches = await _matchService.getOpenMatches(
-            latitude: _fallbackLatitude,
-            longitude: _fallbackLongitude,
-          );
-          break;
-        default:
-          matches = const <Map<String, dynamic>>[];
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _tabMatches[tabIndex] = matches;
-      });
-    } on MatchApiException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.message;
-        _tabMatches[tabIndex] = const <Map<String, dynamic>>[];
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Unable to load matches right now';
-        _tabMatches[tabIndex] = const <Map<String, dynamic>>[];
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-    }
+  List<MatchSummary> _filteredMatches(MatchDiscoveryState state) {
+    return state.activeItems.where((match) {
+      if (state.activeSkill == 'All') return true;
+      if (state.activeSkill == 'Friends') return match.friendsIn > 0;
+      return match.skillLevel == state.activeSkill;
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    final matches = _filteredMatches;
+    final asyncState = ref.watch(matchDiscoveryControllerProvider);
+    final state = asyncState.valueOrNull ?? MatchDiscoveryState.initial();
+    final tabIndex = _tabs.indexOf(state.activeTab);
+    final safeTabIndex = tabIndex < 0 ? 0 : tabIndex;
+    final matches = _filteredMatches(state);
+    final isLoading = asyncState.isLoading || state.isRefreshing;
+    final error =
+        asyncState.whenOrNull(error: (error, _) => error.toString()) ??
+            state.activeError;
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -156,7 +73,11 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => _loadTabMatches(_tabIndex, forceReload: true),
+            onPressed: () {
+              ref
+                  .read(matchDiscoveryControllerProvider.notifier)
+                  .refreshActiveTab();
+            },
             tooltip: 'Refresh',
           ),
         ],
@@ -164,8 +85,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (_isLoading) const LinearProgressIndicator(minHeight: 2),
-          if (_error != null)
+          if (isLoading) const LinearProgressIndicator(minHeight: 2),
+          if (error != null)
             Container(
               margin: const EdgeInsets.fromLTRB(
                 AppSpacing.sm2,
@@ -182,7 +103,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                 ),
               ),
               child: Text(
-                _error!,
+                error,
                 style: AppText.bodySm.copyWith(color: AppColors.red),
               ),
             ),
@@ -197,12 +118,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
               children: _tabLabels.asMap().entries.map((entry) {
                 final int i = entry.key;
                 final String label = entry.value;
-                final bool isSelected = _tabIndex == i;
+                final bool isSelected = safeTabIndex == i;
 
                 return GestureDetector(
                   onTap: () {
-                    setState(() => _tabIndex = i);
-                    _loadTabMatches(i);
+                    ref
+                        .read(matchDiscoveryControllerProvider.notifier)
+                        .setTab(_tabs[i]);
                   },
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 200),
@@ -248,8 +170,10 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                 'Advanced',
                 'Friends'
               ],
-              selected: _activeSkill,
-              onSelected: (v) => setState(() => _activeSkill = v),
+              selected: state.activeSkill,
+              onSelected: (v) {
+                ref.read(matchDiscoveryControllerProvider.notifier).setSkill(v);
+              },
             ),
           ),
 
@@ -265,7 +189,7 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                 ),
                 const Spacer(),
                 Text(
-                  _tabLabels[_tabIndex],
+                  _tabLabels[safeTabIndex],
                   style: AppText.label,
                 ),
               ],
@@ -280,13 +204,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
               duration: const Duration(milliseconds: 200),
               child: matches.isEmpty
                   ? EmptyState(
-                      key: ValueKey('empty_$_tabIndex$_activeSkill'),
+                      key: ValueKey('empty_$safeTabIndex${state.activeSkill}'),
                       icon: Icons.explore_off,
-                      title: 'No matches ${_tabLabels[_tabIndex]}',
+                      title: 'No matches ${_tabLabels[safeTabIndex]}',
                       subtitle: 'Check back later or explore open matches',
                     )
                   : ListView.separated(
-                      key: ValueKey('list_$_tabIndex$_activeSkill'),
+                      key: ValueKey('list_$safeTabIndex${state.activeSkill}'),
                       padding: EdgeInsets.fromLTRB(
                         AppSpacing.sm2,
                         AppSpacing.xxs,

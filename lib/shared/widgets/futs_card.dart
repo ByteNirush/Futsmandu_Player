@@ -28,26 +28,28 @@ class _FutsCardState extends State<FutsCard> {
   @override
   Widget build(BuildContext context) {
     final radius = widget.borderRadius ?? BorderRadius.circular(AppRadius.lg);
-    final padding = widget.padding ?? EdgeInsets.all(AppSpacing.cardPadding);
+    final padding =
+        widget.padding ?? const EdgeInsets.all(AppSpacing.cardPadding);
 
-    final cardChild = widget.backgroundColor == null && widget.borderRadius == null
-        ? ds.AppCard(
-            onTap: null,
-            padding: padding,
-            child: widget.child,
-          )
-        : ds.AppContainer(
-            padding: padding,
-            backgroundColor: widget.backgroundColor,
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-            useShadow: true,
-            child: ClipRRect(
-              borderRadius: radius,
-              child: widget.child,
-            ),
-          );
+    final cardChild =
+        widget.backgroundColor == null && widget.borderRadius == null
+            ? ds.AppCard(
+                onTap: null,
+                padding: padding,
+                child: widget.child,
+              )
+            : ds.AppContainer(
+                padding: padding,
+                backgroundColor: widget.backgroundColor,
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+                useShadow: true,
+                child: ClipRRect(
+                  borderRadius: radius,
+                  child: widget.child,
+                ),
+              );
 
     if (widget.onTap == null) {
       return cardChild;
