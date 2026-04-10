@@ -67,20 +67,54 @@ class _HomeShellState extends State<HomeShell> {
           ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: _onTap,
-        height: kNavBarHeight,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: _navItems
-            .map(
-              (item) => NavigationDestination(
-                icon: Icon(item.icon),
-                selectedIcon: Icon(item.activeIcon),
-                label: item.label,
-              ),
-            )
-            .toList(),
+      bottomNavigationBar: NavigationBarTheme(
+        data: NavigationBarThemeData(
+          height: kNavBarHeight,
+          indicatorColor: AppColors.primary.withValues(alpha: 0.14),
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          iconTheme: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return IconThemeData(color: AppColors.primary, size: 24);
+            }
+            return IconThemeData(
+              color: AppColors.txtDisabled,
+              size: 24,
+            );
+          }),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            final baseStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  height: 1.2,
+                );
+            if (states.contains(WidgetState.selected)) {
+              return baseStyle?.copyWith(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+              );
+            }
+            return baseStyle?.copyWith(color: AppColors.txtDisabled);
+          }),
+          backgroundColor: AppColors.bgSurface,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          overlayColor: WidgetStateProperty.all(Colors.transparent),
+        ),
+        child: NavigationBar(
+          selectedIndex: _index,
+          onDestinationSelected: _onTap,
+          height: kNavBarHeight,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: _navItems
+              .map(
+                (item) => NavigationDestination(
+                  icon: Icon(item.icon),
+                  selectedIcon: Icon(item.activeIcon),
+                  label: item.label,
+                ),
+              )
+              .toList(),
+        ),
       ),
     );
   }
