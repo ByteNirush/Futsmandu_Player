@@ -9,6 +9,7 @@ import '../../core/mock/mock_data.dart';
 import '../../core/services/player_auth_storage_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
+import '../../features/matches/data/services/player_match_service.dart';
 import '../../features/venues/data/services/player_venues_service.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/futs_card.dart';
@@ -437,11 +438,16 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingFutsals = true;
   String? _futsalsError;
 
+  List<Map<String, dynamic>> _tonightMatches = [];
+  bool _isLoadingTonightMatches = true;
+  String? _tonightMatchesError;
+
   @override
   void initState() {
     super.initState();
     _loadCurrentUser();
     _loadTopFutsals();
+    _loadTonightMatches();
   }
 
   Future<void> _loadCurrentUser() async {
@@ -485,6 +491,28 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _futsalsError = e.toString();
         _isLoadingFutsals = false;
+      });
+    }
+  }
+
+  Future<void> _loadTonightMatches() async {
+    setState(() {
+      _isLoadingTonightMatches = true;
+      _tonightMatchesError = null;
+    });
+
+    try {
+      final matches = await PlayerMatchService.instance.getTonightMatches();
+      if (!mounted) return;
+      setState(() {
+        _tonightMatches = matches;
+        _isLoadingTonightMatches = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _tonightMatchesError = e.toString();
+        _isLoadingTonightMatches = false;
       });
     }
   }
@@ -784,17 +812,100 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.pushNamed(context, '/discovery'),
                     ),
                     const SizedBox(height: AppSpacing.xs2),
-                    SizedBox(
-                      height: 200,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
+                    if (_isLoadingTonightMatches)
+                      const SizedBox(
+                        height: 200,
+                        child: Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      )
+                    else if (_tonightMatchesError != null)
+                      Padding(
                         padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm),
-                        itemCount: math.min(3, MockData.matches.length),
-                        itemBuilder: (ctx, i) =>
-                            _MatchMiniCard(MockData.matches[i]),
+                        child: Container(
+                          height: 200,
+                          decoration: BoxDecoration(
+                            color: AppColors.bgElevated,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  color: AppColors.red,
+                                  size: 24,
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  'Failed to load matches',
+                                  style: AppText.bodySm.copyWith(
+                                    color: AppColors.txtDisabled,
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: _loadTonightMatches,
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (_tonightMatches.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm),
+                        child: Container(
+                          height: 200,
+                          decoration: BoxDecoration(
+                            color: AppColors.bgElevated,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.sports_soccer_outlined,
+                                  size: 32,
+                                  color: AppColors.txtDisabled,
+                                ),
+                                const SizedBox(height: AppSpacing.xs),
+                                Text(
+                                  'No open matches tonight',
+                                  style: AppText.bodySm.copyWith(
+                                    color: AppColors.txtDisabled,
+                                  ),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pushNamed(
+                                      context, '/discovery'),
+                                  child: const Text('Browse All'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      SizedBox(
+                        height: 200,
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm),
+                          itemCount: math.min(5, _tonightMatches.length),
+                          itemBuilder: (ctx, i) =>
+                              _MatchMiniCard(_tonightMatches[i]),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
