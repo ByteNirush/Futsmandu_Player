@@ -95,7 +95,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     try {
-      await ref.read(authSessionProvider.notifier).register(
+      final player = await ref.read(authSessionProvider.notifier).register(
             name: _nameController.text,
             email: _emailController.text,
             phone: _phoneController.text,
@@ -105,13 +105,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text(
-                'Account created successfully. Please verify your email.')),
+          content: Text('Account created. Enter the OTP sent to your email.'),
+        ),
       );
       Navigator.pushReplacementNamed(
         context,
-        '/verify-email',
-        arguments: {'email': _emailController.text.trim()},
+        '/otp-verification',
+        arguments: {
+          'userId': player.id,
+          'email': _emailController.text.trim(),
+        },
       );
     } on AuthException catch (e) {
       if (!mounted) return;

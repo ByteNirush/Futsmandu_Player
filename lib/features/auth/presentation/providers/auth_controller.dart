@@ -44,6 +44,17 @@ class AuthController extends AsyncNotifier<PlayerAuthSession?> {
     );
   }
 
+  Future<OtpVerificationResult> verifyOtp({
+    required String userId,
+    required String otp,
+  }) {
+    return _repository.verifyOtp(userId: userId, otp: otp);
+  }
+
+  Future<OtpVerificationResult> resendOtp({required String userId}) {
+    return _repository.resendOtp(userId: userId);
+  }
+
   Future<String> forgotPassword({required String email}) {
     return _repository.forgotPassword(email: email);
   }

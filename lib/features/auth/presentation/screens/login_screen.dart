@@ -4,6 +4,7 @@ import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 
 import '../../data/services/player_auth_service.dart';
 import '../../../../shared/widgets/app_logo.dart';
+import '../../../../shared/widgets/app_input_field.dart';
 import '../../../../shared/widgets/error_message_widget.dart';
 import '../providers/auth_controller.dart';
 
@@ -140,11 +141,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   validator: _validateEmail,
                                 ),
                                 const SizedBox(height: AppSpacing.sm),
-                                AppTextField(
-                                  labelText: 'Password',
-                                  hintText: 'Enter your password',
-                                  prefixIcon: const Icon(Icons.lock_outline),
-                                  obscureText: true,
+                                AppInputField(
+                                  label: 'Password',
+                                  hint: 'Enter your password',
+                                  prefixIcon: Icons.lock_outline,
+                                  isPassword: true,
                                   textInputAction: TextInputAction.done,
                                   maxLength: 128,
                                   showCounter: false,

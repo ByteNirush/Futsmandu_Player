@@ -85,6 +85,17 @@ class PlayerAuthRepository {
     );
   }
 
+  Future<OtpVerificationResult> verifyOtp({
+    required String userId,
+    required String otp,
+  }) {
+    return _remoteDataSource.verifyOtp(userId: userId, otp: otp);
+  }
+
+  Future<OtpVerificationResult> resendOtp({required String userId}) {
+    return _remoteDataSource.resendOtp(userId: userId);
+  }
+
   Future<PlayerAuthSession?> refreshSession() async {
     try {
       final accessToken = await _remoteDataSource.refresh();
