@@ -4,6 +4,7 @@ import 'package:app_links/app_links.dart';
 import 'package:esewa_flutter/esewa_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -14,22 +15,21 @@ import '../../core/theme/app_text.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';
 import 'data/services/player_payments_service.dart';
+import 'presentation/providers/payment_controllers.dart';
 
-class PaymentScreen extends StatefulWidget {
+class PaymentScreen extends ConsumerStatefulWidget {
   const PaymentScreen({super.key});
 
   @override
-  State<PaymentScreen> createState() => _PaymentScreenState();
+  ConsumerState<PaymentScreen> createState() => _PaymentScreenState();
 }
 
-class _PaymentScreenState extends State<PaymentScreen>
+class _PaymentScreenState extends ConsumerState<PaymentScreen>
     with WidgetsBindingObserver {
-  final PlayerPaymentsService _paymentsService = PlayerPaymentsService.instance;
   final AppLinks _appLinks = AppLinks();
 
   String? _gateway;
   int _seconds = 420;
-  bool _loading = false;
   Timer? _timer;
   bool _timerInitialized = false;
   StreamSubscription<Uri>? _khaltiLinkSubscription;
@@ -39,6 +39,8 @@ class _PaymentScreenState extends State<PaymentScreen>
   Map<String, dynamic>? _pendingKhaltiArgs;
   bool _isAwaitingKhaltiCallback = false;
   bool _isVerifyingKhaltiCallback = false;
+
+  bool get _loading => ref.watch(paymentActionControllerProvider).isLoading;
 
   @override
   void initState() {
@@ -146,18 +148,23 @@ class _PaymentScreenState extends State<PaymentScreen>
     final pidx = _pendingKhaltiPidx;
     final bookingId = _pendingKhaltiBookingId;
     final args = _pendingKhaltiArgs;
-    if (pidx == null || pidx.isEmpty || bookingId == null || bookingId.isEmpty) {
+    if (pidx == null ||
+        pidx.isEmpty ||
+        bookingId == null ||
+        bookingId.isEmpty) {
       return;
     }
 
     setState(() {
       _isVerifyingKhaltiCallback = true;
-      _loading = true;
     });
 
     try {
       final verification =
-          await _paymentsService.verifyKhalti(pidx: pidx, bookingId: bookingId);
+          await ref.read(paymentActionControllerProvider.notifier).verifyKhalti(
+                pidx: pidx,
+                bookingId: bookingId,
+              );
       if (!mounted) return;
 
       setState(() {
@@ -167,12 +174,17 @@ class _PaymentScreenState extends State<PaymentScreen>
         _pendingKhaltiArgs = null;
       });
 
-      _goToConfirmation(args, verification: verification, gateway: 'KHALTI');
+      _goToConfirmation(
+        args,
+        verification: verification.toMap(),
+        gateway: 'KHALTI',
+      );
     } on PaymentsApiException catch (e) {
       if (!mounted) return;
       if (trigger == 'resume') {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Waiting for Khalti confirmation: ${e.message}')),
+          SnackBar(
+              content: Text('Waiting for Khalti confirmation: ${e.message}')),
         );
       } else {
         ScaffoldMessenger.of(context)
@@ -184,11 +196,11 @@ class _PaymentScreenState extends State<PaymentScreen>
         const SnackBar(content: Text('Unable to verify Khalti payment yet.')),
       );
     } finally {
-      if (!mounted) return;
-      setState(() {
-        _isVerifyingKhaltiCallback = false;
-        _loading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isVerifyingKhaltiCallback = false;
+        });
+      }
     }
   }
 
@@ -230,11 +242,12 @@ class _PaymentScreenState extends State<PaymentScreen>
       return;
     }
 
-    setState(() => _loading = true);
-
     try {
       if (_gateway == 'esewa') {
-        await _paymentsService.initiateEsewa(bookingId: bookingId);
+        await ref
+            .read(paymentActionControllerProvider.notifier)
+            .initiateEsewa(bookingId: bookingId);
+        if (!mounted) return;
 
         final config = ESewaConfig.dev(
           amount: _amountFromArgs(args),
@@ -271,15 +284,23 @@ class _PaymentScreenState extends State<PaymentScreen>
         }
 
         final verification =
-            await _paymentsService.verifyEsewa(data: base64Payload);
+            await ref
+                .read(paymentActionControllerProvider.notifier)
+                .verifyEsewa(data: base64Payload);
 
-        _goToConfirmation(args, verification: verification, gateway: 'ESEWA');
+        _goToConfirmation(
+          args,
+          verification: verification.toMap(),
+          gateway: 'ESEWA',
+        );
         return;
       }
 
-      final init = await _paymentsService.initiateKhalti(bookingId: bookingId);
-      final paymentUrl = init['payment_url']?.toString() ?? '';
-      final pidx = init['pidx']?.toString() ?? '';
+      final init = await ref
+          .read(paymentActionControllerProvider.notifier)
+          .initiateKhalti(bookingId: bookingId);
+      final paymentUrl = init.paymentUrl;
+      final pidx = init.pidx;
 
       if (paymentUrl.isEmpty || pidx.isEmpty) {
         throw const PaymentsApiException(
@@ -330,8 +351,6 @@ class _PaymentScreenState extends State<PaymentScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Payment failed. Please try again.')),
       );
-    } finally {
-      if (mounted) setState(() => _loading = false);
     }
   }
 

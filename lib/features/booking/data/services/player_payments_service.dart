@@ -1,10 +1,9 @@
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 
 import '../../../../core/config/api_config.dart';
-import '../../../../core/services/player_auth_storage_service.dart';
-import '../../../../core/services/player_http_client.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/network/error_handler.dart';
+import '../models/payment_models.dart';
 
 class PaymentsApiException implements Exception {
   const PaymentsApiException({required this.message, required this.statusCode});
@@ -22,164 +21,103 @@ class PlayerPaymentsService {
   static final PlayerPaymentsService instance =
       PlayerPaymentsService._internal();
 
-  final http.Client _client = createPlayerHttpClient();
-  final PlayerAuthStorageService _authStorage =
-      PlayerAuthStorageService.instance;
+  final ApiClient _apiClient = ApiClient.instance;
 
-  Future<Map<String, dynamic>> initiateKhalti({
+  Future<KhaltiInitiationResult> initiateKhalti({
     required String bookingId,
   }) async {
-    final response = await _client.post(
-      Uri.parse('${ApiConfig.baseUrl}${ApiConfig.khaltiInitiateEndpoint}'),
-      headers: await _buildHeaders(includeAuthToken: true),
-      body: jsonEncode({'bookingId': bookingId}),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toPaymentsApiException(decoded, response.statusCode);
+    try {
+      final response = await _apiClient.post(
+        ApiConfig.khaltiInitiateEndpoint,
+        data: {'bookingId': bookingId},
+      );
+      return KhaltiInitiationResult.fromJson(_asMap(_unwrap(response.data)));
+    } on DioException catch (error) {
+      throw _toPaymentsApiException(error);
     }
-
-    return _asMap(decoded);
   }
 
-  Future<Map<String, dynamic>> verifyKhalti({
+  Future<PaymentVerificationResult> verifyKhalti({
     required String pidx,
     required String bookingId,
   }) async {
-    final response = await _client.post(
-      Uri.parse('${ApiConfig.baseUrl}${ApiConfig.khaltiVerifyEndpoint}'),
-      headers: await _buildHeaders(includeAuthToken: true),
-      body: jsonEncode({
-        'pidx': pidx,
-        'bookingId': bookingId,
-      }),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toPaymentsApiException(decoded, response.statusCode);
+    try {
+      final response = await _apiClient.post(
+        ApiConfig.khaltiVerifyEndpoint,
+        data: {
+          'pidx': pidx,
+          'bookingId': bookingId,
+        },
+      );
+      return PaymentVerificationResult.fromJson(_asMap(_unwrap(response.data)));
+    } on DioException catch (error) {
+      throw _toPaymentsApiException(error);
     }
-
-    return _asMap(decoded);
   }
 
-  Future<Map<String, dynamic>> initiateEsewa({
+  Future<EsewaInitiationResult> initiateEsewa({
     required String bookingId,
   }) async {
-    final response = await _client.post(
-      Uri.parse('${ApiConfig.baseUrl}${ApiConfig.esewaInitiateEndpoint}'),
-      headers: await _buildHeaders(includeAuthToken: true),
-      body: jsonEncode({'bookingId': bookingId}),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toPaymentsApiException(decoded, response.statusCode);
+    try {
+      final response = await _apiClient.post(
+        ApiConfig.esewaInitiateEndpoint,
+        data: {'bookingId': bookingId},
+      );
+      return EsewaInitiationResult.fromJson(_asMap(_unwrap(response.data)));
+    } on DioException catch (error) {
+      throw _toPaymentsApiException(error);
     }
-
-    return _asMap(decoded);
   }
 
-  Future<Map<String, dynamic>> verifyEsewa({
+  Future<PaymentVerificationResult> verifyEsewa({
     required String data,
   }) async {
-    final response = await _client.post(
-      Uri.parse('${ApiConfig.baseUrl}${ApiConfig.esewaVerifyEndpoint}'),
-      headers: await _buildHeaders(includeAuthToken: true),
-      body: jsonEncode({'data': data}),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toPaymentsApiException(decoded, response.statusCode);
-    }
-
-    return _asMap(decoded);
-  }
-
-  Future<Map<String, dynamic>> getPayment(String paymentId) async {
-    final response = await _client.get(
-      Uri.parse(
-          '${ApiConfig.baseUrl}${ApiConfig.paymentDetailEndpoint(paymentId)}'),
-      headers: await _buildHeaders(
-          includeAuthToken: true, includeJsonContentType: false),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toPaymentsApiException(decoded, response.statusCode);
-    }
-
-    return _asMap(decoded);
-  }
-
-  Future<List<Map<String, dynamic>>> getPaymentHistory() async {
-    final response = await _client.get(
-      Uri.parse('${ApiConfig.baseUrl}${ApiConfig.paymentHistoryEndpoint}'),
-      headers: await _buildHeaders(
-          includeAuthToken: true, includeJsonContentType: false),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toPaymentsApiException(decoded, response.statusCode);
-    }
-
-    final list = _asList(decoded);
-    return list.map(_asMap).toList(growable: false);
-  }
-
-  Future<Map<String, String>> _buildHeaders({
-    bool includeAuthToken = false,
-    bool includeJsonContentType = true,
-  }) async {
-    final headers = <String, String>{
-      'Accept': 'application/json',
-      if (includeJsonContentType) 'Content-Type': 'application/json',
-    };
-
-    if (includeAuthToken) {
-      final token = await _authStorage.getAccessToken();
-      if (token != null && token.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $token';
-      }
-    }
-
-    return headers;
-  }
-
-  dynamic _decodeBody(String body) {
-    final trimmed = body.trim();
-    if (trimmed.isEmpty) return null;
-
     try {
-      final decoded = jsonDecode(trimmed);
-      if (decoded is Map && decoded.containsKey('data')) {
-        return decoded['data'];
-      }
-      return decoded;
-    } catch (_) {
-      return trimmed;
+      final response = await _apiClient.post(
+        ApiConfig.esewaVerifyEndpoint,
+        data: {'data': data},
+      );
+      return PaymentVerificationResult.fromJson(_asMap(_unwrap(response.data)));
+    } on DioException catch (error) {
+      throw _toPaymentsApiException(error);
     }
   }
 
-  PaymentsApiException _toPaymentsApiException(
-      dynamic decoded, int statusCode) {
-    if (decoded is Map) {
-      final message =
-          decoded['message'] ?? decoded['error'] ?? decoded['detail'];
-      if (message is String && message.isNotEmpty) {
-        return PaymentsApiException(message: message, statusCode: statusCode);
-      }
-    } else if (decoded is String && decoded.isNotEmpty) {
-      return PaymentsApiException(message: decoded, statusCode: statusCode);
+  Future<PaymentDetail> getPayment(String paymentId) async {
+    try {
+      final response =
+          await _apiClient.get(ApiConfig.paymentDetailEndpoint(paymentId));
+      return PaymentDetail.fromJson(_asMap(_unwrap(response.data)));
+    } on DioException catch (error) {
+      throw _toPaymentsApiException(error);
     }
+  }
 
+  Future<List<PaymentHistoryItem>> getPaymentHistory() async {
+    try {
+      final response = await _apiClient.get(ApiConfig.paymentHistoryEndpoint);
+      final records = _asMapList(_unwrap(response.data));
+      return records
+          .map(PaymentHistoryItem.fromJson)
+          .toList(growable: false);
+    } on DioException catch (error) {
+      throw _toPaymentsApiException(error);
+    }
+  }
+
+  PaymentsApiException _toPaymentsApiException(DioException error) {
+    final statusCode = error.response?.statusCode ?? 500;
     return PaymentsApiException(
-      message: 'Request failed with status $statusCode',
+      message: ErrorHandler.messageFor(error),
       statusCode: statusCode,
     );
+  }
+
+  dynamic _unwrap(dynamic body) {
+    if (body is Map && body.containsKey('data')) {
+      return body['data'];
+    }
+    return body;
   }
 
   Map<String, dynamic> _asMap(dynamic value) {
@@ -191,11 +129,8 @@ class PlayerPaymentsService {
     );
   }
 
-  List<dynamic> _asList(dynamic value) {
-    if (value is List) return value;
-    throw const PaymentsApiException(
-      message: 'Unexpected server response',
-      statusCode: 500,
-    );
+  List<Map<String, dynamic>> _asMapList(dynamic value) {
+    if (value is! List) return const <Map<String, dynamic>>[];
+    return value.map(_asMap).toList(growable: false);
   }
 }

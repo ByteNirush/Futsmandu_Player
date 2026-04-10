@@ -1,10 +1,9 @@
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
 
 import '../../../../core/config/api_config.dart';
-import '../../../../core/services/player_auth_storage_service.dart';
-import '../../../../core/services/player_http_client.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/network/error_handler.dart';
+import '../models/booking_models.dart';
 
 class BookingApiException implements Exception {
   const BookingApiException({required this.message, required this.statusCode});
@@ -23,7 +22,7 @@ class BookingListResult {
     required this.limit,
   });
 
-  final List<Map<String, dynamic>> items;
+  final List<BookingHistoryItem> items;
   final String? nextCursor;
   final int limit;
 }
@@ -33,66 +32,51 @@ class PlayerBookingService {
 
   static final PlayerBookingService instance = PlayerBookingService._internal();
 
-  final http.Client _client = createPlayerHttpClient();
-  final PlayerAuthStorageService _authStorage =
-      PlayerAuthStorageService.instance;
+  final ApiClient _apiClient = ApiClient.instance;
 
-  Future<List<Map<String, dynamic>>> getAvailability({
+  Future<List<BookingAvailabilitySlot>> getAvailability({
     required String venueId,
     required String courtId,
     required String date,
   }) async {
-    final uri = Uri.parse(
-      '${ApiConfig.baseUrl}${ApiConfig.venueAvailabilityEndpoint(venueId)}',
-    ).replace(
-      queryParameters: {
-        'courtId': courtId,
-        'date': date,
-      },
-    );
-
-    final response = await _client.get(uri, headers: await _buildHeaders());
-    final decoded = _decodeBody(response.body);
-
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toBookingApiException(decoded, response.statusCode);
+    try {
+      final response = await _apiClient.get(
+        ApiConfig.venueAvailabilityEndpoint(venueId),
+        queryParameters: {
+          'courtId': courtId,
+          'date': date,
+        },
+      );
+      final records = _asMapList(_unwrap(response.data));
+      return records
+          .map(BookingAvailabilitySlot.fromJson)
+          .toList(growable: false);
+    } on DioException catch (error) {
+      throw _toBookingApiException(error);
     }
-
-    final records = _asMapList(decoded);
-    return records
-        .map(
-          (slot) => {
-            'time': _string(slot['startTime']),
-            'endTime': _string(slot['endTime']),
-            'status': _normalizeSlotStatus(_string(slot['status'])),
-          },
-        )
-        .toList(growable: false);
   }
 
-  Future<Map<String, dynamic>> holdSlot({
+  Future<HeldBooking> holdSlot({
     required String courtId,
     required String date,
     required String startTime,
     List<String>? friendIds,
   }) async {
-    final response = await _client.post(
-      Uri.parse('${ApiConfig.baseUrl}${ApiConfig.bookingsEndpoint}/hold'),
-      headers: await _buildHeaders(includeAuthToken: true),
-      body: jsonEncode({
-        'courtId': courtId,
-        'date': date,
-        'startTime': startTime,
-        if (friendIds != null && friendIds.isNotEmpty) 'friendIds': friendIds,
-      }),
-    );
+    try {
+      final response = await _apiClient.post(
+        '${ApiConfig.bookingsEndpoint}/hold',
+        data: {
+          'courtId': courtId,
+          'date': date,
+          'startTime': startTime,
+          if (friendIds != null && friendIds.isNotEmpty) 'friendIds': friendIds,
+        },
+      );
 
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toBookingApiException(decoded, response.statusCode);
+      return HeldBooking.fromJson(_asMap(_unwrap(response.data)));
+    } on DioException catch (error) {
+      throw _toBookingApiException(error);
     }
-
-    return _asMap(decoded);
   }
 
   Future<BookingListResult> getBookings({
@@ -101,119 +85,73 @@ class PlayerBookingService {
     int limit = 20,
     String? cursor,
   }) async {
-    final uri =
-        Uri.parse('${ApiConfig.baseUrl}${ApiConfig.bookingsEndpoint}').replace(
-      queryParameters: {
-        if (status != null && status.isNotEmpty) 'status': status,
-        'page': '$page',
-        'limit': '$limit',
-        if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
-      },
-    );
+    try {
+      final response = await _apiClient.get(
+        ApiConfig.bookingsEndpoint,
+        queryParameters: {
+          if (status != null && status.isNotEmpty) 'status': status,
+          'page': '$page',
+          'limit': '$limit',
+          if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
+        },
+      );
 
-    final response = await _client.get(
-      uri,
-      headers: await _buildHeaders(includeAuthToken: true),
-    );
+      final payload = _asMap(_unwrap(response.data));
+      final data = _asMapList(payload['data']);
+      final meta = _asMap(payload['meta']);
 
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toBookingApiException(decoded, response.statusCode);
+      return BookingListResult(
+        items: data
+            .map(_mapBookingHistoryItem)
+            .map(BookingHistoryItem.fromMap)
+            .toList(growable: false),
+        nextCursor: _stringOrNull(meta['nextCursor']),
+        limit: _toInt(meta['limit']) == 0 ? limit : _toInt(meta['limit']),
+      );
+    } on DioException catch (error) {
+      throw _toBookingApiException(error);
     }
-
-    final payload = _asMap(decoded);
-    final data = _asMapList(payload['data']);
-    final meta = _asMap(payload['meta']);
-
-    return BookingListResult(
-      items: data.map(_mapBookingHistoryItem).toList(growable: false),
-      nextCursor: _stringOrNull(meta['nextCursor']),
-      limit: _toInt(meta['limit']) == 0 ? limit : _toInt(meta['limit']),
-    );
   }
 
-  Future<Map<String, dynamic>> getBookingDetail(String bookingId) async {
-    final response = await _client.get(
-      Uri.parse(
-          '${ApiConfig.baseUrl}${ApiConfig.bookingDetailEndpoint(bookingId)}'),
-      headers: await _buildHeaders(includeAuthToken: true),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toBookingApiException(decoded, response.statusCode);
+  Future<BookingDetail> getBookingDetail(String bookingId) async {
+    try {
+      final response =
+          await _apiClient.get(ApiConfig.bookingDetailEndpoint(bookingId));
+      return BookingDetail(_asMap(_unwrap(response.data)));
+    } on DioException catch (error) {
+      throw _toBookingApiException(error);
     }
-
-    return _asMap(decoded);
   }
 
-  Future<Map<String, dynamic>> cancelBooking({
+  Future<BookingCancellationResult> cancelBooking({
     required String bookingId,
     String? reason,
   }) async {
-    final response = await _client.post(
-      Uri.parse(
-          '${ApiConfig.baseUrl}${ApiConfig.cancelBookingEndpoint(bookingId)}'),
-      headers: await _buildHeaders(includeAuthToken: true),
-      body: jsonEncode({
-        if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
-      }),
-    );
-
-    final decoded = _decodeBody(response.body);
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw _toBookingApiException(decoded, response.statusCode);
-    }
-
-    return _asMap(decoded);
-  }
-
-  Future<Map<String, String>> _buildHeaders({
-    bool includeAuthToken = false,
-  }) async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-
-    if (includeAuthToken) {
-      final token = await _authStorage.getAccessToken();
-      if (token != null && token.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $token';
-      }
-    }
-
-    return headers;
-  }
-
-  dynamic _decodeBody(String body) {
-    final trimmed = body.trim();
-    if (trimmed.isEmpty) return null;
-
     try {
-      final decoded = jsonDecode(trimmed);
-      if (decoded is Map && decoded.containsKey('data')) {
-        return decoded['data'];
-      }
-      return decoded;
-    } catch (_) {
-      return trimmed;
+      final response = await _apiClient.post(
+        ApiConfig.cancelBookingEndpoint(bookingId),
+        data: {
+          if (reason != null && reason.trim().isNotEmpty)
+            'reason': reason.trim(),
+        },
+      );
+      return BookingCancellationResult.fromJson(_asMap(_unwrap(response.data)));
+    } on DioException catch (error) {
+      throw _toBookingApiException(error);
     }
   }
 
-  BookingApiException _toBookingApiException(dynamic decoded, int statusCode) {
-    if (decoded is Map) {
-      final message =
-          decoded['message'] ?? decoded['error'] ?? decoded['detail'];
-      if (message is String && message.isNotEmpty) {
-        return BookingApiException(message: message, statusCode: statusCode);
-      }
-    } else if (decoded is String && decoded.isNotEmpty) {
-      return BookingApiException(message: decoded, statusCode: statusCode);
+  dynamic _unwrap(dynamic body) {
+    if (body is Map && body.containsKey('data')) {
+      return body['data'];
     }
+    return body;
+  }
 
+  BookingApiException _toBookingApiException(DioException error) {
+    final statusCode = error.response?.statusCode ?? 500;
     return BookingApiException(
-      message: 'Request failed with status $statusCode',
+      message: ErrorHandler.messageFor(error),
       statusCode: statusCode,
     );
   }
@@ -266,10 +204,6 @@ class PlayerBookingService {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) return value.cast<String, dynamic>();
     return const <String, dynamic>{};
-  }
-
-  String _normalizeSlotStatus(String status) {
-    return status == 'AVAILABLE' ? 'AVAILABLE' : 'UNAVAILABLE';
   }
 
   String _string(dynamic value) {

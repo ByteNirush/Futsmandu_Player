@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/design_system/app_spacing.dart';
@@ -8,27 +9,19 @@ import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/filter_chip_row.dart';
 import '../../shared/widgets/futs_card.dart';
 import '../../shared/widgets/status_badge.dart';
-import 'data/services/player_booking_service.dart';
+import 'data/models/booking_models.dart';
+import 'presentation/providers/booking_controllers.dart';
 
-class BookingHistoryScreen extends StatefulWidget {
+class BookingHistoryScreen extends ConsumerStatefulWidget {
   const BookingHistoryScreen({super.key});
 
   @override
-  State<BookingHistoryScreen> createState() => _BookingHistoryScreenState();
+  ConsumerState<BookingHistoryScreen> createState() =>
+      _BookingHistoryScreenState();
 }
 
-class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
-  final PlayerBookingService _bookingService = PlayerBookingService.instance;
+class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
   final ScrollController _scrollController = ScrollController();
-
-  String _filter = 'All';
-  bool _isLoading = true;
-  bool _isLoadingMore = false;
-  String? _errorMessage;
-
-  List<Map<String, dynamic>> _bookings = const <Map<String, dynamic>>[];
-  String? _nextCursor;
-  int _page = 1;
 
   static const List<String> _filters = <String>[
     'All',
@@ -42,7 +35,6 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    _fetchBookings(reset: true);
   }
 
   @override
@@ -56,77 +48,11 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
   void _onScroll() {
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 240) {
-      if (_nextCursor != null && !_isLoadingMore && !_isLoading) {
-        _fetchBookings(reset: false);
-      }
+      ref.read(bookingHistoryControllerProvider.notifier).loadMore();
     }
   }
 
-  String? _backendStatusFilter(String uiFilter) {
-    switch (uiFilter) {
-      case 'Confirmed':
-        return 'CONFIRMED';
-      case 'Completed':
-        return 'COMPLETED';
-      case 'Cancelled':
-        return 'CANCELLED';
-      case 'Held':
-        return 'HELD';
-      default:
-        return null;
-    }
-  }
-
-  Future<void> _fetchBookings({required bool reset}) async {
-    if (reset) {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-        _nextCursor = null;
-        _page = 1;
-        _bookings = const <Map<String, dynamic>>[];
-      });
-    } else {
-      setState(() {
-        _isLoadingMore = true;
-      });
-    }
-
-    try {
-      final result = await _bookingService.getBookings(
-        status: _backendStatusFilter(_filter),
-        page: _page,
-        cursor: reset ? null : _nextCursor,
-      );
-
-      if (!mounted) return;
-      setState(() {
-        _bookings = reset
-            ? result.items
-            : <Map<String, dynamic>>[..._bookings, ...result.items];
-        _nextCursor = result.nextCursor;
-        _page = _page + 1;
-        _isLoading = false;
-        _isLoadingMore = false;
-      });
-    } on BookingApiException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = e.message;
-        _isLoading = false;
-        _isLoadingMore = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = 'Could not load bookings right now.';
-        _isLoading = false;
-        _isLoadingMore = false;
-      });
-    }
-  }
-
-  Future<void> _showCancelSheet(Map<String, dynamic> booking) async {
+  Future<void> _showCancelSheet(BookingHistoryItem booking) async {
     final reasonController = TextEditingController();
     bool isCancelling = false;
 
@@ -164,8 +90,7 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                   const SizedBox(height: AppSpacing.md),
                   Text('Cancel Booking?', style: AppText.h2),
                   const SizedBox(height: AppSpacing.xs),
-                  Text(booking['venueName']?.toString() ?? '-',
-                      style: AppText.bodySm),
+                  Text(booking.venueName, style: AppText.bodySm),
                   const SizedBox(height: AppSpacing.md),
                   TextFormField(
                     controller: reasonController,
@@ -210,62 +135,51 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                               : () async {
                                   // Show confirmation dialog
                                   final shouldCancel = await showDialog<bool>(
-                                    context: sheetContext,
-                                    builder: (dialogContext) => AlertDialog(
-                                      title: const Text('Confirm Cancellation'),
-                                      content: const Text(
-                                        'Are you sure you want to cancel this booking? This action cannot be undone.',
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(dialogContext, false),
-                                          child: const Text('Keep Booking'),
-                                        ),
-                                        ElevatedButton(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppColors.red,
+                                        context: sheetContext,
+                                        builder: (dialogContext) => AlertDialog(
+                                          title: const Text(
+                                              'Confirm Cancellation'),
+                                          content: const Text(
+                                            'Are you sure you want to cancel this booking? This action cannot be undone.',
                                           ),
-                                          onPressed: () =>
-                                              Navigator.pop(dialogContext, true),
-                                          child: const Text('Cancel Booking'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(
+                                                  dialogContext, false),
+                                              child: const Text('Keep Booking'),
+                                            ),
+                                            ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: AppColors.red,
+                                              ),
+                                              onPressed: () => Navigator.pop(
+                                                  dialogContext, true),
+                                              child:
+                                                  const Text('Cancel Booking'),
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                  ) ?? false;
+                                      ) ??
+                                      false;
 
                                   if (!shouldCancel) return;
 
                                   setSheetState(() => isCancelling = true);
                                   try {
-                                    final response =
-                                        await _bookingService.cancelBooking(
-                                      bookingId:
-                                          booking['id']?.toString() ?? '',
-                                      reason: reasonController.text,
-                                    );
+                                    final response = await ref
+                                        .read(bookingHistoryControllerProvider
+                                            .notifier)
+                                        .cancelBooking(
+                                          bookingId: booking.id,
+                                          reason: reasonController.text,
+                                        );
                                     if (!mounted) return;
 
-                                    setState(() {
-                                      _bookings = _bookings.map((item) {
-                                        if (item['id'] == booking['id']) {
-                                          return {
-                                            ...item,
-                                            'status': 'CANCELLED',
-                                            'refundAmount':
-                                                response['refundAmount'] ?? 0,
-                                            'refundNote':
-                                                response['refundNote'] ?? '',
-                                          };
-                                        }
-                                        return item;
-                                      }).toList(growable: false);
-                                    });
-
-                                    Navigator.pop(sheetContext);
-                                    final refundText = response['displayRefund']
-                                            ?.toString() ??
-                                        'NPR ${response['refundAmount'] ?? 0}';
+                                    Navigator.of(this.context).pop();
+                                    final refundText =
+                                        response.displayRefund.isNotEmpty
+                                            ? response.displayRefund
+                                            : 'NPR ${response.refundAmount}';
                                     ScaffoldMessenger.of(this.context)
                                         .showSnackBar(
                                       SnackBar(
@@ -274,19 +188,17 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
                                         ),
                                       ),
                                     );
-                                  } on BookingApiException catch (e) {
+                                  } catch (e) {
                                     if (!mounted) return;
                                     ScaffoldMessenger.of(this.context)
                                         .showSnackBar(
-                                      SnackBar(content: Text(e.message)),
-                                    );
-                                  } catch (_) {
-                                    if (!mounted) return;
-                                    ScaffoldMessenger.of(this.context)
-                                        .showSnackBar(
-                                      const SnackBar(
+                                      SnackBar(
                                         content: Text(
-                                            'Could not cancel booking right now.'),
+                                          e is Exception
+                                              ? e.toString().replaceFirst(
+                                                  'Exception: ', '')
+                                              : 'Could not cancel booking right now.',
+                                        ),
                                       ),
                                     );
                                   } finally {
@@ -326,7 +238,9 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
       ),
       builder: (sheetContext) {
         return FutureBuilder<Map<String, dynamic>>(
-          future: _bookingService.getBookingDetail(bookingId),
+          future: ref
+              .read(bookingDetailProvider(bookingId).future)
+              .then((v) => v.raw),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const SizedBox(
@@ -336,9 +250,8 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
             }
 
             if (snapshot.hasError) {
-              final message = snapshot.error is BookingApiException
-                  ? (snapshot.error as BookingApiException).message
-                  : 'Could not load booking detail.';
+              final message = snapshot.error?.toString() ??
+                  'Could not load booking detail.';
 
               return SizedBox(
                 height: 260,
@@ -418,6 +331,9 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final stateAsync = ref.watch(bookingHistoryControllerProvider);
+    final selectedFilter = stateAsync.valueOrNull?.filter ?? 'All';
+
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
@@ -431,17 +347,19 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
             padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs3),
             child: FilterChipRow(
               options: _filters,
-              selected: _filter,
+              selected: selectedFilter,
               onSelected: (value) {
-                setState(() => _filter = value);
-                _fetchBookings(reset: true);
+                ref
+                    .read(bookingHistoryControllerProvider.notifier)
+                    .setFilter(value);
               },
             ),
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => _fetchBookings(reset: true),
-              child: _buildContent(),
+              onRefresh: () =>
+                  ref.read(bookingHistoryControllerProvider.notifier).refresh(),
+              child: _buildContent(stateAsync),
             ),
           ),
         ],
@@ -449,23 +367,25 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
     );
   }
 
-  Widget _buildContent() {
-    if (_isLoading) {
+  Widget _buildContent(AsyncValue<BookingHistoryState> stateAsync) {
+    if (stateAsync.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_errorMessage != null) {
+    if (stateAsync.hasError) {
       return ListView(
         children: [
           Padding(
             padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
               children: [
-                Text(_errorMessage!,
+                Text(stateAsync.error.toString(),
                     style: AppText.body, textAlign: TextAlign.center),
                 const SizedBox(height: AppSpacing.sm),
                 ElevatedButton(
-                  onPressed: () => _fetchBookings(reset: true),
+                  onPressed: () => ref
+                      .read(bookingHistoryControllerProvider.notifier)
+                      .refresh(),
                   child: const Text('Retry'),
                 ),
               ],
@@ -475,7 +395,9 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
       );
     }
 
-    if (_bookings.isEmpty) {
+    final state = stateAsync.value ?? BookingHistoryState.initial();
+
+    if (state.items.isEmpty) {
       return ListView(
         children: const [
           SizedBox(height: 40),
@@ -494,21 +416,21 @@ class _BookingHistoryScreenState extends State<BookingHistoryScreen> {
         horizontal: AppSpacing.sm,
         vertical: AppSpacing.xs,
       ),
-      itemCount: _bookings.length + (_isLoadingMore ? 1 : 0),
+      itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs2),
       itemBuilder: (context, index) {
-        if (index >= _bookings.length) {
+        if (index >= state.items.length) {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
             child: Center(child: CircularProgressIndicator()),
           );
         }
 
-        final booking = _bookings[index];
+        final booking = state.items[index];
         return _BookingCard(
-          booking: booking,
-          onTap: () => _showBookingDetail(booking['id']?.toString() ?? ''),
-          onCancel: booking['status'] == 'CONFIRMED'
+          booking: booking.toMap(),
+          onTap: () => _showBookingDetail(booking.id),
+          onCancel: booking.status == 'CONFIRMED'
               ? () => _showCancelSheet(booking)
               : null,
         );

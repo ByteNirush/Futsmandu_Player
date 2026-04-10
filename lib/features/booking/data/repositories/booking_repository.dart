@@ -1,0 +1,60 @@
+import '../models/booking_models.dart';
+import '../services/player_booking_service.dart';
+
+class BookingRepository {
+  BookingRepository({PlayerBookingService? service})
+      : _service = service ?? PlayerBookingService.instance;
+
+  final PlayerBookingService _service;
+
+  Future<List<BookingAvailabilitySlot>> getAvailability({
+    required String venueId,
+    required String courtId,
+    required String date,
+  }) {
+    return _service.getAvailability(
+      venueId: venueId,
+      courtId: courtId,
+      date: date,
+    );
+  }
+
+  Future<HeldBooking> holdSlot({
+    required String courtId,
+    required String date,
+    required String startTime,
+    List<String>? friendIds,
+  }) {
+    return _service.holdSlot(
+      courtId: courtId,
+      date: date,
+      startTime: startTime,
+      friendIds: friendIds,
+    );
+  }
+
+  Future<BookingListResult> getBookings({
+    String? status,
+    int page = 1,
+    int limit = 20,
+    String? cursor,
+  }) {
+    return _service.getBookings(
+      status: status,
+      page: page,
+      limit: limit,
+      cursor: cursor,
+    );
+  }
+
+  Future<BookingDetail> getBookingDetail(String bookingId) {
+    return _service.getBookingDetail(bookingId);
+  }
+
+  Future<BookingCancellationResult> cancelBooking({
+    required String bookingId,
+    String? reason,
+  }) {
+    return _service.cancelBooking(bookingId: bookingId, reason: reason);
+  }
+}
