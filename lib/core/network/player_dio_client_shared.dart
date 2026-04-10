@@ -170,7 +170,7 @@ class PlayerAuthInterceptor extends QueuedInterceptorsWrapper {
   }
 
   String? _extractAccessToken(dynamic decoded) {
-    final map = _asMap(decoded);
+    final map = _payloadMap(decoded);
     final token = map['accessToken'];
     return token is String && token.isNotEmpty ? token : null;
   }
@@ -184,9 +184,21 @@ class PlayerAuthInterceptor extends QueuedInterceptorsWrapper {
       return null;
     }
 
-    final map = _asMap(decoded);
+    final map = _payloadMap(decoded);
     final token = map['refreshToken'];
     return token is String && token.isNotEmpty ? token : null;
+  }
+
+  Map<String, dynamic> _payloadMap(dynamic value) {
+    final map = _asMap(value);
+    final data = map['data'];
+    if (data is Map<String, dynamic>) {
+      return data;
+    }
+    if (data is Map) {
+      return data.cast<String, dynamic>();
+    }
+    return map;
   }
 
   Map<String, dynamic> _asMap(dynamic value) {

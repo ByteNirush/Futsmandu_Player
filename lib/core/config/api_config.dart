@@ -18,6 +18,8 @@ class ApiConfig {
   static const String profileEndpoint = '$apiPrefix/profile';
 
   static const String registerEndpoint = '$authEndpoint/register';
+  static const String verifyOtpEndpoint = '$authEndpoint/verify-otp';
+  static const String resendOtpEndpoint = '$authEndpoint/resend-otp';
   static const String loginEndpoint = '$authEndpoint/login';
   static const String refreshEndpoint = '$authEndpoint/refresh';
   static const String logoutEndpoint = '$authEndpoint/logout';
@@ -81,6 +83,10 @@ class ApiConfig {
       '$profileEndpoint/$userId';
 
   static const String profileAvatarEndpoint = '$profileEndpoint/avatar';
+  static const String profileAvatarUploadUrlEndpoint =
+      '$profileAvatarEndpoint/upload-url';
+  static const String profileAvatarConfirmEndpoint =
+      '$profileAvatarEndpoint/confirm';
 
   static String acceptFriendRequestEndpoint(String friendshipId) =>
       '$friendsEndpoint/$friendshipId/accept';
