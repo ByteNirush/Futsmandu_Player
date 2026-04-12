@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:pinput/pinput.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 
-import '../../../../core/design_system/app_spacing.dart';
-import '../../../../shared/widgets/app_button.dart';
-import '../../../../shared/widgets/app_logo.dart';
 import '../../data/services/player_auth_service.dart';
 import '../providers/auth_controller.dart';
-import '../widgets/auth_header.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
   const OtpVerificationScreen({super.key});
@@ -30,9 +26,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
   Map<String, dynamic>? _routeArgs(BuildContext context) {
     final rawArgs = ModalRoute.of(context)?.settings.arguments;
-    if (rawArgs is Map) {
-      return rawArgs.cast<String, dynamic>();
-    }
+    if (rawArgs is Map) return rawArgs.cast<String, dynamic>();
     return null;
   }
 
@@ -52,39 +46,27 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final result = await ref.read(authSessionProvider.notifier).verifyOtp(
-            userId: userId,
-            otp: otp,
-          );
+      final result = await ref
+          .read(authSessionProvider.notifier)
+          .verifyOtp(userId: userId, otp: otp);
 
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.message)),
-      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(result.message)));
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     } on AuthException catch (e) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('OTP verification failed: $e')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('OTP verification failed: $e')));
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -97,35 +79,26 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     }
 
     try {
-      final result = await ref.read(authSessionProvider.notifier).resendOtp(
-            userId: userId,
-          );
+      final result = await ref
+          .read(authSessionProvider.notifier)
+          .resendOtp(userId: userId);
 
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.message)),
-      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(result.message)));
     } on AuthException catch (e) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Unable to resend OTP: $e')));
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Unable to resend OTP: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
     final args = _routeArgs(context);
     final userId = args?['userId']?.toString() ?? '';
     final email = args?['email']?.toString() ?? '';
@@ -133,108 +106,30 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         ? 'Enter the 6-digit code sent to your email'
         : 'Enter the 6-digit code sent to $email';
 
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              padding: EdgeInsets.only(
-                left: AppSpacing.md,
-                right: AppSpacing.md,
-                bottom: bottomInset + AppSpacing.lg,
-              ),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight - 56),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: AppSpacing.lg),
-                    const Center(child: AppLogo(size: 72.0)),
-                    const SizedBox(height: AppSpacing.sm),
-                    AuthHeader(title: 'Verify OTP', subtitle: subtitle),
-                    const SizedBox(height: AppSpacing.md),
-                    Center(
-                      child: Pinput(
-                        controller: _otpController,
-                        length: 6,
-                        keyboardType: TextInputType.number,
-                        defaultPinTheme: PinTheme(
-                          width: 50,
-                          height: 60,
-                          textStyle: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest.withValues(
-                              alpha: 0.5,
-                            ),
-                            border: Border.all(
-                              color: theme.colorScheme.outline,
-                              width: 1.5,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        focusedPinTheme: PinTheme(
-                          width: 50,
-                          height: 60,
-                          textStyle: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surface,
-                            border: Border.all(
-                              color: theme.colorScheme.primary,
-                              width: 2.5,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        submittedPinTheme: PinTheme(
-                          width: 50,
-                          height: 60,
-                          textStyle: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.surfaceContainerHighest,
-                            border: Border.all(
-                              color: theme.colorScheme.primary,
-                              width: 1.5,
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    AppButton(
-                      label: 'Verify',
-                      isLoading: _isLoading,
-                      onPressed: _isLoading ? null : () => _verify(userId),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Center(
-                      child: TextButton(
-                        onPressed: _isLoading ? null : () => _resend(userId),
-                        child: const Text('Resend Code'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
+    return AuthScaffold(
+      role: AppRole.player,
+      showAppBar: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AuthHeader(title: 'Verify OTP', subtitle: subtitle),
+          const SizedBox(height: AppSpacing.lg),
+          Center(child: OtpPinInput(controller: _otpController)),
+          const SizedBox(height: AppSpacing.lg),
+          PrimaryButton(
+            label: 'Verify',
+            isLoading: _isLoading,
+            onPressed: _isLoading ? null : () => _verify(userId),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Center(
+            child: TextButton(
+              onPressed: _isLoading ? null : () => _resend(userId),
+              child: const Text('Resend Code'),
+            ),
+          ),
+        ],
       ),
     );
   }
