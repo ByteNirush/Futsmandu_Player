@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 
-import '../../../../core/design_system/app_spacing.dart';
-import '../../../../shared/widgets/app_button.dart';
-import '../../../../shared/widgets/app_input_field.dart';
-import '../../../../shared/widgets/error_message_widget.dart';
 import '../../data/services/player_auth_service.dart';
+import '../../../../shared/widgets/error_message_widget.dart';
 import '../providers/auth_controller.dart';
-import '../widgets/auth_header.dart';
-import '../widgets/auth_screen_scaffold.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -123,101 +119,100 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (!mounted) return;
       setState(() => _errorMessage = 'Registration failed: $e');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AuthScreenScaffold(
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const AuthHeader(
-              title: 'Create Account',
-              subtitle: 'Register your futsal profile',
-            ),
-            if (_errorMessage != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              ErrorMessageWidget(
+    return AuthScaffold(
+      role: AppRole.player,
+      child: AuthCard(
+        role: AppRole.player,
+        title: 'Create Account',
+        subtitle: 'Register your futsal profile',
+        errorWidget: _errorMessage != null
+            ? ErrorMessageWidget(
                 message: _errorMessage!,
                 backgroundColor: Theme.of(context).colorScheme.errorContainer,
                 foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+              )
+            : null,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppInputField(
+                label: 'Full Name',
+                hint: 'Enter your full name',
+                prefixIcon: Icons.person_outline,
+                maxLength: 100,
+                showCounter: false,
+                controller: _nameController,
+                validator: _validateName,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              AppInputField(
+                label: 'Email',
+                hint: 'Enter your email',
+                prefixIcon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+                maxLength: 254,
+                showCounter: false,
+                controller: _emailController,
+                validator: _validateEmail,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              AppInputField(
+                label: 'Phone',
+                hint: 'Enter phone number',
+                prefixIcon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+                maxLength: 14,
+                showCounter: false,
+                controller: _phoneController,
+                validator: _validatePhone,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              AppInputField(
+                label: 'Password',
+                hint: 'Create password',
+                prefixIcon: Icons.lock_outline,
+                isPassword: true,
+                maxLength: 64,
+                showCounter: false,
+                controller: _passwordController,
+                validator: _validatePassword,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              AppInputField(
+                label: 'Confirm Password',
+                hint: 'Confirm password',
+                prefixIcon: Icons.lock_outline,
+                isPassword: true,
+                textInputAction: TextInputAction.done,
+                maxLength: 64,
+                showCounter: false,
+                controller: _confirmPasswordController,
+                validator: _validateConfirmPassword,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              PrimaryButton(
+                label: 'Sign Up',
+                isLoading: _isLoading,
+                onPressed: _handleRegister,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Already have an account? Login'),
+                ),
               ),
             ],
-            const SizedBox(height: AppSpacing.md),
-            AppInputField(
-              label: 'Full Name',
-              hint: 'Enter your full name',
-              prefixIcon: Icons.person_outline,
-              maxLength: 100,
-              showCounter: false,
-              controller: _nameController,
-              validator: _validateName,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            AppInputField(
-              label: 'Email',
-              hint: 'Enter your email',
-              prefixIcon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-              maxLength: 254,
-              showCounter: false,
-              controller: _emailController,
-              validator: _validateEmail,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            AppInputField(
-              label: 'Phone',
-              hint: 'Enter phone number',
-              prefixIcon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
-              maxLength: 14,
-              showCounter: false,
-              controller: _phoneController,
-              validator: _validatePhone,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            AppInputField(
-              label: 'Password',
-              hint: 'Create password',
-              prefixIcon: Icons.lock_outline,
-              isPassword: true,
-              maxLength: 64,
-              showCounter: false,
-              controller: _passwordController,
-              validator: _validatePassword,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            AppInputField(
-              label: 'Confirm Password',
-              hint: 'Confirm password',
-              prefixIcon: Icons.lock_outline,
-              isPassword: true,
-              textInputAction: TextInputAction.done,
-              maxLength: 64,
-              showCounter: false,
-              controller: _confirmPasswordController,
-              validator: _validateConfirmPassword,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            AppButton(
-              label: 'Sign Up',
-              isLoading: _isLoading,
-              onPressed: _handleRegister,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Center(
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Already have an account? Login'),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
