@@ -617,7 +617,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: selectedSkill,
+                    initialValue: selectedSkill,
                     items: const [
                       DropdownMenuItem(
                           value: 'beginner', child: Text('Beginner')),
@@ -729,8 +729,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         const SnackBar(content: Text('Failed to update profile')),
       );
     } finally {
-      if (!mounted) return;
-      setState(() => _isSavingProfile = false);
+      if (mounted) {
+        setState(() => _isSavingProfile = false);
+      }
     }
   }
 
@@ -764,8 +765,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         const SnackBar(content: Text('Failed to upload avatar')),
       );
     } finally {
-      if (!mounted) return;
-      setState(() => _isUploadingAvatar = false);
+      if (mounted) {
+        setState(() => _isUploadingAvatar = false);
+      }
     }
   }
 
@@ -1477,5 +1479,3 @@ class _QuickActionTile extends StatelessWidget {
     );
   }
 }
-
-
