@@ -40,7 +40,7 @@ class _EmailNudgeBannerState extends State<_EmailNudgeBanner> {
     if (_dismissed) return const SizedBox.shrink();
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(color: AppColors.warning, width: 1),
         ),
@@ -48,7 +48,8 @@ class _EmailNudgeBannerState extends State<_EmailNudgeBanner> {
       child: Row(
         children: [
           const SizedBox(width: AppSpacing.xs),
-          Icon(Icons.mark_email_unread, size: 18, color: AppColors.warning),
+          const Icon(Icons.mark_email_unread,
+              size: 18, color: AppColors.warning),
           const SizedBox(width: AppSpacing.xs),
           Expanded(
             child: Text(
@@ -64,7 +65,7 @@ class _EmailNudgeBannerState extends State<_EmailNudgeBanner> {
             child: const Text('Verify'),
           ),
           IconButton(
-            icon: Icon(Icons.close, size: 18, color: AppColors.warning),
+            icon: const Icon(Icons.close, size: 18, color: AppColors.warning),
             onPressed: () => setState(() => _dismissed = true),
           ),
         ],
@@ -481,7 +482,7 @@ class _TopFutsalCard extends StatelessWidget {
                       const SizedBox(height: AppSpacing.xxs),
                       Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.star,
                             size: 14,
                             color: AppColors.warning,
@@ -688,7 +689,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               border: Border.all(
                                 // Match the scaffold background so the ring
                                 // appears to "punch through" to the background.
-                                color: Theme.of(context).scaffoldBackgroundColor,
+                                color:
+                                    Theme.of(context).scaffoldBackgroundColor,
                                 width: 2,
                               ),
                             ),
@@ -730,13 +732,13 @@ class _HomeScreenState extends State<HomeScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.warning.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(AppSpacing.xs2),
-                    border: Border(
+                    border: const Border(
                       left: BorderSide(color: AppColors.warning, width: 3),
                     ),
                   ),
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.warning_amber_rounded,
                         size: 18,
                         color: AppColors.warning,
@@ -999,7 +1001,8 @@ class _SectionPlaceholder extends StatelessWidget {
       child: Container(
         height: height,
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+          color:
+              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(AppSpacing.xs2),
         ),
         child: Center(child: child),
