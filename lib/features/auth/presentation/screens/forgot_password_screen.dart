@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 
-import '../../../../core/design_system/app_spacing.dart';
-import '../../../../shared/widgets/app_button.dart';
-import '../../../../shared/widgets/app_input_field.dart';
-import '../../../../shared/widgets/error_message_widget.dart';
 import '../../data/services/player_auth_service.dart';
+import '../../../../shared/widgets/error_message_widget.dart';
 import '../providers/auth_controller.dart';
-import '../widgets/auth_header.dart';
-import '../widgets/auth_screen_scaffold.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -70,57 +66,57 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       if (!mounted) return;
       setState(() => _errorMessage = 'Reset request failed: $e');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AuthScreenScaffold(
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const AuthHeader(
-              title: 'Reset Password',
-              subtitle: 'We will email a reset token to you',
-            ),
-            if (_errorMessage != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              ErrorMessageWidget(
+    return AuthScaffold(
+      role: AppRole.player,
+      showAppBar: true,
+      child: AuthCard(
+        role: AppRole.player,
+        title: 'Reset Password',
+        subtitle: 'We will email a reset token to you',
+        errorWidget: _errorMessage != null
+            ? ErrorMessageWidget(
                 message: _errorMessage!,
                 backgroundColor: Theme.of(context).colorScheme.errorContainer,
                 foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+              )
+            : null,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppInputField(
+                label: 'Email',
+                hint: 'Enter your email',
+                prefixIcon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+                maxLength: 254,
+                showCounter: false,
+                controller: _emailController,
+                validator: _validateEmail,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              PrimaryButton(
+                label: 'Send Reset Link',
+                isLoading: _isLoading,
+                onPressed: _handleSendResetLink,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Center(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Back to Login'),
+                ),
               ),
             ],
-            const SizedBox(height: AppSpacing.md),
-            AppInputField(
-              label: 'Email',
-              hint: 'Enter your email',
-              prefixIcon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-              maxLength: 254,
-              showCounter: false,
-              controller: _emailController,
-              validator: _validateEmail,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            AppButton(
-              label: 'Send Reset Link',
-              isLoading: _isLoading,
-              onPressed: _handleSendResetLink,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Center(
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Back to Login'),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
