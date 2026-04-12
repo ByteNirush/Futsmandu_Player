@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 
-import '../../../../core/design_system/app_spacing.dart';
-import '../../../../shared/widgets/app_button.dart';
-import '../../../../shared/widgets/app_input_field.dart';
-import '../../../../shared/widgets/error_message_widget.dart';
 import '../../data/services/player_auth_service.dart';
+import '../../../../shared/widgets/error_message_widget.dart';
 import '../providers/auth_controller.dart';
-import '../widgets/auth_header.dart';
-import '../widgets/auth_screen_scaffold.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -95,9 +91,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       if (!mounted) return;
       setState(() => _errorMessage = 'Password reset failed: $e');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -106,67 +100,68 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
     final args = _routeArgs(context);
     final email = args?['email'] as String?;
 
-    return AuthScreenScaffold(
+    return AuthScaffold(
+      role: AppRole.player,
       showAppBar: true,
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AuthHeader(
-              title: 'Set New Password',
-              subtitle: email == null || email.isEmpty
-                  ? 'Enter the reset token from your email'
-                  : 'We sent a reset token to $email',
-            ),
-            if (_errorMessage != null) ...[
-              const SizedBox(height: AppSpacing.sm),
-              ErrorMessageWidget(
+      child: AuthCard(
+        role: AppRole.player,
+        title: 'Set New Password',
+        subtitle: email == null || email.isEmpty
+            ? 'Enter the reset token from your email'
+            : 'We sent a reset token to $email',
+        errorWidget: _errorMessage != null
+            ? ErrorMessageWidget(
                 message: _errorMessage!,
                 backgroundColor: Theme.of(context).colorScheme.errorContainer,
                 foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+              )
+            : null,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppInputField(
+                label: 'Reset Token',
+                hint: 'Paste the token from your email',
+                prefixIcon: Icons.confirmation_number_outlined,
+                maxLength: 256,
+                showCounter: false,
+                controller: _tokenController,
+                validator: _validateToken,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              AppInputField(
+                label: 'New Password',
+                hint: 'Create new password',
+                prefixIcon: Icons.lock_outline,
+                isPassword: true,
+                maxLength: 64,
+                showCounter: false,
+                controller: _newPasswordController,
+                validator: _validatePassword,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              AppInputField(
+                label: 'Confirm Password',
+                hint: 'Confirm new password',
+                prefixIcon: Icons.lock_outline,
+                isPassword: true,
+                textInputAction: TextInputAction.done,
+                maxLength: 64,
+                showCounter: false,
+                controller: _confirmPasswordController,
+                validator: _validateConfirmPassword,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              PrimaryButton(
+                label: 'Save Password',
+                isLoading: _isLoading,
+                onPressed: _handleResetPassword,
               ),
             ],
-            const SizedBox(height: AppSpacing.md),
-            AppInputField(
-              label: 'Reset Token',
-              hint: 'Paste the token from your email',
-              prefixIcon: Icons.confirmation_number_outlined,
-              maxLength: 256,
-              showCounter: false,
-              controller: _tokenController,
-              validator: _validateToken,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            AppInputField(
-              label: 'New Password',
-              hint: 'Create new password',
-              prefixIcon: Icons.lock_outline,
-              isPassword: true,
-              maxLength: 64,
-              showCounter: false,
-              controller: _newPasswordController,
-              validator: _validatePassword,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            AppInputField(
-              label: 'Confirm Password',
-              hint: 'Confirm new password',
-              prefixIcon: Icons.lock_outline,
-              isPassword: true,
-              textInputAction: TextInputAction.done,
-              maxLength: 64,
-              showCounter: false,
-              controller: _confirmPasswordController,
-              validator: _validateConfirmPassword,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            AppButton(
-              label: 'Save Password',
-              isLoading: _isLoading,
-              onPressed: _handleResetPassword,
-            ),
-          ],
+          ),
         ),
       ),
     );
