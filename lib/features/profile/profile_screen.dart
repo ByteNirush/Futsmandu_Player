@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart'
+    show ProfileSectionHeader, SettingsTile;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -412,7 +414,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     const SizedBox(height: 24),
 
                     // Preferences Section
-                    const _SectionHeader(
+                    const ProfileSectionHeader(
                       title: 'Preferences',
                       subtitle: 'Tune how the player workspace behaves.',
                     ),
@@ -425,7 +427,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           padding: EdgeInsets.zero,
                           child: Column(
                             children: [
-                              _PreferenceTile(
+                              SettingsTile(
                                 icon: Icons.notifications_outlined,
                                 title: 'Notifications',
                                 subtitle: 'Booking alerts and account updates',
@@ -439,7 +441,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                                 ),
                               ),
                               const Divider(height: 1),
-                              _PreferenceTile(
+                              SettingsTile(
                                 icon: Icons.brightness_6_outlined,
                                 title: 'Theme',
                                 subtitle: _themeModeLabel(themeMode),
@@ -469,7 +471,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                                 ),
                               ),
                               const Divider(height: 1),
-                              _PreferenceTile(
+                              SettingsTile(
                                 icon: Icons.help_outline_rounded,
                                 title: 'Help & Support',
                                 subtitle:
@@ -489,7 +491,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     const SizedBox(height: AppSpacing.md),
 
                     // Account Section
-                    const _SectionHeader(
+                    const ProfileSectionHeader(
                       title: 'Account',
                       subtitle: 'Manage access to this player workspace.',
                     ),
@@ -1476,109 +1478,4 @@ class _QuickActionTile extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Section header
-// ─────────────────────────────────────────────────────────────────────────────
 
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.subtitle});
-
-  final String title;
-  final String subtitle;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-        ),
-        const SizedBox(height: AppSpacing.xxs),
-        Text(
-          subtitle,
-          style: textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Preferences tile
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _PreferenceTile extends StatelessWidget {
-  const _PreferenceTile({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.trailing,
-    this.onTap,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Widget trailing;
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final content = Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: colorScheme.primaryContainer.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(icon, color: colorScheme.onPrimaryContainer, size: 20),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                ),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          trailing,
-        ],
-      ),
-    );
-
-    if (onTap == null) {
-      return content;
-    }
-
-    return InkWell(onTap: onTap, child: content);
-  }
-}
