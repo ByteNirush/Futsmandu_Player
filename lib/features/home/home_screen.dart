@@ -1,14 +1,12 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
 
 import '../../core/design_system/app_spacing.dart';
 import '../../core/mock/mock_data.dart';
 import '../../core/services/player_auth_storage_service.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
+import '../../core/theme/app_colors.dart'; // only for AppColors.warning (semantic const)
 import '../../features/matches/data/services/player_match_service.dart';
 import '../../features/venues/data/services/player_venues_service.dart';
 import '../../shared/widgets/empty_state.dart';
@@ -23,7 +21,10 @@ String _greetingForHour(int hour) {
   return 'Good evening';
 }
 
-// --- Email Nudge Banner ---
+// ─────────────────────────────────────────────────────────────────────────────
+// Email Nudge Banner
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _EmailNudgeBanner extends StatefulWidget {
   const _EmailNudgeBanner();
 
@@ -40,26 +41,30 @@ class _EmailNudgeBannerState extends State<_EmailNudgeBanner> {
 
     return Container(
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.amber, width: 1)),
+        border: Border(
+          bottom: BorderSide(color: AppColors.warning, width: 1),
+        ),
       ),
       child: Row(
         children: [
           const SizedBox(width: AppSpacing.xs),
-          Icon(Icons.mark_email_unread, size: 18, color: AppColors.amber),
+          Icon(Icons.mark_email_unread, size: 18, color: AppColors.warning),
           const SizedBox(width: AppSpacing.xs),
           Expanded(
             child: Text(
               'Verify your email to enable bookings.',
-              style: GoogleFonts.poppins(fontSize: 13, color: AppColors.amber),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppColors.warning,
+                  ),
             ),
           ),
           TextButton(
             onPressed: () => Navigator.pushNamed(context, '/profile'),
-            style: TextButton.styleFrom(foregroundColor: AppColors.amber),
+            style: TextButton.styleFrom(foregroundColor: AppColors.warning),
             child: const Text('Verify'),
           ),
           IconButton(
-            icon: Icon(Icons.close, size: 18, color: AppColors.amber),
+            icon: Icon(Icons.close, size: 18, color: AppColors.warning),
             onPressed: () => setState(() => _dismissed = true),
           ),
         ],
@@ -68,7 +73,10 @@ class _EmailNudgeBannerState extends State<_EmailNudgeBanner> {
   }
 }
 
-// --- Match Mini Card ---
+// ─────────────────────────────────────────────────────────────────────────────
+// Match Mini Card
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _MatchMiniCard extends StatelessWidget {
   final Map<String, dynamic> match;
 
@@ -76,6 +84,16 @@ class _MatchMiniCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    final int spotsLeft = match['spotsLeft'] as int? ?? 0;
+    final Color spotsColor = spotsLeft <= 2
+        ? colorScheme.error
+        : spotsLeft <= 4
+            ? AppColors.warning
+            : colorScheme.primary;
+
     return SizedBox(
       width: 160,
       child: Padding(
@@ -85,53 +103,61 @@ class _MatchMiniCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: () =>
-                Navigator.pushNamed(context, '/match-detail', arguments: match),
+            onTap: () => Navigator.pushNamed(
+              context,
+              '/match-detail',
+              arguments: match,
+            ),
             child: Stack(
               children: [
+                // Venue image
                 CachedNetworkImage(
-                  imageUrl: match['venueImage'],
+                  imageUrl: match['venueImage'] as String? ?? '',
                   fit: BoxFit.cover,
                   width: 160,
                   height: 200,
                   placeholder: (context, url) => Container(
                     width: 160,
                     height: 200,
-                    color: AppColors.bgElevated,
+                    color: colorScheme.onSurface.withValues(alpha: 0.08),
                     alignment: Alignment.center,
-                    child: const SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colorScheme.primary,
+                      ),
                     ),
                   ),
                   errorWidget: (context, url, error) => Container(
                     width: 160,
                     height: 200,
-                    color: AppColors.bgElevated,
+                    color: colorScheme.onSurface.withValues(alpha: 0.08),
                     alignment: Alignment.center,
                     child: Icon(
                       Icons.broken_image_outlined,
                       size: 28,
-                      color: AppColors.txtDisabled,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
+
+                // Dark gradient overlay
                 Container(
                   width: double.infinity,
                   height: double.infinity,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.85),
-                      ],
-                      stops: const [0.3, 1.0],
+                      colors: [Colors.transparent, Color(0xD9000000)],
+                      stops: [0.3, 1.0],
                     ),
                   ),
                 ),
+
+                // Info overlay
                 Positioned(
                   bottom: AppSpacing.xs3,
                   left: AppSpacing.xs3,
@@ -140,34 +166,33 @@ class _MatchMiniCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       StatusBadge(
-                        label: '${match['spotsLeft']} spots',
-                        color: match['spotsLeft'] <= 2
-                            ? AppColors.red
-                            : match['spotsLeft'] <= 4
-                                ? AppColors.amber
-                                : AppColors.green,
+                        label: '$spotsLeft spots',
+                        color: spotsColor,
                       ),
                       const SizedBox(height: AppSpacing.xxs),
                       Text(
-                        match['venueName'],
-                        style: GoogleFonts.poppins(
-                          fontSize: 14,
-                          fontWeight: AppTextStyles.bold,
+                        match['venueName'] as String? ?? '',
+                        style: textTheme.labelMedium?.copyWith(
                           color: Colors.white,
+                          fontWeight: FontWeight.w700,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                       Row(
                         children: [
-                          Icon(Icons.access_time,
-                              size: 11,
-                              color: Colors.white.withValues(alpha: 0.7)),
+                          Icon(
+                            Icons.access_time,
+                            size: 11,
+                            color: Colors.white.withValues(alpha: 0.7),
+                          ),
                           const SizedBox(width: AppSpacing.xxs),
-                          Text(
-                            '${match['time']} · ${match['distance']}',
-                            style: GoogleFonts.poppins(
-                              fontSize: 11,
-                              color: Colors.white.withValues(alpha: 0.7),
+                          Flexible(
+                            child: Text(
+                              '${match['time']} · ${match['distance']}',
+                              style: textTheme.labelSmall?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.7),
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -175,7 +200,9 @@ class _MatchMiniCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (match['friendsIn'] > 0)
+
+                // Friends-in badge
+                if ((match['friendsIn'] as int? ?? 0) > 0)
                   Positioned(
                     top: 8,
                     right: 8,
@@ -184,17 +211,17 @@ class _MatchMiniCard extends StatelessWidget {
                       height: 28,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.green.withValues(alpha: 0.15),
+                        color: colorScheme.primary.withValues(alpha: 0.15),
                         border: Border.all(
-                            color: AppColors.green.withValues(alpha: 0.4)),
+                          color: colorScheme.primary.withValues(alpha: 0.4),
+                        ),
                       ),
                       child: Center(
                         child: Text(
                           '+${match['friendsIn']}',
-                          style: GoogleFonts.poppins(
-                            fontSize: 10,
-                            color: AppColors.green,
-                            fontWeight: AppTextStyles.semiBold,
+                          style: textTheme.labelSmall?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -209,7 +236,10 @@ class _MatchMiniCard extends StatelessWidget {
   }
 }
 
-// --- Meta Chip & Upcoming Booking Card ---
+// ─────────────────────────────────────────────────────────────────────────────
+// Meta Chip (icon + text row inside booking card)
+// ─────────────────────────────────────────────────────────────────────────────
+
 class _MetaChip extends StatelessWidget {
   final IconData icon;
   final String text;
@@ -218,15 +248,28 @@ class _MetaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 12, color: AppColors.txtDisabled),
+        Icon(icon, size: 12, color: colorScheme.onSurfaceVariant),
         const SizedBox(width: AppSpacing.xxs),
-        Text(text, style: AppText.label),
+        Text(
+          text,
+          style: textTheme.labelSmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
       ],
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Upcoming Booking Card
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _UpcomingBookingCard extends StatelessWidget {
   final Map<String, dynamic> b;
@@ -235,6 +278,9 @@ class _UpcomingBookingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     final String? matchId = b['matchId'] as String?;
     Map<String, dynamic>? matchDetail;
     if (matchId != null) {
@@ -249,74 +295,102 @@ class _UpcomingBookingCard extends StatelessWidget {
     return GestureDetector(
       onTap: matchDetail == null
           ? null
-          : () => Navigator.pushNamed(context, '/match-detail',
-              arguments: matchDetail),
+          : () => Navigator.pushNamed(
+                context,
+                '/match-detail',
+                arguments: matchDetail,
+              ),
       child: FutsCard(
         padding: EdgeInsets.zero,
-        child: Row(
-          children: [
-            Container(
-              width: 4,
-              height: 88,
-              decoration: BoxDecoration(
-                color: AppColors.green,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  bottomLeft: Radius.circular(12),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Left status accent strip
+              Container(
+                width: 4,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    bottomLeft: Radius.circular(12),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.xs2),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  top: AppSpacing.sm,
-                  bottom: AppSpacing.sm,
-                  right: AppSpacing.sm,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        StatusBadge(label: 'CONFIRMED', color: AppColors.green),
-                        const Spacer(),
-                        Text('NPR ${b['priceNPR']}',
-                            style: GoogleFonts.poppins(
-                              color: AppColors.green,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            )),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      b['venueName'],
-                      style: AppText.body.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                    Text(
-                      b['courtName'],
-                      style: AppText.bodySm,
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Row(
-                      children: [
-                        _MetaChip(Icons.calendar_today,
-                            b['date'].split(' ').take(3).join(' ')),
-                        const SizedBox(width: AppSpacing.xs2),
-                        _MetaChip(Icons.access_time, b['time']),
-                      ],
-                    ),
-                  ],
+              const SizedBox(width: AppSpacing.xs2),
+
+              // Content
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    top: AppSpacing.xs,
+                    bottom: AppSpacing.xs,
+                    right: AppSpacing.xs,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          StatusBadge(
+                            label: 'CONFIRMED',
+                            color: colorScheme.primary,
+                          ),
+                          const Spacer(),
+                          Text(
+                            'NPR ${b['priceNPR']}',
+                            style: textTheme.titleSmall?.copyWith(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        b['venueName'] as String? ?? '',
+                        style: textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Text(
+                        b['courtName'] as String? ?? '',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Row(
+                        children: [
+                          _MetaChip(
+                            Icons.calendar_today,
+                            (b['date'] as String? ?? '')
+                                .split(' ')
+                                .take(3)
+                                .join(' '),
+                          ),
+                          const SizedBox(width: AppSpacing.xs2),
+                          _MetaChip(
+                            Icons.access_time,
+                            b['time'] as String? ?? '',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Top Futsal Card
+// ─────────────────────────────────────────────────────────────────────────────
 
 class _TopFutsalCard extends StatelessWidget {
   final Map<String, dynamic> venue;
@@ -325,6 +399,9 @@ class _TopFutsalCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return SizedBox(
       width: 220,
       child: Padding(
@@ -338,47 +415,53 @@ class _TopFutsalCard extends StatelessWidget {
             child: Stack(
               children: [
                 CachedNetworkImage(
-                  imageUrl: venue['coverUrl'] ?? '',
+                  imageUrl: venue['coverUrl'] as String? ?? '',
                   fit: BoxFit.cover,
                   width: 220,
                   height: 140,
                   placeholder: (context, url) => Container(
                     width: 220,
                     height: 140,
-                    color: AppColors.bgElevated,
+                    color: colorScheme.onSurface.withValues(alpha: 0.08),
                     alignment: Alignment.center,
-                    child: const SizedBox(
+                    child: SizedBox(
                       width: 24,
                       height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: colorScheme.primary,
+                      ),
                     ),
                   ),
                   errorWidget: (context, url, error) => Container(
                     width: 220,
                     height: 140,
-                    color: AppColors.bgElevated,
+                    color: colorScheme.onSurface.withValues(alpha: 0.08),
                     alignment: Alignment.center,
                     child: Icon(
                       Icons.broken_image_outlined,
                       size: 24,
-                      color: AppColors.txtDisabled,
+                      color: colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
-                Container(
+
+                // Gradient overlay
+                const SizedBox(
                   width: 220,
                   height: 140,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0.10),
-                        Colors.black.withValues(alpha: 0.80),
-                      ],
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0x1A000000), Color(0xCC000000)],
+                      ),
                     ),
                   ),
                 ),
+
+                // Info overlay
                 Positioned(
                   left: AppSpacing.xs3,
                   right: AppSpacing.xs3,
@@ -387,11 +470,10 @@ class _TopFutsalCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        venue['name'] ?? '',
-                        style: GoogleFonts.poppins(
+                        venue['name'] as String? ?? '',
+                        style: textTheme.labelMedium?.copyWith(
                           color: Colors.white,
-                          fontWeight: AppTextStyles.semiBold,
-                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -399,14 +481,19 @@ class _TopFutsalCard extends StatelessWidget {
                       const SizedBox(height: AppSpacing.xxs),
                       Row(
                         children: [
-                          Icon(Icons.star, size: 14, color: AppColors.amber),
+                          Icon(
+                            Icons.star,
+                            size: 14,
+                            color: AppColors.warning,
+                          ),
                           const SizedBox(width: AppSpacing.xxs),
-                          Text(
-                            '${venue['rating']}${venue['distance'] != null && venue['distance'].toString().isNotEmpty ? '  ·  ${venue['distance']}' : ''}',
-                            style: GoogleFonts.poppins(
-                              color: Colors.white.withValues(alpha: 0.90),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
+                          Flexible(
+                            child: Text(
+                              '${venue['rating']}${venue['distance'] != null && venue['distance'].toString().isNotEmpty ? '  ·  ${venue['distance']}' : ''}',
+                              style: textTheme.labelSmall?.copyWith(
+                                color: Colors.white.withValues(alpha: 0.90),
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
@@ -423,7 +510,10 @@ class _TopFutsalCard extends StatelessWidget {
   }
 }
 
-// --- Home Screen ---
+// ─────────────────────────────────────────────────────────────────────────────
+// Home Screen
+// ─────────────────────────────────────────────────────────────────────────────
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -453,13 +543,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadCurrentUser() async {
     final user = await PlayerAuthStorageService.instance.getUser();
     if (!mounted || user == null) return;
-
     final mergedUser = Map<String, dynamic>.from(MockData.currentUser)
       ..addAll(user);
-
-    setState(() {
-      _currentUser = mergedUser;
-    });
+    setState(() => _currentUser = mergedUser);
   }
 
   Future<void> _loadTopFutsals() async {
@@ -467,21 +553,14 @@ class _HomeScreenState extends State<HomeScreen> {
       _isLoadingFutsals = true;
       _futsalsError = null;
     });
-
     try {
-      final venues = await PlayerVenuesService.instance.browseVenues(
-        limit: 4,
-      );
-
+      final venues = await PlayerVenuesService.instance.browseVenues(limit: 4);
       if (!mounted) return;
-
-      // Sort by rating (highest first)
       final sortedVenues = venues.toList()
         ..sort(
-          (a, b) => ((b['rating'] ?? 0) as num)
-              .compareTo((a['rating'] ?? 0) as num),
+          (a, b) =>
+              ((b['rating'] ?? 0) as num).compareTo((a['rating'] ?? 0) as num),
         );
-
       setState(() {
         _topFutsals = sortedVenues;
         _isLoadingFutsals = false;
@@ -500,7 +579,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _isLoadingTonightMatches = true;
       _tonightMatchesError = null;
     });
-
     try {
       final matches = await PlayerMatchService.instance.getTonightMatches();
       if (!mounted) return;
@@ -519,15 +597,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Map<String, dynamic> currentUser = _currentUser;
-    final int score = currentUser['reliabilityScore'] ?? 100;
-    final bool isVerified = currentUser['isVerified'] ?? true;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    final int score = _currentUser['reliabilityScore'] as int? ?? 100;
+    final bool isVerified = _currentUser['isVerified'] as bool? ?? true;
     final String greeting = _greetingForHour(DateTime.now().hour);
     final String userName =
-        (currentUser['name']?.toString().trim().isNotEmpty ?? false)
-            ? currentUser['name'].toString().trim()
+        (_currentUser['name']?.toString().trim().isNotEmpty ?? false)
+            ? _currentUser['name'].toString().trim()
             : 'Player';
-    final String avatarUrl = currentUser['avatarUrl']?.toString() ?? '';
+    final String avatarUrl = _currentUser['avatarUrl']?.toString() ?? '';
     final int notificationCount = MockData.notifications.length;
 
     Map<String, dynamic>? upcomingBooking;
@@ -537,17 +617,15 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {}
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      // scaffoldBackgroundColor is applied automatically from the theme.
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
-            // Sliver 1: Email nudge banner (outside any card to avoid double-padding)
+            // ── Email nudge banner ──────────────────────────────────────────
             if (!isVerified)
-              const SliverToBoxAdapter(
-                child: _EmailNudgeBanner(),
-              ),
+              const SliverToBoxAdapter(child: _EmailNudgeBanner()),
 
-            // Sliver 2: Greeting
+            // ── Greeting header ─────────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -556,109 +634,79 @@ class _HomeScreenState extends State<HomeScreen> {
                   AppSpacing.sm,
                   0,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            AppColors.bgSurface,
-                            AppColors.bgSurface.withValues(alpha: 0.88),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(24),
-                        border:
-                            Border.all(color: AppColors.borderClr, width: 1),
-                      ),
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.sm,
-                        AppSpacing.sm,
-                        AppSpacing.sm,
-                        AppSpacing.sm,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                    // Greeting text
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(greeting, style: AppText.bodySm),
-                                Text(
-                                  userName,
-                                  style: AppText.h1,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
+                          Text(
+                            greeting,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
                             ),
                           ),
-                          Stack(
-                            children: [
-                              CircleAvatar(
-                                radius: 24,
-                                backgroundImage: avatarUrl.isNotEmpty
-                                    ? NetworkImage(avatarUrl)
-                                    : null,
-                                child: avatarUrl.isEmpty
-                                    ? const Icon(Icons.person_outline)
-                                    : null,
-                              ),
-                              Positioned(
-                                bottom: 1,
-                                right: 1,
-                                child: Container(
-                                  width: 12,
-                                  height: 12,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: AppColors.green,
-                                    border: Border.all(
-                                      color: AppColors.bgPrimary,
-                                      width: 2,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 8),
-                          Stack(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.notifications_outlined),
-                                color: AppColors.txtDisabled,
-                                onPressed: () => Navigator.pushNamed(
-                                    context, '/notifications'),
-                              ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: Container(
-                                  width: 16,
-                                  height: 16,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      notificationCount.toString(),
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 9,
-                                        color: Colors.white,
-                                        fontWeight: AppTextStyles.semiBold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                          Text(
+                            userName,
+                            style: textTheme.headlineMedium,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
+                      ),
+                    ),
+
+                    // Avatar with online status dot
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        CircleAvatar(
+                          radius: 22,
+                          backgroundColor: colorScheme.primaryContainer,
+                          foregroundColor: colorScheme.onPrimaryContainer,
+                          backgroundImage: avatarUrl.isNotEmpty
+                              ? NetworkImage(avatarUrl)
+                              : null,
+                          child: avatarUrl.isEmpty
+                              ? Icon(
+                                  Icons.person_outline,
+                                  color: colorScheme.onPrimaryContainer,
+                                )
+                              : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: colorScheme.primary,
+                              border: Border.all(
+                                // Match the scaffold background so the ring
+                                // appears to "punch through" to the background.
+                                color: Theme.of(context).scaffoldBackgroundColor,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: AppSpacing.xxs),
+
+                    // Notification bell with count badge
+                    Badge(
+                      label: Text(notificationCount.toString()),
+                      isLabelVisible: notificationCount > 0,
+                      child: IconButton(
+                        icon: const Icon(Icons.notifications_outlined),
+                        color: colorScheme.onSurfaceVariant,
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/notifications'),
                       ),
                     ),
                   ],
@@ -666,7 +714,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Sliver 2: Reliability Warning
+            // ── Reliability warning ─────────────────────────────────────────
             if (score < 70)
               SliverToBoxAdapter(
                 child: Container(
@@ -675,25 +723,30 @@ class _HomeScreenState extends State<HomeScreen> {
                     right: AppSpacing.sm,
                     top: AppSpacing.xs2,
                   ),
-                  padding: const EdgeInsets.all(AppSpacing.xs2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xs2,
+                    vertical: AppSpacing.xs,
+                  ),
                   decoration: BoxDecoration(
-                    color: AppColors.amber.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppColors.warning.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(AppSpacing.xs2),
                     border: Border(
-                      left: BorderSide(color: AppColors.amber, width: 3),
+                      left: BorderSide(color: AppColors.warning, width: 3),
                     ),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.warning_amber_rounded,
-                          size: 18, color: AppColors.amber),
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 18,
+                        color: AppColors.warning,
+                      ),
                       const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Text(
                           'Reliability score is $score. Attend bookings to improve.',
-                          style: GoogleFonts.poppins(
-                            fontSize: 13,
-                            color: AppColors.amber,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: AppColors.warning,
                           ),
                         ),
                       ),
@@ -702,10 +755,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-            // Sliver 3: Top Futsal
+            // ── Top Futsal section ──────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(0, AppSpacing.md, 0, 0),
+                padding: const EdgeInsets.only(top: AppSpacing.md),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -715,68 +768,49 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: AppSpacing.xs2),
                     if (_isLoadingFutsals)
-                      const SizedBox(
+                      _SectionPlaceholder(
                         height: 140,
-                        child: Center(
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: colorScheme.primary,
                           ),
                         ),
                       )
                     else if (_futsalsError != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm),
-                        child: Container(
-                          height: 140,
-                          decoration: BoxDecoration(
-                            color: AppColors.bgElevated,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  color: AppColors.red,
-                                  size: 24,
-                                ),
-                                const SizedBox(height: AppSpacing.xs),
-                                Text(
-                                  'Failed to load venues',
-                                  style: AppText.bodySm.copyWith(
-                                    color: AppColors.txtDisabled,
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: _loadTopFutsals,
-                                  child: const Text('Retry'),
-                                ),
-                              ],
+                      _SectionPlaceholder(
+                        height: 140,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: colorScheme.error,
+                              size: 24,
                             ),
-                          ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              'Failed to load venues',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: _loadTopFutsals,
+                              child: const Text('Retry'),
+                            ),
+                          ],
                         ),
                       )
                     else if (_topFutsals.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm),
-                        child: Container(
-                          height: 140,
-                          decoration: BoxDecoration(
-                            color: AppColors.bgElevated,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Text(
-                              'No venues available',
-                              style: AppText.bodySm.copyWith(
-                                color: AppColors.txtDisabled,
-                              ),
-                            ),
+                      _SectionPlaceholder(
+                        height: 140,
+                        child: Text(
+                          'No venues available',
+                          style: textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
                           ),
                         ),
                       )
@@ -786,10 +820,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.sm),
-                          itemCount: _topFutsals.length >= 4
-                              ? 4
-                              : _topFutsals.length,
+                            horizontal: AppSpacing.sm,
+                          ),
+                          itemCount: math.min(4, _topFutsals.length),
                           itemBuilder: (ctx, i) =>
                               _TopFutsalCard(_topFutsals[i]),
                         ),
@@ -799,10 +832,10 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Sliver 4: Play Tonight
+            // ── Play Tonight section ────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(0, AppSpacing.md, 0, 0),
+                padding: const EdgeInsets.only(top: AppSpacing.md),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -813,85 +846,66 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: AppSpacing.xs2),
                     if (_isLoadingTonightMatches)
-                      const SizedBox(
+                      _SectionPlaceholder(
                         height: 200,
-                        child: Center(
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: colorScheme.primary,
                           ),
                         ),
                       )
                     else if (_tonightMatchesError != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm),
-                        child: Container(
-                          height: 200,
-                          decoration: BoxDecoration(
-                            color: AppColors.bgElevated,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  color: AppColors.red,
-                                  size: 24,
-                                ),
-                                const SizedBox(height: AppSpacing.xs),
-                                Text(
-                                  'Failed to load matches',
-                                  style: AppText.bodySm.copyWith(
-                                    color: AppColors.txtDisabled,
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: _loadTonightMatches,
-                                  child: const Text('Retry'),
-                                ),
-                              ],
+                      _SectionPlaceholder(
+                        height: 200,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: colorScheme.error,
+                              size: 24,
                             ),
-                          ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              'Failed to load matches',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: _loadTonightMatches,
+                              child: const Text('Retry'),
+                            ),
+                          ],
                         ),
                       )
                     else if (_tonightMatches.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm),
-                        child: Container(
-                          height: 200,
-                          decoration: BoxDecoration(
-                            color: AppColors.bgElevated,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.sports_soccer_outlined,
-                                  size: 32,
-                                  color: AppColors.txtDisabled,
-                                ),
-                                const SizedBox(height: AppSpacing.xs),
-                                Text(
-                                  'No open matches tonight',
-                                  style: AppText.bodySm.copyWith(
-                                    color: AppColors.txtDisabled,
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.pushNamed(
-                                      context, '/discovery'),
-                                  child: const Text('Browse All'),
-                                ),
-                              ],
+                      _SectionPlaceholder(
+                        height: 200,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.sports_soccer_outlined,
+                              size: 32,
+                              color: colorScheme.onSurfaceVariant,
                             ),
-                          ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              'No open matches tonight',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () =>
+                                  Navigator.pushNamed(context, '/discovery'),
+                              child: const Text('Browse All'),
+                            ),
+                          ],
                         ),
                       )
                     else
@@ -900,7 +914,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.sm),
+                            horizontal: AppSpacing.sm,
+                          ),
                           itemCount: math.min(5, _tonightMatches.length),
                           itemBuilder: (ctx, i) =>
                               _MatchMiniCard(_tonightMatches[i]),
@@ -911,7 +926,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // Sliver 5: Upcoming Booking
+            // ── Upcoming Booking section ────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -929,7 +944,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       onAction: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text('Use Bookings tab below')),
+                            content: Text('Use Bookings tab below'),
+                          ),
                         );
                       },
                     ),
@@ -937,13 +953,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (upcomingBooking != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm),
+                          horizontal: AppSpacing.sm,
+                        ),
                         child: _UpcomingBookingCard(upcomingBooking),
                       )
                     else
                       Padding(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm),
+                          horizontal: AppSpacing.sm,
+                        ),
                         child: EmptyState(
                           icon: Icons.sports_soccer_outlined,
                           title: 'No upcoming bookings',
@@ -959,6 +977,32 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared placeholder for loading / error / empty states within sections
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SectionPlaceholder extends StatelessWidget {
+  final double height;
+  final Widget child;
+
+  const _SectionPlaceholder({required this.height, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(AppSpacing.xs2),
+        ),
+        child: Center(child: child),
       ),
     );
   }
