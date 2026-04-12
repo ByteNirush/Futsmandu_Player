@@ -30,6 +30,7 @@ class AppSpacing {
 
   static const double cardPadding   = ds.AppSpacing.cardPadding;      // 16
   static const double screenPadding = ds.AppSpacing.pageHorizontal;   // 20
+  static const double pagePadding   = ds.AppSpacing.pageHorizontal;   // 20
   static const double buttonHeight  = ds.AppSpacing.buttonHeight;     // 48
   static const double radius        = ds.AppRadius.md;                // 10
 }
