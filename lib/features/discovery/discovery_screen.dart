@@ -52,6 +52,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final asyncState = ref.watch(matchDiscoveryControllerProvider);
     final state = asyncState.valueOrNull ?? MatchDiscoveryState.initial();
     final tabIndex = _tabs.indexOf(state.activeTab);
@@ -63,11 +65,14 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
             state.activeError;
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        title: Text('Discover', style: AppText.h2),
+        title: Text(
+          'Discover',
+          style: AppText.h2.copyWith(color: scheme.onSurface),
+        ),
         elevation: 0,
-        backgroundColor: AppColors.bgPrimary,
+        backgroundColor: scheme.surface,
         scrolledUnderElevation: 0,
         centerTitle: false,
         actions: [
@@ -96,15 +101,15 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               ),
               padding: const EdgeInsets.all(AppSpacing.xs),
               decoration: BoxDecoration(
-                color: AppColors.red.withValues(alpha: 0.08),
+                color: scheme.errorContainer.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: AppColors.red.withValues(alpha: 0.4),
+                  color: scheme.error.withValues(alpha: 0.5),
                 ),
               ),
               child: Text(
                 error,
-                style: AppText.bodySm.copyWith(color: AppColors.red),
+                style: AppText.bodySm.copyWith(color: scheme.error),
               ),
             ),
           // TAB STRIP
@@ -134,12 +139,16 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                       vertical: AppSpacing.xs3,
                     ),
                     decoration: BoxDecoration(
-                      color:
-                          isSelected ? AppColors.green : AppColors.bgElevated,
+                      color: isSelected
+                          ? AppColors.green
+                          : scheme.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(999),
                       border: !isSelected
                           ? Border.all(
-                              color: AppColors.borderClr.withValues(alpha: 0.5))
+                              color: scheme.outlineVariant.withValues(
+                                alpha: 0.7,
+                              ),
+                            )
                           : null,
                     ),
                     child: Text(
@@ -149,8 +158,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                         fontWeight:
                             isSelected ? FontWeight.w600 : FontWeight.w500,
                         color: isSelected
-                            ? AppColors.bgPrimary
-                            : AppColors.txtDisabled,
+                            ? scheme.onPrimary
+                            : scheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -185,12 +194,15 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               children: [
                 Text(
                   '${matches.length} matches',
-                  style: AppText.bodySm.copyWith(fontWeight: FontWeight.w600),
+                  style: AppText.bodySm.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
                 ),
                 const Spacer(),
                 Text(
                   _tabLabels[safeTabIndex],
-                  style: AppText.label,
+                  style: AppText.label.copyWith(color: scheme.onSurfaceVariant),
                 ),
               ],
             ),
