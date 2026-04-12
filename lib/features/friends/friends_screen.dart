@@ -205,6 +205,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final List<String> tabLabels = [
       'Friends (${_allFriends.length})',
       'Requests (${_friendRequests.length})',
@@ -212,10 +213,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: Text('Friends', style: AppText.h2),
-        backgroundColor: AppColors.bgPrimary,
+        backgroundColor: colorScheme.surface,
         elevation: 0,
         actions: [
           IconButton(
@@ -239,20 +240,22 @@ class _FriendsScreenState extends State<FriendsScreen> {
               ),
               padding: const EdgeInsets.all(AppSpacing.xs),
               decoration: BoxDecoration(
-                color: AppColors.red.withValues(alpha: 0.08),
+                color: colorScheme.error.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.red.withValues(alpha: 0.4)),
+                border:
+                    Border.all(color: colorScheme.error.withValues(alpha: 0.4)),
               ),
               child: Text(
                 _error!,
-                style: AppText.bodySm.copyWith(color: AppColors.red),
+                style: AppText.bodySm.copyWith(color: colorScheme.error),
               ),
             ),
           // ROW TAB SELECTOR
           Container(
             decoration: BoxDecoration(
-              color: AppColors.bgSurface,
-              border: Border(bottom: BorderSide(color: AppColors.borderClr)),
+              color: colorScheme.surface,
+              border:
+                  Border(bottom: BorderSide(color: colorScheme.outlineVariant)),
             ),
             child: Row(
               children: tabLabels.asMap().entries.map((e) {
@@ -269,7 +272,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     child: Container(
                       padding:
                           const EdgeInsets.symmetric(vertical: AppSpacing.xs2),
-                      color: AppColors.bgPrimary.withValues(alpha: 0),
+                      color: Colors.transparent,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -278,8 +281,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                             style: AppText.h3.copyWith(
                               fontSize: 14,
                               color: isSelected
-                                  ? AppColors.green
-                                  : AppColors.txtDisabled,
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurfaceVariant,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -291,8 +294,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                             width: 30,
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? AppColors.green
-                                  : AppColors.green.withValues(alpha: 0),
+                                  ? colorScheme.primary
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(1),
                             ),
                           ),
@@ -316,27 +319,33 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       child: TextField(
                         onChanged: (v) => setState(() => _friendSearch = v),
                         style:
-                            AppText.body.copyWith(color: AppColors.txtPrimary),
+                            AppText.body.copyWith(color: colorScheme.onSurface),
                         decoration: InputDecoration(
                           hintText: 'Search friends…',
-                          prefixIcon:
-                              Icon(Icons.search, color: AppColors.txtDisabled),
+                          prefixIcon: Icon(Icons.search,
+                              color: colorScheme.onSurfaceVariant),
                           hintStyle: AppText.bodySm
-                              .copyWith(color: AppColors.txtDisabled),
+                              .copyWith(color: colorScheme.onSurfaceVariant),
                           filled: true,
-                          fillColor: AppColors.bgElevated,
+                          fillColor: colorScheme.surface,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm,
                             vertical: AppSpacing.sm,
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
+                            borderSide:
+                                BorderSide(color: colorScheme.outlineVariant),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide:
+                                BorderSide(color: colorScheme.outlineVariant),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide:
-                                BorderSide(color: AppColors.green, width: 1.5),
+                            borderSide: BorderSide(
+                                color: colorScheme.primary, width: 1.5),
                           ),
                         ),
                       ),
@@ -392,7 +401,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                           children: [
                             CircleAvatar(
                               radius: 20,
-                              backgroundColor: AppColors.bgElevated,
+                              backgroundColor: colorScheme.surface,
                               backgroundImage: _avatarProvider(r['avatarUrl']),
                             ),
                             const SizedBox(width: 12),
@@ -415,12 +424,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
                               children: [
                                 IconButton(
                                   icon: Icon(Icons.check_circle_rounded,
-                                      size: 28, color: AppColors.green),
+                                      size: 28, color: colorScheme.primary),
                                   onPressed: () => _acceptRequest(r),
                                 ),
                                 IconButton(
                                   icon: Icon(Icons.cancel_rounded,
-                                      size: 28, color: AppColors.red),
+                                      size: 28, color: colorScheme.error),
                                   onPressed: () => _declineOrRemoveFriendship(
                                     friendshipId:
                                         (r['friendshipId'] ?? '').toString(),
@@ -429,7 +438,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                 ),
                                 IconButton(
                                   icon: Icon(Icons.block_rounded,
-                                      size: 24, color: AppColors.txtDisabled),
+                                      size: 24,
+                                      color: colorScheme.onSurfaceVariant),
                                   onPressed: () => _blockPlayer(
                                     playerId: (r['id'] ?? '').toString(),
                                   ),
@@ -450,27 +460,33 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       child: TextField(
                         onChanged: _onSearchPlayersChanged,
                         style:
-                            AppText.body.copyWith(color: AppColors.txtPrimary),
+                            AppText.body.copyWith(color: colorScheme.onSurface),
                         decoration: InputDecoration(
                           hintText: 'Search by name or phone…',
-                          prefixIcon:
-                              Icon(Icons.search, color: AppColors.txtDisabled),
+                          prefixIcon: Icon(Icons.search,
+                              color: colorScheme.onSurfaceVariant),
                           hintStyle: AppText.bodySm
-                              .copyWith(color: AppColors.txtDisabled),
+                              .copyWith(color: colorScheme.onSurfaceVariant),
                           filled: true,
-                          fillColor: AppColors.bgElevated,
+                          fillColor: colorScheme.surface,
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm,
                             vertical: AppSpacing.sm,
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
+                            borderSide:
+                                BorderSide(color: colorScheme.outlineVariant),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide:
+                                BorderSide(color: colorScheme.outlineVariant),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide:
-                                BorderSide(color: AppColors.green, width: 1.5),
+                            borderSide: BorderSide(
+                                color: colorScheme.primary, width: 1.5),
                           ),
                         ),
                       ),
@@ -515,7 +531,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                     children: [
                                       CircleAvatar(
                                         radius: 20,
-                                        backgroundColor: AppColors.bgElevated,
+                                        backgroundColor: colorScheme.surface,
                                         backgroundImage:
                                             _avatarProvider(p.avatarUrl),
                                       ),
@@ -560,15 +576,14 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                           ),
                                           decoration: BoxDecoration(
                                             color: isSent
-                                                ? AppColors.bgElevated
-                                                : AppColors.bgElevated
-                                                    .withValues(alpha: 0),
+                                                ? colorScheme.surface
+                                                : Colors.transparent,
                                             borderRadius:
                                                 BorderRadius.circular(999),
                                             border: Border.all(
                                               color: isSent
-                                                  ? AppColors.borderClr
-                                                  : AppColors.green,
+                                                  ? colorScheme.outlineVariant
+                                                  : colorScheme.primary,
                                             ),
                                           ),
                                           child: Text(
@@ -577,8 +592,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                               fontSize: 12,
                                               fontWeight: FontWeight.w500,
                                               color: isSent
-                                                  ? AppColors.txtDisabled
-                                                  : AppColors.green,
+                                                  ? colorScheme.onSurfaceVariant
+                                                  : colorScheme.primary,
                                             ),
                                           ),
                                         ),
@@ -619,6 +634,7 @@ class _FriendTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.sm,
@@ -628,7 +644,7 @@ class _FriendTile extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 20,
-            backgroundColor: AppColors.bgElevated,
+            backgroundColor: colorScheme.surface,
             backgroundImage: _avatarProvider(f['avatarUrl']),
           ),
           const SizedBox(width: 12),
@@ -656,7 +672,7 @@ class _FriendTile extends StatelessWidget {
             children: [
               PopupMenuButton<String>(
                 icon: Icon(Icons.more_vert,
-                    color: AppColors.txtDisabled, size: 20),
+                    color: colorScheme.onSurfaceVariant, size: 20),
                 onSelected: (value) {
                   if (value == 'remove') {
                     onRemove();
@@ -692,7 +708,7 @@ class _FriendTile extends StatelessWidget {
                   );
                 },
                 child: Text('Invite',
-                    style: AppText.label.copyWith(color: AppColors.green)),
+                    style: AppText.label.copyWith(color: colorScheme.primary)),
               ),
             ],
           ),
