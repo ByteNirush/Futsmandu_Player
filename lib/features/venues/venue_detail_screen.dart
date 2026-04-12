@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../core/design_system/app_spacing.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/futs_button.dart';
@@ -31,6 +32,7 @@ class VenueDetailScreen extends StatefulWidget {
 
 class _VenueDetailScreenState extends State<VenueDetailScreen> {
   final PlayerVenuesService _venuesService = PlayerVenuesService.instance;
+  final ScrollController _detailScrollController = ScrollController();
 
   static const double _spaceXs = 4;
   static const double _spaceSm = 8;
@@ -52,6 +54,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
       const <Map<String, dynamic>>[];
   bool _isLoadingAvailability = false;
   String? _availabilityError;
+  bool _showCollapsedTitle = false;
 
   final Map<String, IconData> _amenityIcons = {
     'Parking': Icons.local_parking,
@@ -59,6 +62,28 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
     'Floodlights': Icons.highlight_outlined,
     'Cafeteria': Icons.restaurant_outlined,
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _detailScrollController.addListener(_onDetailScroll);
+  }
+
+  @override
+  void dispose() {
+    _detailScrollController
+      ..removeListener(_onDetailScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onDetailScroll() {
+    if (!_detailScrollController.hasClients) return;
+    final showTitle = _detailScrollController.offset > 170;
+    if (showTitle != _showCollapsedTitle && mounted) {
+      setState(() => _showCollapsedTitle = showTitle);
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -311,9 +336,13 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
+
     if (_isLoading && _venue == null) {
       return Scaffold(
-        backgroundColor: AppColors.bgPrimary,
+        backgroundColor: theme.scaffoldBackgroundColor,
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -377,7 +406,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
     final isVerified = venue['isVerified'] == true;
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: theme.scaffoldBackgroundColor,
       bottomNavigationBar: _selectedSlot == null
           ? null
           : SafeArea(
@@ -389,9 +418,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                     padding: const EdgeInsets.fromLTRB(
                         _spaceLg, _spaceMd, _spaceLg, _spaceMd),
                     decoration: BoxDecoration(
-                      color: AppColors.bgSurface,
+                      color: colorScheme.surface,
                       border:
-                          Border(top: BorderSide(color: AppColors.borderClr)),
+                        Border(top: BorderSide(color: colorScheme.outlineVariant)),
                     ),
                     child: isNarrow
                         ? Column(
@@ -400,14 +429,16 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             children: [
                               Text(
                                 '${_selectedSlot!['time']} - ${_selectedSlot!['endTime']}',
-                                style: AppText.body.copyWith(
-                                    fontWeight: AppTextStyles.semiBold),
+                                style: textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                               const SizedBox(height: _spaceXs),
                               Text(
                                 '${_selectedSlot!['status'] == 'AVAILABLE' ? 'Price shown at payment' : 'Unavailable'} • ${selectedCourt['name'] ?? 'Court'}',
-                                style: AppText.label
-                                    .copyWith(color: AppColors.txtDisabled),
+                                style: textTheme.labelMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
                               ),
                               const SizedBox(height: _spaceMd),
                               SizedBox(
@@ -429,14 +460,16 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                   children: [
                                     Text(
                                       '${_selectedSlot!['time']} - ${_selectedSlot!['endTime']}',
-                                      style: AppText.body.copyWith(
-                                          fontWeight: AppTextStyles.semiBold),
+                                      style: textTheme.bodyLarge?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                     const SizedBox(height: _spaceXs),
                                     Text(
                                       '${_selectedSlot!['status'] == 'AVAILABLE' ? 'Price shown at payment' : 'Unavailable'} • ${selectedCourt['name'] ?? 'Court'}',
-                                      style: AppText.label.copyWith(
-                                          color: AppColors.txtDisabled),
+                                      style: textTheme.labelMedium?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -457,21 +490,26 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
               ),
             ),
       body: CustomScrollView(
+        controller: _detailScrollController,
         slivers: [
           SliverAppBar(
-            expandedHeight: 280,
+            expandedHeight: 300,
             pinned: true,
-            backgroundColor: AppColors.bgPrimary,
-            iconTheme: IconThemeData(color: AppColors.txtPrimary),
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                venue['name'],
+            backgroundColor: theme.scaffoldBackgroundColor,
+            iconTheme: IconThemeData(color: colorScheme.onSurface),
+            title: AnimatedOpacity(
+              duration: const Duration(milliseconds: 180),
+              opacity: _showCollapsedTitle ? 1 : 0,
+              child: Text(
+                venue['name'] ?? '',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppText.h3.copyWith(fontSize: 17),
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-              titlePadding: const EdgeInsets.only(
-                  left: 56, bottom: _spaceLg, right: _spaceLg),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 children: [
                   CachedNetworkImage(
@@ -488,77 +526,11 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: [
-                          Colors.transparent,
-                          AppColors.bgPrimary.withValues(alpha: 0.95),
+                          colorScheme.scrim.withValues(alpha: 0.06),
+                          theme.scaffoldBackgroundColor.withValues(alpha: 0.98),
                         ],
-                        stops: const [0.45, 1.0],
+                        stops: const [0.32, 1.0],
                       ),
-                    ),
-                  ),
-                  Positioned(
-                    left: _spaceLg,
-                    right: _spaceLg,
-                    bottom: 72,
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: _VenueDetailSpacing.pillPadding,
-                          decoration: BoxDecoration(
-                            color: AppColors.bgPrimary.withValues(alpha: 0.55),
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(
-                                color:
-                                    AppColors.borderClr.withValues(alpha: 0.7)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.star_rounded,
-                                  size: 16, color: AppColors.amber),
-                              const SizedBox(width: _spaceXs),
-                              Text(
-                                '${venue['rating']} (${venue['reviewCount']})',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppText.bodySm.copyWith(
-                                  color: AppColors.txtPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: _spaceSm),
-                        if (venue['distance'] != null)
-                          Container(
-                            padding: _VenueDetailSpacing.pillPadding,
-                            decoration: BoxDecoration(
-                              color:
-                                  AppColors.bgPrimary.withValues(alpha: 0.55),
-                              borderRadius: BorderRadius.circular(999),
-                              border: Border.all(
-                                  color: AppColors.borderClr
-                                      .withValues(alpha: 0.7)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.near_me_rounded,
-                                    size: 14, color: AppColors.green),
-                                const SizedBox(width: _spaceXs),
-                                Text(
-                                  venue['distance'],
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppText.bodySm.copyWith(
-                                    color: AppColors.txtPrimary,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
                     ),
                   ),
                 ],
@@ -567,9 +539,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
             actions: [
               IconButton(
                 style: IconButton.styleFrom(
-                  backgroundColor: AppColors.bgPrimary.withValues(alpha: 0.4),
+                  backgroundColor: colorScheme.surface.withValues(alpha: 0.62),
                 ),
-                icon: Icon(Icons.share, color: AppColors.txtPrimary),
+                icon: Icon(Icons.share, color: colorScheme.onSurface),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Share coming soon')),
@@ -581,31 +553,64 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
-                  _spaceLg, _spaceLg, _spaceLg, _space2xl),
+                AppSpacing.pagePadding,
+                _spaceLg,
+                AppSpacing.pagePadding,
+                _space2xl,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  FutsCard(
-                    backgroundColor: AppColors.bgSurface,
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.cardPadding),
+                    decoration: theme.brightness == Brightness.dark
+                        ? AppTheme.cardDecorationDark(colorScheme)
+                        : BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius:
+                                BorderRadius.circular(AppTheme.radiusM),
+                            border:
+                                Border.all(color: colorScheme.outlineVariant),
+                          ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(venue['name'],
-                            style: AppText.h2.copyWith(fontSize: 26)),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                venue['name'] ?? '',
+                                style: textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                            if (isVerified)
+                              Icon(
+                                Icons.verified_rounded,
+                                color: colorScheme.primary,
+                                size: 20,
+                              ),
+                          ],
+                        ),
                         const SizedBox(height: _spaceSm),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.location_on,
-                                size: 16, color: AppColors.txtDisabled),
+                            Icon(
+                              Icons.place_rounded,
+                              size: 18,
+                              color: colorScheme.primary,
+                            ),
                             const SizedBox(width: _spaceSm),
                             Expanded(
                               child: Text(
                                 venue['address'],
                                 maxLines: 3,
                                 overflow: TextOverflow.ellipsis,
-                                style: AppText.body
-                                    .copyWith(color: AppColors.txtDisabled),
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
                               ),
                             ),
                           ],
@@ -624,9 +629,19 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                   : 'Standard Venue',
                             ),
                             _MetaPill(
+                              icon: Icons.star_rounded,
+                              label:
+                                  '${venue['rating']} (${venue['reviewCount']})',
+                            ),
+                            _MetaPill(
                               icon: Icons.sports_soccer_rounded,
                               label: '${courts.length} Courts',
                             ),
+                            if (venue['distance'] != null)
+                              _MetaPill(
+                                icon: Icons.near_me_rounded,
+                                label: venue['distance'],
+                              ),
                           ],
                         ),
                       ],
@@ -643,17 +658,29 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         return Container(
                           padding: _VenueDetailSpacing.pillPadding,
                           decoration: BoxDecoration(
-                            color: AppColors.bgElevated,
-                            borderRadius: BorderRadius.circular(999),
-                            border: Border.all(color: AppColors.borderClr),
+                            color: colorScheme.primary.withValues(alpha: 0.12),
+                            borderRadius:
+                                BorderRadius.circular(AppTheme.radiusM),
+                            border: Border.all(
+                              color: colorScheme.primary.withValues(alpha: 0.35),
+                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(_amenityIcons[a] ?? Icons.circle,
-                                  size: 15, color: AppColors.txtDisabled),
+                              Icon(
+                                _amenityIcons[a] ?? Icons.circle,
+                                size: 15,
+                                color: colorScheme.primary,
+                              ),
                               const SizedBox(width: 6),
-                              Text(a.toString(), style: AppText.bodySm),
+                              Text(
+                                a.toString(),
+                                style: textTheme.labelMedium?.copyWith(
+                                  color: colorScheme.onSurface,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ],
                           ),
                         );
@@ -689,16 +716,17 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? AppColors.green
-                                    : AppColors.bgElevated,
-                                borderRadius: BorderRadius.circular(14),
+                                  ? colorScheme.primary
+                                  : colorScheme.surfaceContainerHigh,
+                                borderRadius:
+                                  BorderRadius.circular(AppTheme.radiusM),
                                 border: !isSelected
-                                    ? Border.all(color: AppColors.borderClr)
+                                  ? Border.all(color: colorScheme.outlineVariant)
                                     : null,
                                 boxShadow: isSelected
                                     ? [
                                         BoxShadow(
-                                          color: AppColors.green
+                                      color: colorScheme.primary
                                               .withValues(alpha: 0.25),
                                           blurRadius: 16,
                                           offset: const Offset(0, 6),
@@ -714,8 +742,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                     style: AppText.h3.copyWith(
                                       fontSize: 16,
                                       color: isSelected
-                                          ? AppColors.bgPrimary
-                                          : AppColors.txtPrimary,
+                                          ? colorScheme.onPrimary
+                                          : colorScheme.onSurface,
                                     ),
                                   ),
                                   const SizedBox(height: _spaceXs),
@@ -723,9 +751,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                     '${e.value['type']} · ${e.value['surface']}',
                                     style: AppText.label.copyWith(
                                       color: isSelected
-                                          ? AppColors.bgPrimary
+                                          ? colorScheme.onPrimary
                                               .withValues(alpha: 0.7)
-                                          : AppColors.txtDisabled,
+                                          : colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -840,14 +868,17 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                               vertical: AppSpacing.sm,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.bgElevated,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.borderClr),
+                              color: colorScheme.surfaceContainerHigh,
+                              borderRadius:
+                                  BorderRadius.circular(AppTheme.radiusM),
+                              border:
+                                  Border.all(color: colorScheme.outlineVariant),
                             ),
                             child: Text(
-                              'Pick a date from the calendar to view available slots.',
-                              style: AppText.bodySm
-                                  .copyWith(color: AppColors.txtDisabled),
+                              'Pick a date from the date strip to view available slots.',
+                              style: textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                              ),
                             ),
                           ),
                         if (_selectedDate != null) ...[
@@ -857,14 +888,16 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                   constraints.maxWidth < 390;
                               final title = Text(
                                 DateFormat('EEE, MMM d').format(_selectedDate!),
-                                style: AppText.h3.copyWith(fontSize: 18),
+                                style: textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
                               );
                               final legend = Wrap(
                                 spacing: _spaceMd,
                                 runSpacing: _spaceSm,
                                 children: [
-                                  _LegendDot(AppColors.green, 'Available'),
-                                  _LegendDot(AppColors.red, 'Unavailable'),
+                                  _LegendDot(colorScheme.primary, 'Available'),
+                                  _LegendDot(colorScheme.error, 'Unavailable'),
                                 ],
                               );
 
@@ -919,15 +952,18 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                     vertical: AppSpacing.sm,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.bgElevated,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border:
-                                        Border.all(color: AppColors.borderClr),
+                                    color: colorScheme.surfaceContainerHigh,
+                                    borderRadius:
+                                        BorderRadius.circular(AppTheme.radiusM),
+                                    border: Border.all(
+                                      color: colorScheme.outlineVariant,
+                                    ),
                                   ),
                                   child: Text(
                                     _availabilityError!,
-                                    style: AppText.bodySm
-                                        .copyWith(color: AppColors.txtDisabled),
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
                                 );
                               }
@@ -940,15 +976,18 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                     vertical: AppSpacing.sm,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: AppColors.bgElevated,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border:
-                                        Border.all(color: AppColors.borderClr),
+                                    color: colorScheme.surfaceContainerHigh,
+                                    borderRadius:
+                                        BorderRadius.circular(AppTheme.radiusM),
+                                    border: Border.all(
+                                      color: colorScheme.outlineVariant,
+                                    ),
                                   ),
                                   child: Text(
                                     'No slots available for this date.',
-                                    style: AppText.bodySm
-                                        .copyWith(color: AppColors.txtDisabled),
+                                    style: textTheme.bodySmall?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
                                   ),
                                 );
                               }
@@ -988,11 +1027,13 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                     trailing: TextButton(
                       onPressed: _showWriteReviewSheet,
                       style: TextButton.styleFrom(
-                        foregroundColor: AppColors.green,
+                        foregroundColor: colorScheme.primary,
                         padding: _VenueDetailSpacing.pillPadding,
-                        backgroundColor: AppColors.green.withValues(alpha: 0.1),
+                        backgroundColor:
+                            colorScheme.primary.withValues(alpha: 0.12),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(999),
+                          borderRadius:
+                              BorderRadius.circular(AppTheme.radiusM),
                         ),
                         textStyle: GoogleFonts.poppins(
                           fontSize: 12,
@@ -1015,6 +1056,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   void _showSlotSheet(
       BuildContext ctx, Map<String, dynamic> slot, Map<String, dynamic> venue) {
     final courts = (venue['courts'] as List?) ?? const [];
+    final colorScheme = Theme.of(ctx).colorScheme;
+    final textTheme = Theme.of(ctx).textTheme;
     showModalBottomSheet(
       context: ctx,
       isScrollControlled: true,
@@ -1040,9 +1083,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                     ),
                     margin: const EdgeInsets.only(top: _space2xl * 2),
                     decoration: BoxDecoration(
-                      color: AppColors.bgSurface,
+                      color: colorScheme.surface,
                       borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(24),
+                        top: Radius.circular(AppTheme.radiusM),
                       ),
                     ),
                     child: Column(
@@ -1053,13 +1096,18 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             width: 44,
                             height: 4,
                             decoration: BoxDecoration(
-                              color: AppColors.borderClr,
+                              color: colorScheme.outlineVariant,
                               borderRadius: BorderRadius.circular(999),
                             ),
                           ),
                         ),
                         const SizedBox(height: _spaceXl),
-                        Text('Confirm Slot', style: AppText.h2),
+                        Text(
+                          'Confirm Slot',
+                          style: textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         const SizedBox(height: _spaceLg),
                         FutsCard(
                           child: Row(
@@ -1108,7 +1156,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             Text(
                               'Price shown at payment',
                               style: GoogleFonts.poppins(
-                                color: AppColors.green,
+                                color: colorScheme.primary,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
                               ),
@@ -1162,6 +1210,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   }
 
   Widget _buildReviews(Map<String, dynamic> venue) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final reviews = (venue['reviews'] as List?)?.cast<Map<String, dynamic>>() ??
         const <Map<String, dynamic>>[];
 
@@ -1173,13 +1223,15 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
           vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
-          color: AppColors.bgElevated,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.borderClr),
+          color: colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(AppTheme.radiusM),
+          border: Border.all(color: colorScheme.outlineVariant),
         ),
         child: Text(
           'No reviews yet. Be the first to review this venue.',
-          style: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+          style: textTheme.bodySmall?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
         ),
       );
     }
@@ -1207,6 +1259,7 @@ class _LegendDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Row(
       children: [
         Container(
@@ -1218,7 +1271,7 @@ class _LegendDot extends StatelessWidget {
           ),
         ),
         const SizedBox(width: _VenueDetailSpacing.smallGap),
-        Text(label, style: AppText.label),
+        Text(label, style: textTheme.labelMedium),
       ],
     );
   }
@@ -1232,20 +1285,27 @@ class _MetaPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    final colorScheme = theme.colorScheme;
     return Container(
       padding: _VenueDetailSpacing.pillPadding,
       decoration: BoxDecoration(
-        color: AppColors.bgElevated,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.borderClr),
+        color: colorScheme.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: AppColors.green),
+          Icon(icon, size: 14, color: colorScheme.primary),
           const SizedBox(width: _VenueDetailSpacing.smallGap),
-          Text(label,
-              style: AppText.label.copyWith(color: AppColors.txtPrimary)),
+          Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -1265,9 +1325,11 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    final colorScheme = theme.colorScheme;
     return FutsCard(
-      backgroundColor: AppColors.bgSurface,
-      borderRadius: BorderRadius.circular(18),
+      backgroundColor: colorScheme.surface,
+      borderRadius: BorderRadius.circular(AppTheme.radiusM),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1276,9 +1338,8 @@ class _SectionCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: AppText.h3.copyWith(
-                    fontSize: 18,
-                    letterSpacing: 0.2,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -1306,24 +1367,28 @@ class _SlotChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    final colorScheme = theme.colorScheme;
+    final bool isUnavailable = slot['status'] == 'UNAVAILABLE';
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         height: 62,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppTheme.radiusM),
           color: isSelected
-              ? AppColors.green.withValues(alpha: 0.15)
-              : slot['status'] == 'UNAVAILABLE'
-                  ? AppColors.red.withValues(alpha: 0.07)
-                  : AppColors.bgElevated,
+              ? colorScheme.primary.withValues(alpha: 0.16)
+              : isUnavailable
+                  ? colorScheme.error.withValues(alpha: 0.08)
+                  : colorScheme.surfaceContainerHigh,
           border: Border.all(
             color: isSelected
-                ? AppColors.green
-                : slot['status'] == 'UNAVAILABLE'
-                    ? AppColors.red.withValues(alpha: 0.5)
-                    : AppColors.borderClr,
+                ? colorScheme.primary
+                : isUnavailable
+                    ? colorScheme.error.withValues(alpha: 0.45)
+                    : colorScheme.outlineVariant,
             width: isSelected ? 1.5 : 1.0,
           ),
         ),
@@ -1336,22 +1401,22 @@ class _SlotChip extends StatelessWidget {
                 fontSize: 17,
                 fontWeight: AppTextStyles.semiBold,
                 color: isSelected
-                    ? AppColors.green
-                    : slot['status'] == 'UNAVAILABLE'
-                        ? AppColors.red
-                        : AppColors.txtPrimary,
+                    ? colorScheme.primary
+                    : isUnavailable
+                        ? colorScheme.error
+                        : colorScheme.onSurface,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             Text(
               slot['status'] == 'AVAILABLE' ? 'Available' : 'Unavailable',
-              style: AppText.label.copyWith(
+              style: theme.textTheme.labelMedium?.copyWith(
                 color: isSelected
-                    ? AppColors.green.withValues(alpha: 0.8)
-                    : slot['status'] == 'UNAVAILABLE'
-                        ? AppColors.red
-                        : AppColors.txtDisabled,
+                    ? colorScheme.primary.withValues(alpha: 0.85)
+                    : isUnavailable
+                        ? colorScheme.error
+                        : colorScheme.onSurfaceVariant,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1370,14 +1435,16 @@ class _ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    final colorScheme = theme.colorScheme;
     final rating = (r['rating'] as num?)?.toDouble() ?? 0;
     final String author = (r['author'] as String?) ?? '';
     final String authorInitial = author.isNotEmpty ? author[0] : '?';
 
     return FutsCard(
       padding: _VenueDetailSpacing.reviewCardPadding,
-      backgroundColor: AppColors.bgSurface,
-      borderRadius: BorderRadius.circular(16),
+      backgroundColor: colorScheme.surfaceContainerHigh.withValues(alpha: 0.45),
+      borderRadius: BorderRadius.circular(AppTheme.radiusM),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1388,15 +1455,16 @@ class _ReviewCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.bgElevated,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.borderClr),
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                  border: Border.all(color: colorScheme.outlineVariant),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   authorInitial,
-                  style:
-                      AppText.body.copyWith(fontWeight: AppTextStyles.semiBold),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1407,8 +1475,9 @@ class _ReviewCard extends StatelessWidget {
                     Text(
                       author,
                       overflow: TextOverflow.ellipsis,
-                      style: AppText.body
-                          .copyWith(fontWeight: AppTextStyles.semiBold),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -1423,16 +1492,16 @@ class _ReviewCard extends StatelessWidget {
                                   ? Icons.star_rounded
                                   : Icons.star_border_rounded,
                               size: 14,
-                              color: AppColors.amber,
+                              color: colorScheme.primary,
                             ),
                           ),
                         ),
                         const SizedBox(width: 6),
                         Text(
                           rating.toStringAsFixed(1),
-                          style: AppText.label.copyWith(
-                            color: AppColors.amber,
-                            fontWeight: AppTextStyles.semiBold,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -1447,18 +1516,18 @@ class _ReviewCard extends StatelessWidget {
                   vertical: AppSpacing.xxs,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.bgElevated,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: AppColors.borderClr),
+                  color: colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                  border: Border.all(color: colorScheme.outlineVariant),
                 ),
-                child: Text(r['date'], style: AppText.label),
+                child: Text(r['date'], style: theme.textTheme.labelMedium),
               ),
             ],
           ),
           const SizedBox(height: _VenueDetailSpacing.sectionHeaderGap),
           Text(
             r['text'],
-            style: AppText.bodySm.copyWith(height: 1.35),
+            style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
           ),
         ],
       ),

@@ -2,12 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../core/design_system/app_spacing.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
+import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/filter_chip_row.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 import 'presentation/providers/venues_controller.dart';
@@ -84,7 +82,7 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
   @override
   Widget build(BuildContext context) {
     final venuesState = ref.watch(venueDiscoveryControllerProvider);
-    final theme = Theme.of(context);
+    final theme = context.appTheme;
     final colorScheme = theme.colorScheme;
 
     if (venuesState.isLoading) {
@@ -136,9 +134,10 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Find a Court', style: theme.textTheme.headlineSmall?.copyWith(
-          fontWeight: FontWeight.bold,
-        )),
+        title: Text('Find a Court',
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+            )),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.sm),
@@ -173,9 +172,10 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
     );
   }
 
-  Widget _buildMapBody(BuildContext context, List<Map<String, dynamic>> filtered) {
+  Widget _buildMapBody(
+      BuildContext context, List<Map<String, dynamic>> filtered) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
-    final theme = Theme.of(context);
+    final theme = context.appTheme;
 
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.xs),
@@ -184,7 +184,8 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
         fit: StackFit.expand,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+            padding:
+                const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
             child: VenuesMapView(
               venues: filtered,
               mediaPaddingBottom: bottomInset,
@@ -192,8 +193,8 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
           ),
           Positioned(
             top: AppSpacing.sm,
-            left: AppSpacing.sm,
-            right: AppSpacing.sm,
+            left: AppSpacing.pagePadding,
+            right: AppSpacing.pagePadding,
             child: _SearchPanel(
               onSearchChanged: _onSearchChanged,
             ),
@@ -237,7 +238,7 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
     BuildContext context,
     List<Map<String, dynamic>> filtered,
   ) {
-    final theme = Theme.of(context);
+    final theme = context.appTheme;
     final colorScheme = theme.colorScheme;
 
     return CustomScrollView(
@@ -247,7 +248,11 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.md),
+              AppSpacing.pagePadding,
+              AppSpacing.sm,
+              AppSpacing.pagePadding,
+              AppSpacing.md,
+            ),
             child: _SearchPanel(
               onSearchChanged: _onSearchChanged,
             ),
@@ -273,22 +278,29 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.pagePadding,
+              vertical: AppSpacing.xs,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   '${filtered.length} matches',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                TextButton.icon(
+                FilledButton.tonalIcon(
                   onPressed: () {},
-                  icon: Icon(Icons.sort_rounded, size: 18, color: colorScheme.primary),
-                  label: Text('Sort'),
-                  style: TextButton.styleFrom(
+                  icon: Icon(Icons.sort_rounded,
+                      size: 18, color: colorScheme.primary),
+                  label: const Text('Sort'),
+                  style: FilledButton.styleFrom(
                     visualDensity: VisualDensity.compact,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                    ),
                   ),
                 ),
               ],
@@ -300,7 +312,8 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
             hasScrollBody: false,
             child: Center(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxl),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -312,8 +325,8 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
                       ),
                       child: Icon(
                         Icons.sports_soccer_rounded,
-                        size: 48,
-                        color: colorScheme.onSurfaceVariant,
+                        size: 44,
+                        color: colorScheme.primary,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -340,15 +353,17 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
         else
           SliverPadding(
             padding: EdgeInsets.fromLTRB(
-              AppSpacing.lg,
+              AppSpacing.pagePadding,
               AppSpacing.sm,
-              AppSpacing.lg,
-              MediaQuery.of(context).padding.bottom + kNavBarHeight + AppSpacing.lg,
+              AppSpacing.pagePadding,
+              MediaQuery.of(context).padding.bottom +
+                  kNavBarHeight +
+                  AppSpacing.pagePadding,
             ),
             sliver: SliverList.builder(
               itemCount: filtered.length,
               itemBuilder: (ctx, i) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: _VenueCard(venue: filtered[i]),
               ),
             ),
@@ -385,7 +400,8 @@ class _VenueCard extends StatelessWidget {
       for (final slot in slots) {
         final price = (slot as Map<String, dynamic>)['price'];
         if (price is int) {
-          minimum = minimum == null ? price : (price < minimum ? price : minimum);
+          minimum =
+              minimum == null ? price : (price < minimum ? price : minimum);
         }
       }
     }
@@ -398,7 +414,8 @@ class _VenueCard extends StatelessWidget {
     for (final court in courts) {
       final slots = ((court as Map<String, dynamic>)['slots'] as List?) ?? [];
       count += slots
-          .where((slot) => (slot as Map<String, dynamic>)['status'] == 'AVAILABLE')
+          .where(
+              (slot) => (slot as Map<String, dynamic>)['status'] == 'AVAILABLE')
           .length;
     }
     return count;
@@ -406,184 +423,239 @@ class _VenueCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final theme = context.appTheme;
     final colorScheme = theme.colorScheme;
-    final reviewCount = (venue['reviewCount'] as num?)?.toInt() ?? 0;
+    final isDark = theme.brightness == Brightness.dark;
+    final radius = BorderRadius.circular(AppTheme.radiusM);
     final rating = (venue['rating'] as num?)?.toDouble() ?? 0.0;
-    final amenities = (venue['amenities'] as List?)?.cast<String>() ?? const <String>[];
+    final amenities =
+        (venue['amenities'] as List?)?.cast<String>() ?? const <String>[];
+    final hasPrice = _lowestPrice > 0;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: InkWell(
-        onTap: () => Navigator.pushNamed(context, '/venue-detail', arguments: venue),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              height: 180,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  CachedNetworkImage(
-                    imageUrl: venue['coverUrl'] ?? '',
-                    fit: BoxFit.cover,
-                    placeholder: (_, __) => Container(color: colorScheme.surface),
-                    errorWidget: (_, __, ___) => Container(color: colorScheme.surface),
-                  ),
-                  Positioned(
-                    top: AppSpacing.sm,
-                    right: AppSpacing.sm,
-                    child: _Pill(
-                      icon: venue['isVerified'] == true
-                          ? Icons.verified_rounded
-                          : Icons.info_outline_rounded,
-                      label: venue['isVerified'] == true ? 'Verified' : 'Standard',
-                      bg: venue['isVerified'] == true
-                          ? colorScheme.primary
-                          : colorScheme.surface.withValues(alpha: 0.9),
-                      fg: venue['isVerified'] == true
-                          ? colorScheme.onPrimary
-                          : colorScheme.onSurface,
-                    ),
-                  ),
-                ],
-              ),
+    return DecoratedBox(
+      decoration: isDark
+          ? AppTheme.cardDecorationDark(colorScheme)
+          : BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: radius,
+              border: Border.all(color: colorScheme.outlineVariant),
             ),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          venue['name'] ?? '',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.bold,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () =>
+              Navigator.pushNamed(context, '/venue-detail', arguments: venue),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: 136,
+                child: CachedNetworkImage(
+                  imageUrl: venue['coverUrl'] ?? '',
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => Container(color: colorScheme.surface),
+                  errorWidget: (_, __, ___) => Container(color: colorScheme.surface),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.cardPadding),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  venue['name'] ?? '',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              if (venue['isVerified'] == true) ...[
+                                const SizedBox(width: AppSpacing.xs),
+                                Icon(
+                                  Icons.verified_rounded,
+                                  size: 18,
+                                  color: colorScheme.primary,
+                                ),
+                              ],
+                            ],
                           ),
                         ),
-                      ),
-                      Row(
-                        children: [
-                          Icon(Icons.star_rounded, size: 20, color: Colors.orange.shade400),
-                          const SizedBox(width: AppSpacing.xxs),
-                          Text(
-                            rating.toStringAsFixed(1),
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: AppSpacing.xxs,
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Row(
-                    children: [
-                      Icon(Icons.location_on_rounded, size: 16, color: colorScheme.onSurfaceVariant),
-                      const SizedBox(width: AppSpacing.xxs),
-                      Text(
-                        venue['address'] ?? '',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      if (venue['distance'] != null) ...[
-                        const SizedBox(width: AppSpacing.sm),
-                        Icon(Icons.directions_walk_rounded, size: 16, color: colorScheme.primary),
-                        const SizedBox(width: AppSpacing.xxs),
-                        Text(
-                          venue['distance'] ?? '',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w600,
+                          decoration: BoxDecoration(
+                            borderRadius:
+                                BorderRadius.circular(AppTheme.radiusM),
+                            color: colorScheme.primary.withValues(alpha: 0.14),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.star_rounded,
+                                size: 14,
+                                color: colorScheme.primary,
+                              ),
+                              const SizedBox(width: AppSpacing.xxs),
+                              Text(
+                                rating.toStringAsFixed(1),
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  color: colorScheme.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  if (amenities.isNotEmpty) ...[
-                    Wrap(
-                      spacing: AppSpacing.xs,
-                      runSpacing: AppSpacing.xs,
-                      children: amenities.take(4).map((a) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: AppSpacing.xxs,
-                        ),
-                        decoration: BoxDecoration(
-                          color: colorScheme.onSurface.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: colorScheme.outlineVariant),
-                        ),
-                        child: Text(
-                          a,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      )).toList(),
                     ),
-                    const SizedBox(height: AppSpacing.md),
-                  ],
-                  const Divider(height: 1),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Available Slots',
-                            style: theme.textTheme.labelMedium?.copyWith(
+                    const SizedBox(height: AppSpacing.sm),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.location_on_rounded,
+                          size: 16,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Expanded(
+                          child: Text(
+                            venue['address'] ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodyMedium?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                             ),
                           ),
-                          const SizedBox(height: 2),
+                        ),
+                        if (venue['distance'] != null) ...[
+                          const SizedBox(width: AppSpacing.sm),
+                          Icon(
+                            Icons.directions_walk_rounded,
+                            size: 14,
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: AppSpacing.xxs),
                           Text(
-                            '$_availableSlots',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
+                            venue['distance'] ?? '',
+                            style: theme.textTheme.labelMedium?.copyWith(
                               color: colorScheme.primary,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            'Starts from',
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
+                      ],
+                    ),
+                    if (amenities.isNotEmpty) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      Wrap(
+                        spacing: AppSpacing.xs,
+                        runSpacing: AppSpacing.xs,
+                        children: amenities.take(3).map((a) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.xxs,
                             ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            _lowestPrice > 0 ? 'Rs $_lowestPrice/hr' : 'Unavailable',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                            decoration: BoxDecoration(
+                              borderRadius:
+                                  BorderRadius.circular(AppTheme.radiusM),
+                              border:
+                                  Border.all(color: colorScheme.outlineVariant),
+                              color: colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.35),
                             ),
-                          ),
-                        ],
+                            child: Text(
+                              a,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: colorScheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ],
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.sm),
+                    Divider(
+                      height: 1,
+                      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Available Slots',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.xxs),
+                              Text(
+                                '$_availableSlots',
+                                style: theme.textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: colorScheme.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 34,
+                          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                'Starts at',
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.xxs),
+                              Text(
+                                hasPrice
+                                    ? 'NPR $_lowestPrice/hr'
+                                    : 'Not Available',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: hasPrice
+                                      ? colorScheme.onSurface
+                                      : colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -597,73 +669,31 @@ class _SearchPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
+    final theme = context.appTheme;
+
     return TextField(
       onChanged: onSearchChanged,
       decoration: InputDecoration(
         hintText: 'Search by venue name...',
         prefixIcon: const Icon(Icons.search_rounded),
         filled: true,
-        fillColor: theme.colorScheme.surface,
+        fillColor: theme.colorScheme.surfaceContainerHigh,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
           vertical: AppSpacing.sm,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppTheme.radiusM),
           borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppTheme.radiusM),
           borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppTheme.radiusM),
           borderSide: BorderSide(color: theme.colorScheme.primary),
         ),
-      ),
-    );
-  }
-}
-
-class _Pill extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color bg;
-  final Color fg;
-
-  const _Pill({
-    required this.icon,
-    required this.label,
-    required this.bg,
-    required this.fg,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xxs,
-      ),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: fg),
-          const SizedBox(width: AppSpacing.xs),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: fg,
-            ),
-          ),
-        ],
       ),
     );
   }
