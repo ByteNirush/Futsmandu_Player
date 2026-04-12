@@ -19,46 +19,42 @@ class AuthScreenScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+
+    final topGap = keyboardVisible ? AppSpacing.sm : logoTopSpacing;
+    final currentLogoSize = keyboardVisible ? logoSize * 0.72 : logoSize;
+
     return Scaffold(
-      appBar: showAppBar
-          ? AppBar(
-              automaticallyImplyLeading: false,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () => Navigator.pop(context),
-              ),
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-            )
-          : null,
+      resizeToAvoidBottomInset: false,
+      appBar: showAppBar ? AppBar() : null,
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final minHeight = showAppBar
-                ? constraints.maxHeight - kToolbarHeight
-                : constraints.maxHeight;
-            return SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              padding: EdgeInsets.only(
-                left: AppSpacing.md,
-                right: AppSpacing.md,
-                bottom: bottomInset + AppSpacing.lg,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                height: topGap,
               ),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: minHeight),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: logoTopSpacing),
-                    Center(child: AppLogo(size: logoSize)),
-                    const SizedBox(height: AppSpacing.sm),
-                    child,
-                  ],
+              Center(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOut,
+                  child: AppLogo(size: currentLogoSize),
                 ),
               ),
-            );
-          },
+              const SizedBox(height: AppSpacing.sm),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: child,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
+          ),
         ),
       ),
     );
