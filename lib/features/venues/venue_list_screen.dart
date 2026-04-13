@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/filter_chip_row.dart';
@@ -134,10 +134,7 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text('Find a Court',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            )),
+        title: Text('Find a Court', style: theme.textTheme.headlineSmall),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: AppSpacing.sm),
@@ -287,9 +284,7 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
               children: [
                 Text(
                   '${filtered.length} matches',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: theme.textTheme.headlineSmall,
                 ),
                 FilledButton.tonalIcon(
                   onPressed: () {},
@@ -333,7 +328,7 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
                     Text(
                       'No courts available',
                       style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
+                        fontWeight: AppFontWeights.semiBold,
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -475,9 +470,7 @@ class _VenueCard extends StatelessWidget {
                                   venue['name'] ?? '',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                                  style: theme.textTheme.titleMedium,
                                 ),
                               ),
                               if (venue['isVerified'] == true) ...[
@@ -514,7 +507,6 @@ class _VenueCard extends StatelessWidget {
                                 rating.toStringAsFixed(1),
                                 style: theme.textTheme.labelLarge?.copyWith(
                                   color: colorScheme.primary,
-                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ],
@@ -553,7 +545,6 @@ class _VenueCard extends StatelessWidget {
                             venue['distance'] ?? '',
                             style: theme.textTheme.labelMedium?.copyWith(
                               color: colorScheme.primary,
-                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
@@ -582,7 +573,7 @@ class _VenueCard extends StatelessWidget {
                               a,
                               style: theme.textTheme.labelSmall?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: AppFontWeights.semiBold,
                               ),
                             ),
                           );
@@ -611,7 +602,7 @@ class _VenueCard extends StatelessWidget {
                               Text(
                                 '$_availableSlots',
                                 style: theme.textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: AppFontWeights.extraBold,
                                   color: colorScheme.primary,
                                 ),
                               ),
@@ -640,7 +631,6 @@ class _VenueCard extends StatelessWidget {
                                     ? 'NPR $_lowestPrice/hr'
                                     : 'Not Available',
                                 style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
                                   color: hasPrice
                                       ? colorScheme.onSurface
                                       : colorScheme.onSurfaceVariant,

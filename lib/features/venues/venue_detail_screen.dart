@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
-
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_colors.dart';
@@ -429,9 +429,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             children: [
                               Text(
                                 '${_selectedSlot!['time']} - ${_selectedSlot!['endTime']}',
-                                style: textTheme.bodyLarge?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: textTheme.titleSmall,
                               ),
                               const SizedBox(height: _spaceXs),
                               Text(
@@ -460,9 +458,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                   children: [
                                     Text(
                                       '${_selectedSlot!['time']} - ${_selectedSlot!['endTime']}',
-                                      style: textTheme.bodyLarge?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      style: textTheme.titleSmall,
                                     ),
                                     const SizedBox(height: _spaceXs),
                                     Text(
@@ -504,9 +500,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                 venue['name'] ?? '',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: textTheme.titleMedium,
               ),
             ),
             flexibleSpace: FlexibleSpaceBar(
@@ -580,9 +574,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             Expanded(
                               child: Text(
                                 venue['name'] ?? '',
-                                style: textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
+                                style: textTheme.headlineSmall,
                               ),
                             ),
                             if (isVerified)
@@ -678,7 +670,6 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                 a.toString(),
                                 style: textTheme.labelMedium?.copyWith(
                                   color: colorScheme.onSurface,
-                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
@@ -826,7 +817,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           ),
                           todayTextStyle: AppText.body.copyWith(
                             color: AppColors.green,
-                            fontWeight: AppTextStyles.semiBold,
+                            fontWeight: AppFontWeights.semiBold,
                           ),
                           selectedDecoration: const BoxDecoration(
                             color: AppColors.primary,
@@ -834,7 +825,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           ),
                           selectedTextStyle: AppText.body.copyWith(
                             color: AppColors.bgPrimary,
-                            fontWeight: AppTextStyles.semiBold,
+                            fontWeight: AppFontWeights.semiBold,
                           ),
                         ),
                         onDaySelected: (selectedDay, focusedDay) {
@@ -888,9 +879,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                   constraints.maxWidth < 390;
                               final title = Text(
                                 DateFormat('EEE, MMM d').format(_selectedDate!),
-                                style: textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                style: textTheme.titleLarge,
                               );
                               final legend = Wrap(
                                 spacing: _spaceMd,
@@ -1035,10 +1024,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           borderRadius:
                               BorderRadius.circular(AppTheme.radiusM),
                         ),
-                        textStyle: GoogleFonts.poppins(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        textStyle: textTheme.labelSmall,
                       ),
                       child: const Text('Write review'),
                     ),
@@ -1104,9 +1090,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         const SizedBox(height: _spaceXl),
                         Text(
                           'Confirm Slot',
-                          style: textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: textTheme.headlineSmall,
                         ),
                         const SizedBox(height: _spaceLg),
                         FutsCard(
@@ -1151,14 +1135,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         const SizedBox(height: _spaceXl),
                         Row(
                           children: [
-                            Text('Total', style: AppText.body),
+                            Text('Total', style: textTheme.titleSmall),
                             const Spacer(),
                             Text(
                               'Price shown at payment',
-                              style: GoogleFonts.poppins(
+                              style: textTheme.titleSmall?.copyWith(
                                 color: colorScheme.primary,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
                               ),
                             ),
                           ],
@@ -1303,7 +1285,6 @@ class _MetaPill extends StatelessWidget {
             label,
             style: theme.textTheme.labelMedium?.copyWith(
               color: colorScheme.onSurface,
-              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -1338,9 +1319,7 @@ class _SectionCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: theme.textTheme.titleLarge,
                 ),
               ),
               if (trailing != null) trailing!,
@@ -1399,7 +1378,7 @@ class _SlotChip extends StatelessWidget {
               slot['time'],
               style: GoogleFonts.poppins(
                 fontSize: 17,
-                fontWeight: AppTextStyles.semiBold,
+                fontWeight: AppFontWeights.semiBold,
                 color: isSelected
                     ? colorScheme.primary
                     : isUnavailable
@@ -1462,9 +1441,7 @@ class _ReviewCard extends StatelessWidget {
                 alignment: Alignment.center,
                 child: Text(
                   authorInitial,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: theme.textTheme.bodyMedium,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1475,9 +1452,7 @@ class _ReviewCard extends StatelessWidget {
                     Text(
                       author,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: theme.textTheme.bodyMedium,
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -1501,7 +1476,6 @@ class _ReviewCard extends StatelessWidget {
                           rating.toStringAsFixed(1),
                           style: theme.textTheme.labelMedium?.copyWith(
                             color: colorScheme.primary,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
