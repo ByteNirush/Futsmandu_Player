@@ -156,7 +156,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                       style: GoogleFonts.poppins(
                         fontSize: 14,
                         fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w500,
+                            isSelected ? AppTextStyles.semiBold : AppTextStyles.regular,
                         color: isSelected
                             ? scheme.onPrimary
                             : scheme.onSurfaceVariant,
@@ -195,7 +195,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 Text(
                   '${matches.length} matches',
                   style: AppText.bodySm.copyWith(
-                    fontWeight: FontWeight.w600,
+                    fontWeight: AppTextStyles.semiBold,
                     color: scheme.onSurface,
                   ),
                 ),

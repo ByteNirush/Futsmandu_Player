@@ -102,7 +102,7 @@ class MatchListCard extends StatelessWidget {
                               ? 'Unknown Venue'
                               : match.venueName,
                           style: AppText.h3.copyWith(
-                              fontSize: 16, fontWeight: FontWeight.w600),
+                              fontSize: 16, fontWeight: AppTextStyles.semiBold),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -157,7 +157,7 @@ class MatchListCard extends StatelessWidget {
                                       style: GoogleFonts.poppins(
                                         fontSize: 10,
                                         color: AppColors.txtDisabled,
-                                        fontWeight: FontWeight.w600,
+                                        fontWeight: AppTextStyles.semiBold,
                                       ),
                                     ),
                                   ),
@@ -169,7 +169,7 @@ class MatchListCard extends StatelessWidget {
                                   '+$friendsCount friends',
                                   style: AppText.label.copyWith(
                                     color: AppColors.success,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: AppTextStyles.semiBold,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
