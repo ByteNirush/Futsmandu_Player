@@ -173,9 +173,8 @@ class _MatchMiniCard extends StatelessWidget {
                       const SizedBox(height: AppSpacing.xxs),
                       Text(
                         match['venueName'] as String? ?? '',
-                        style: textTheme.labelMedium?.copyWith(
+                        style: textTheme.labelLarge?.copyWith(
                           color: Colors.white,
-                          fontWeight: FontWeight.w700,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -222,7 +221,6 @@ class _MatchMiniCard extends StatelessWidget {
                           '+${match['friendsIn']}',
                           style: textTheme.labelSmall?.copyWith(
                             color: colorScheme.primary,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -342,7 +340,6 @@ class _UpcomingBookingCard extends StatelessWidget {
                             'NPR ${b['priceNPR']}',
                             style: textTheme.titleSmall?.copyWith(
                               color: colorScheme.primary,
-                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         ],
@@ -350,9 +347,7 @@ class _UpcomingBookingCard extends StatelessWidget {
                       const SizedBox(height: AppSpacing.xs),
                       Text(
                         b['venueName'] as String? ?? '',
-                        style: textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: textTheme.titleSmall,
                       ),
                       Text(
                         b['courtName'] as String? ?? '',
@@ -472,9 +467,8 @@ class _TopFutsalCard extends StatelessWidget {
                     children: [
                       Text(
                         venue['name'] as String? ?? '',
-                        style: textTheme.labelMedium?.copyWith(
+                        style: textTheme.labelLarge?.copyWith(
                           color: Colors.white,
-                          fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
