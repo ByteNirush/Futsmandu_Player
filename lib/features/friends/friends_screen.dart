@@ -411,7 +411,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                 children: [
                                   Text(r['name'] ?? '',
                                       style: AppText.body.copyWith(
-                                          fontWeight: FontWeight.w600)),
+                                          fontWeight: AppTextStyles.semiBold)),
                                   Text(
                                     '${r['mutualFriends'] ?? 0} mutual friend${(r['mutualFriends'] ?? 0) != 1 ? 's' : ''}',
                                     style: AppText.bodySm,
@@ -544,7 +544,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                             Text(
                                               p.name,
                                               style: AppText.body.copyWith(
-                                                  fontWeight: FontWeight.w600),
+                                                  fontWeight: AppTextStyles.semiBold),
                                             ),
                                             const SizedBox(height: 2),
                                             Row(
@@ -590,7 +590,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                             isSent ? 'Requested' : 'Add Friend',
                                             style: GoogleFonts.poppins(
                                               fontSize: 12,
-                                              fontWeight: FontWeight.w500,
+                                              fontWeight: AppTextStyles.regular,
                                               color: isSent
                                                   ? colorScheme.onSurfaceVariant
                                                   : colorScheme.primary,
@@ -653,7 +653,7 @@ class _FriendTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(f['name'],
-                    style: AppText.body.copyWith(fontWeight: FontWeight.w600)),
+                    style: AppText.body.copyWith(fontWeight: AppTextStyles.semiBold)),
                 const SizedBox(height: 2),
                 Row(
                   children: [
@@ -752,7 +752,7 @@ class _SkillBadge extends StatelessWidget {
         style: GoogleFonts.poppins(
           fontSize: 10,
           color: c,
-          fontWeight: FontWeight.w500,
+          fontWeight: AppTextStyles.regular,
         ),
       ),
     );
