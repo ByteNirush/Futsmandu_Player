@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/design_system/app_spacing.dart';
+import '../../core/theme/app_text.dart';
 
 class StatusBadge extends StatelessWidget {
   final String label;
@@ -29,7 +30,7 @@ class StatusBadge extends StatelessWidget {
         style: TextStyle(
           color: color,
           fontSize: 12,
-          fontWeight: FontWeight.w600,
+          fontWeight: AppTextStyles.semiBold,
         ),
       ),
     );

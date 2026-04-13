@@ -51,7 +51,7 @@ class _FilterChipRowState extends State<FilterChipRow> {
                   option,
                   style: AppText.bodySm.copyWith(
                     color: isSelected ? AppColors.bgPrimary : AppColors.txtPrimary,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: isSelected ? AppTextStyles.semiBold : AppTextStyles.regular,
                   ),
                 ),
               ),

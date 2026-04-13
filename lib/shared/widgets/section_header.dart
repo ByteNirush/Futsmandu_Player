@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/design_system/app_spacing.dart';
+import '../../core/theme/app_text.dart';
 
 class SectionHeader extends StatelessWidget {
   final String title;
@@ -25,7 +26,7 @@ class SectionHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              style: textTheme.titleLarge?.copyWith(fontWeight: AppTextStyles.bold),
             ),
           ),
           if (onAction != null)
