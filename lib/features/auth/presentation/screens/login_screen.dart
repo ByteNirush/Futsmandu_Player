@@ -140,7 +140,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             color:
                                 Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: AppFontWeights.semiBold,
                           ),
                     ),
                   ),
