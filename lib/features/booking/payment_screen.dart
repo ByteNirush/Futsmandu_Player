@@ -456,13 +456,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                     children: [
                       Text('Total Amount',
                           style: AppText.body
-                              .copyWith(fontWeight: FontWeight.w600)),
+                              .copyWith(fontWeight: AppTextStyles.semiBold)),
                       const Spacer(),
                       Text(
                         'NPR $totalAmount',
                         style: GoogleFonts.poppins(
                           fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: AppTextStyles.semiBold,
                           color: AppColors.green,
                         ),
                       ),

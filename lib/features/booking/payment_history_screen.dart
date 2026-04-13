@@ -189,7 +189,7 @@ class _PaymentHistoryCard extends StatelessWidget {
                   children: [
                     Text(venueName,
                         style: AppText.bodySm
-                            .copyWith(fontWeight: FontWeight.w600),
+                            .copyWith(fontWeight: AppTextStyles.semiBold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 2),
@@ -206,7 +206,7 @@ class _PaymentHistoryCard extends StatelessWidget {
                 children: [
                   Text('NPR $amount',
                       style: AppText.bodySm.copyWith(
-                          fontWeight: FontWeight.w600, color: AppColors.green)),
+                          fontWeight: AppTextStyles.semiBold, color: AppColors.green)),
                   const SizedBox(height: 2),
                   StatusBadge(
                     label: statusLabel,
@@ -236,7 +236,7 @@ class _PaymentHistoryCard extends StatelessWidget {
                 child: Text(gatewayLabel,
                     style: GoogleFonts.poppins(
                       fontSize: 11,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: AppTextStyles.semiBold,
                       color: AppColors.txtDisabled,
                     )),
               ),

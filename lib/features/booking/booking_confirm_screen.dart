@@ -180,7 +180,7 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen>
                                       style: AppText.mono.copyWith(
                                           fontSize: 14,
                                           color: AppColors.green,
-                                          fontWeight: FontWeight.w600),
+                                          fontWeight: AppTextStyles.semiBold),
                                     ),
                                   ],
                                 ),
