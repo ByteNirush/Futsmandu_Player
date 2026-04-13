@@ -316,7 +316,7 @@ class _NotificationTile extends StatelessWidget {
                     item.title,
                     style: AppText.body.copyWith(
                       fontWeight:
-                          isRead ? FontWeight.w400 : AppTextStyles.semiBold,
+                          isRead ? AppTextStyles.regular : AppTextStyles.semiBold,
                       color:
                           isRead ? AppColors.txtDisabled : AppColors.txtPrimary,
                     ),
