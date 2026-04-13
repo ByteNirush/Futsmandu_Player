@@ -672,7 +672,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                               Text(
                                 'Generate share link',
                                 style: AppText.body
-                                    .copyWith(fontWeight: FontWeight.w600),
+                                    .copyWith(fontWeight: AppTextStyles.semiBold),
                               ),
                               Text(
                                 match['inviteToken']?.toString().isNotEmpty ==
@@ -699,7 +699,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                             'Copy Link',
                             style: TextStyle(
                               color: AppColors.bgPrimary,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: AppTextStyles.semiBold,
                             ),
                           ),
                         ),
