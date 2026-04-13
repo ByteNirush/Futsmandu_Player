@@ -56,7 +56,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(result.message)));
-      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     } on AuthException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -102,34 +102,142 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     final args = _routeArgs(context);
     final userId = args?['userId']?.toString() ?? '';
     final email = args?['email']?.toString() ?? '';
-    final subtitle = email.isEmpty
-        ? 'Enter the 6-digit code sent to your email'
-        : 'Enter the 6-digit code sent to $email';
+    
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final primaryColor = colorScheme.primary;
+    
+    final emailDisplay = email.trim();
+    final hasEmail = emailDisplay.isNotEmpty;
+    
+    final destination = hasEmail ? emailDisplay : 'your email';
 
-    return AuthScaffold(
-      role: AppRole.player,
-      showAppBar: true,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AuthHeader(title: 'Verify OTP', subtitle: subtitle),
-          const SizedBox(height: AppSpacing.lg),
-          Center(child: OtpPinInput(controller: _otpController)),
-          const SizedBox(height: AppSpacing.lg),
-          PrimaryButton(
-            label: 'Verify',
-            isLoading: _isLoading,
-            onPressed: _isLoading ? null : () => _verify(userId),
+    return Scaffold(
+      backgroundColor: colorScheme.surface,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0, // No horizontal dividing line when scrolled
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: colorScheme.onSurface, size: 22),
+          onPressed: () => Navigator.pop(context),
+        ),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          physics: const ClampingScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Branding: Logo at the top
+              const AppLogo(size: 56),
+              const SizedBox(height: 32),
+              
+              // Typography: Heading
+              Text(
+                'Verify your account',
+                style: textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: colorScheme.onSurface.withValues(alpha: 0.9), // Dark slate gray equivalent
+                  letterSpacing: -0.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              
+              // Typography: Instruction Text
+              Text(
+                'Enter the 6-digit code sent to',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8), // Softer, legible gray
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+
+              // Read-only confirmed data for email
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+                ),
+                child: Text(
+                  destination,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurface,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+
+              const SizedBox(height: 48),
+              
+              // OTP Inputs Area
+              Center(
+                child: OtpPinInput(
+                  controller: _otpController,
+                  enabled: !_isLoading,
+                ),
+              ),
+              
+              const SizedBox(height: 56),
+              
+              // Call to Action: Large, pill-shaped primary button
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: colorScheme.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30), // Pill-shaped
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: _isLoading ? null : () => _verify(userId),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Verify',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Secondary Action: Clean text-only link
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: colorScheme.onSurfaceVariant,
+                  textStyle: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onPressed: _isLoading ? null : () => _resend(userId),
+                child: const Text('Resend Code'),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Center(
-            child: TextButton(
-              onPressed: _isLoading ? null : () => _resend(userId),
-              child: const Text('Resend Code'),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
