@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import 'package:futsmandu_design_system/futsmandu_design_system.dart'
     show ProfileSectionHeader, SettingsTile;
 import 'package:google_fonts/google_fonts.dart';
@@ -1087,7 +1088,7 @@ class _ProfileHeader extends StatelessWidget {
                         'Edit',
                         style: AppText.label.copyWith(
                           color: AppColors.green,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: AppFontWeights.semiBold,
                           fontSize: 12,
                         ),
                       ),
@@ -1235,7 +1236,7 @@ class _Badge extends StatelessWidget {
         text,
         style: AppText.label.copyWith(
           color: color,
-          fontWeight: FontWeight.w600,
+          fontWeight: AppFontWeights.semiBold,
           fontSize: 12,
         ),
       ),
@@ -1464,7 +1465,7 @@ class _QuickActionTile extends StatelessWidget {
                   child: Text(
                     label,
                     style: AppText.bodySm.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: AppFontWeights.semiBold,
                       fontSize: 13,
                     ),
                     maxLines: 2,
