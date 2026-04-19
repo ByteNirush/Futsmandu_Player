@@ -19,6 +19,7 @@ class _VenueDetailSpacing {
     vertical: AppSpacing.xs,
   );
   static const double sectionHeaderGap = AppSpacing.xs2; // 12
+  static const double sectionGap = AppSpacing.lg; // 16
   static const double smallGap = AppSpacing.xxs; // 4
   static const EdgeInsets reviewCardPadding = EdgeInsets.all(AppSpacing.xs2);
 }
@@ -49,12 +50,13 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   int _courtIdx = 0;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDate;
-  Map<String, dynamic>? _selectedSlot;
+  List<Map<String, dynamic>> _selectedSlots = const <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _availabilitySlots =
       const <Map<String, dynamic>>[];
   bool _isLoadingAvailability = false;
   String? _availabilityError;
   bool _showCollapsedTitle = false;
+  String _bookingMode = 'solo';
 
   final Map<String, IconData> _amenityIcons = {
     'Parking': Icons.local_parking,
@@ -122,7 +124,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
         _isLoading = false;
         if (_courtIdx >= (_venue?['courts'] as List? ?? const []).length) {
           _courtIdx = 0;
-          _selectedSlot = null;
+          _selectedSlots = const <Map<String, dynamic>>[];
         }
       });
       await _loadAvailability();
@@ -186,7 +188,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
     setState(() {
       _isLoadingAvailability = true;
       _availabilityError = null;
-      _selectedSlot = null;
+      _selectedSlots = const <Map<String, dynamic>>[];
     });
 
     try {
@@ -223,6 +225,121 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
     final m = date.month.toString().padLeft(2, '0');
     final d = date.day.toString().padLeft(2, '0');
     return '$y-$m-$d';
+  }
+
+  // Helper methods for consecutive slot selection
+  String _getSelectedTimeRange() {
+    if (_selectedSlots.isEmpty) return '';
+    final first = _selectedSlots.first;
+    final last = _selectedSlots.last;
+    return '${first['time']} - ${last['endTime']}';
+  }
+
+  String _getSelectedDuration() {
+    if (_selectedSlots.isEmpty) return '';
+    final minutes = _selectedSlots.length * 60;
+    if (minutes >= 60) {
+      final hours = minutes ~/ 60;
+      final remaining = minutes % 60;
+      if (remaining == 0) return '$hours hour${hours > 1 ? 's' : ''}';
+      return '$hours hour${hours > 1 ? 's' : ''} $remaining min';
+    }
+    return '$minutes minutes';
+  }
+
+  bool _isSlotSelected(Map<String, dynamic> slot) {
+    return _selectedSlots.any((s) => s['time'] == slot['time']);
+  }
+
+  bool _isSlotInSelectedRange(int index) {
+    if (_selectedSlots.isEmpty) return false;
+    // Find indices of all selected slots in the availability list
+    final selectedIndices = _selectedSlots
+        .map((s) =>
+            _availabilitySlots.indexWhere((slot) => slot['time'] == s['time']))
+        .where((idx) => idx != -1)
+        .toList();
+    if (selectedIndices.isEmpty) return false;
+    final minIndex = selectedIndices.reduce((a, b) => a < b ? a : b);
+    final maxIndex = selectedIndices.reduce((a, b) => a > b ? a : b);
+    return index > minIndex && index < maxIndex;
+  }
+
+  bool _isSlotSelectable(Map<String, dynamic> slot, int index,
+      List<Map<String, dynamic>> allSlots) {
+    // Must be available
+    if (slot['status'] != 'AVAILABLE') return false;
+
+    // If no slots selected, any available slot is selectable
+    if (_selectedSlots.isEmpty) return true;
+
+    // If already selected, it's selectable (to deselect)
+    if (_isSlotSelected(slot)) return true;
+
+    // Check if the slot is adjacent to the current selection
+    final selectedIndices = _selectedSlots
+        .map((s) => allSlots.indexWhere((slot) => slot['time'] == s['time']))
+        .where((idx) => idx != -1)
+        .toList();
+
+    final minIndex = selectedIndices.reduce((a, b) => a < b ? a : b);
+    final maxIndex = selectedIndices.reduce((a, b) => a > b ? a : b);
+
+    // Can only select slots immediately adjacent to current selection
+    // to maintain consecutiveness
+    if (index == minIndex - 1 || index == maxIndex + 1) {
+      // Check if all slots between would be consecutive and available
+      return true;
+    }
+
+    return false;
+  }
+
+  void _toggleSlotSelection(Map<String, dynamic> slot, int index,
+      List<Map<String, dynamic>> allSlots) {
+    setState(() {
+      if (_isSlotSelected(slot)) {
+        // Deselect this slot - but only allow deselecting from the edges
+        // to maintain consecutiveness
+        final selectedIndices = _selectedSlots
+            .map(
+                (s) => allSlots.indexWhere((slot) => slot['time'] == s['time']))
+            .where((idx) => idx != -1)
+            .toList();
+
+        final minIndex = selectedIndices.reduce((a, b) => a < b ? a : b);
+        final maxIndex = selectedIndices.reduce((a, b) => a > b ? a : b);
+
+        // Can only deselect edge slots to maintain consecutiveness
+        if (index == minIndex || index == maxIndex) {
+          _selectedSlots =
+              _selectedSlots.where((s) => s['time'] != slot['time']).toList();
+        }
+      } else {
+        // Select this slot - must be adjacent to current selection
+        if (_selectedSlots.isEmpty) {
+          _selectedSlots = [slot];
+        } else {
+          final selectedIndices = _selectedSlots
+              .map((s) =>
+                  allSlots.indexWhere((slot) => slot['time'] == s['time']))
+              .where((idx) => idx != -1)
+              .toList();
+
+          final minIndex = selectedIndices.reduce((a, b) => a < b ? a : b);
+          final maxIndex = selectedIndices.reduce((a, b) => a > b ? a : b);
+
+          if (index == minIndex - 1) {
+            // Add to the beginning
+            _selectedSlots = [slot, ..._selectedSlots];
+          } else if (index == maxIndex + 1) {
+            // Add to the end
+            _selectedSlots = [..._selectedSlots, slot];
+          }
+          // Otherwise don't select (non-consecutive)
+        }
+      }
+    });
   }
 
   Future<void> _showWriteReviewSheet() async {
@@ -397,7 +514,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
     final courts = (venue['courts'] as List?) ?? const [];
     if (courts.isEmpty) {
       _courtIdx = 0;
-      _selectedSlot = null;
+      _selectedSlots = const <Map<String, dynamic>>[];
     }
 
     final selectedCourt = courts.isNotEmpty
@@ -407,7 +524,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      bottomNavigationBar: _selectedSlot == null
+      bottomNavigationBar: _selectedSlots.isEmpty
           ? null
           : SafeArea(
               top: false,
@@ -419,8 +536,13 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         _spaceLg, _spaceMd, _spaceLg, _spaceMd),
                     decoration: BoxDecoration(
                       color: colorScheme.surface,
-                      border:
-                        Border(top: BorderSide(color: colorScheme.outlineVariant)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.shadow.withValues(alpha: 0.08),
+                          blurRadius: 16,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
                     ),
                     child: isNarrow
                         ? Column(
@@ -428,12 +550,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                '${_selectedSlot!['time']} - ${_selectedSlot!['endTime']}',
+                                _getSelectedTimeRange(),
                                 style: textTheme.titleSmall,
                               ),
                               const SizedBox(height: _spaceXs),
                               Text(
-                                '${_selectedSlot!['status'] == 'AVAILABLE' ? 'Price shown at payment' : 'Unavailable'} • ${selectedCourt['name'] ?? 'Court'}',
+                                '${_getSelectedDuration()} • ${selectedCourt['name'] ?? 'Court'}',
                                 style: textTheme.labelMedium?.copyWith(
                                   color: colorScheme.onSurfaceVariant,
                                 ),
@@ -444,7 +566,10 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                 child: FutsButton(
                                   label: 'Continue',
                                   onPressed: () => _showSlotSheet(
-                                      context, _selectedSlot!, venue),
+                                      context,
+                                      _selectedSlots.first,
+                                      _selectedSlots.last,
+                                      venue),
                                 ),
                               ),
                             ],
@@ -457,12 +582,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      '${_selectedSlot!['time']} - ${_selectedSlot!['endTime']}',
+                                      _getSelectedTimeRange(),
                                       style: textTheme.titleSmall,
                                     ),
                                     const SizedBox(height: _spaceXs),
                                     Text(
-                                      '${_selectedSlot!['status'] == 'AVAILABLE' ? 'Price shown at payment' : 'Unavailable'} • ${selectedCourt['name'] ?? 'Court'}',
+                                      '${_getSelectedDuration()} • ${selectedCourt['name'] ?? 'Court'}',
                                       style: textTheme.labelMedium?.copyWith(
                                         color: colorScheme.onSurfaceVariant,
                                       ),
@@ -476,7 +601,10 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                 child: FutsButton(
                                   label: 'Continue',
                                   onPressed: () => _showSlotSheet(
-                                      context, _selectedSlot!, venue),
+                                      context,
+                                      _selectedSlots.first,
+                                      _selectedSlots.last,
+                                      venue),
                                 ),
                               ),
                             ],
@@ -555,89 +683,69 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.cardPadding),
-                    decoration: theme.brightness == Brightness.dark
-                        ? AppTheme.cardDecorationDark(colorScheme)
-                        : BoxDecoration(
-                            color: colorScheme.surface,
-                            borderRadius:
-                                BorderRadius.circular(AppTheme.radiusM),
-                            border:
-                                Border.all(color: colorScheme.outlineVariant),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          venue['name'] ?? '',
+                          style: textTheme.headlineSmall,
+                        ),
+                      ),
+                      if (isVerified)
+                        Icon(
+                          Icons.verified_rounded,
+                          color: colorScheme.primary,
+                          size: 20,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: _spaceSm),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.place_rounded,
+                        size: 18,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: _spaceSm),
+                      Expanded(
+                        child: Text(
+                          venue['address'],
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
                           ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                venue['name'] ?? '',
-                                style: textTheme.headlineSmall,
-                              ),
-                            ),
-                            if (isVerified)
-                              Icon(
-                                Icons.verified_rounded,
-                                color: colorScheme.primary,
-                                size: 20,
-                              ),
-                          ],
                         ),
-                        const SizedBox(height: _spaceSm),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Icon(
-                              Icons.place_rounded,
-                              size: 18,
-                              color: colorScheme.primary,
-                            ),
-                            const SizedBox(width: _spaceSm),
-                            Expanded(
-                              child: Text(
-                                venue['address'],
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                                style: textTheme.bodyMedium?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ),
-                          ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: _spaceMd),
+                  Wrap(
+                    spacing: _spaceSm,
+                    runSpacing: _spaceSm,
+                    children: [
+                      _MetaPill(
+                        icon: isVerified
+                            ? Icons.verified_rounded
+                            : Icons.info_outline_rounded,
+                        label: isVerified ? 'Verified Venue' : 'Standard Venue',
+                      ),
+                      _MetaPill(
+                        icon: Icons.star_rounded,
+                        label: '${venue['rating']} (${venue['reviewCount']})',
+                      ),
+                      _MetaPill(
+                        icon: Icons.sports_soccer_rounded,
+                        label: '${courts.length} Courts',
+                      ),
+                      if (venue['distance'] != null)
+                        _MetaPill(
+                          icon: Icons.near_me_rounded,
+                          label: venue['distance'],
                         ),
-                        const SizedBox(height: _spaceMd),
-                        Wrap(
-                          spacing: _spaceSm,
-                          runSpacing: _spaceSm,
-                          children: [
-                            _MetaPill(
-                              icon: isVerified
-                                  ? Icons.verified_rounded
-                                  : Icons.info_outline_rounded,
-                              label: isVerified
-                                  ? 'Verified Venue'
-                                  : 'Standard Venue',
-                            ),
-                            _MetaPill(
-                              icon: Icons.star_rounded,
-                              label:
-                                  '${venue['rating']} (${venue['reviewCount']})',
-                            ),
-                            _MetaPill(
-                              icon: Icons.sports_soccer_rounded,
-                              label: '${courts.length} Courts',
-                            ),
-                            if (venue['distance'] != null)
-                              _MetaPill(
-                                icon: Icons.near_me_rounded,
-                                label: venue['distance'],
-                              ),
-                          ],
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
                   const SizedBox(height: _spaceXl),
 
@@ -653,9 +761,6 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             color: colorScheme.primary.withValues(alpha: 0.12),
                             borderRadius:
                                 BorderRadius.circular(AppTheme.radiusM),
-                            border: Border.all(
-                              color: colorScheme.primary.withValues(alpha: 0.35),
-                            ),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -691,7 +796,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             onTap: () {
                               setState(() {
                                 _courtIdx = e.key;
-                                _selectedSlot = null;
+                                _selectedSlots = const <Map<String, dynamic>>[];
                               });
                               _loadAvailability();
                             },
@@ -707,17 +812,14 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                               ),
                               decoration: BoxDecoration(
                                 color: isSelected
-                                  ? colorScheme.primary
-                                  : colorScheme.surfaceContainerHigh,
+                                    ? colorScheme.primary
+                                    : colorScheme.surfaceContainerHigh,
                                 borderRadius:
-                                  BorderRadius.circular(AppTheme.radiusM),
-                                border: !isSelected
-                                  ? Border.all(color: colorScheme.outlineVariant)
-                                    : null,
+                                    BorderRadius.circular(AppTheme.radiusM),
                                 boxShadow: isSelected
                                     ? [
                                         BoxShadow(
-                                      color: colorScheme.primary
+                                          color: colorScheme.primary
                                               .withValues(alpha: 0.25),
                                           blurRadius: 16,
                                           offset: const Offset(0, 6),
@@ -763,7 +865,6 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.bgElevated,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.borderClr),
                       ),
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.xs3,
@@ -832,7 +933,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           setState(() {
                             _selectedDate = DateUtils.dateOnly(selectedDay);
                             _focusedDay = DateUtils.dateOnly(focusedDay);
-                            _selectedSlot = null;
+                            _selectedSlots = const <Map<String, dynamic>>[];
                           });
                           _loadAvailability();
                         },
@@ -862,8 +963,6 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                               color: colorScheme.surfaceContainerHigh,
                               borderRadius:
                                   BorderRadius.circular(AppTheme.radiusM),
-                              border:
-                                  Border.all(color: colorScheme.outlineVariant),
                             ),
                             child: Text(
                               'Pick a date from the date strip to view available slots.',
@@ -887,6 +986,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                 children: [
                                   _LegendDot(colorScheme.primary, 'Available'),
                                   _LegendDot(colorScheme.error, 'Unavailable'),
+                                  _LegendDot(colorScheme.primary, 'Selected',
+                                      isFilled: true),
                                 ],
                               );
 
@@ -944,9 +1045,6 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                     color: colorScheme.surfaceContainerHigh,
                                     borderRadius:
                                         BorderRadius.circular(AppTheme.radiusM),
-                                    border: Border.all(
-                                      color: colorScheme.outlineVariant,
-                                    ),
                                   ),
                                   child: Text(
                                     _availabilityError!,
@@ -968,9 +1066,6 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                     color: colorScheme.surfaceContainerHigh,
                                     borderRadius:
                                         BorderRadius.circular(AppTheme.radiusM),
-                                    border: Border.all(
-                                      color: colorScheme.outlineVariant,
-                                    ),
                                   ),
                                   child: Text(
                                     'No slots available for this date.',
@@ -981,26 +1076,72 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                 );
                               }
 
-                              return Wrap(
-                                spacing: spacing,
-                                runSpacing: spacing,
-                                children: slots.map((slot) {
-                                  final bool isSelected = _selectedSlot !=
-                                          null &&
-                                      _selectedSlot?['time'] == slot['time'];
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Wrap(
+                                    spacing: spacing,
+                                    runSpacing: spacing,
+                                    children:
+                                        slots.asMap().entries.map((entry) {
+                                      final index = entry.key;
+                                      final slot = entry.value;
+                                      final bool isSelected =
+                                          _isSlotSelected(slot);
+                                      final bool isSelectable =
+                                          _isSlotSelectable(slot, index, slots);
 
-                                  return SizedBox(
-                                    width: chipWidth,
-                                    child: _SlotChip(
-                                      slot: slot,
-                                      isSelected: isSelected,
-                                      onTap: slot['status'] == 'AVAILABLE'
-                                          ? () => setState(
-                                              () => _selectedSlot = slot)
-                                          : null,
+                                      return SizedBox(
+                                        width: chipWidth,
+                                        child: _SlotChip(
+                                          slot: slot,
+                                          isSelected: isSelected,
+                                          isInRange:
+                                              _isSlotInSelectedRange(index),
+                                          onTap: isSelectable
+                                              ? () => _toggleSlotSelection(
+                                                  slot, index, slots)
+                                              : null,
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                                  if (_selectedSlots.isNotEmpty) ...[
+                                    const SizedBox(height: _spaceMd),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: _spaceMd,
+                                        vertical: _spaceSm,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.primary
+                                            .withValues(alpha: 0.08),
+                                        borderRadius: BorderRadius.circular(
+                                            AppTheme.radiusM),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.info_outline_rounded,
+                                            size: 16,
+                                            color: colorScheme.primary,
+                                          ),
+                                          const SizedBox(width: _spaceSm),
+                                          Flexible(
+                                            child: Text(
+                                              'Only consecutive time slots can be selected',
+                                              style:
+                                                  textTheme.bodySmall?.copyWith(
+                                                color: colorScheme.primary,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  );
-                                }).toList(),
+                                  ],
+                                ],
                               );
                             },
                           ),
@@ -1021,8 +1162,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         backgroundColor:
                             colorScheme.primary.withValues(alpha: 0.12),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(AppTheme.radiusM),
+                          borderRadius: BorderRadius.circular(AppTheme.radiusM),
                         ),
                         textStyle: textTheme.labelSmall,
                       ),
@@ -1039,8 +1179,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
     );
   }
 
-  void _showSlotSheet(
-      BuildContext ctx, Map<String, dynamic> slot, Map<String, dynamic> venue) {
+  void _showSlotSheet(BuildContext ctx, Map<String, dynamic> firstSlot,
+      Map<String, dynamic> lastSlot, Map<String, dynamic> venue) {
     final courts = (venue['courts'] as List?) ?? const [];
     final colorScheme = Theme.of(ctx).colorScheme;
     final textTheme = Theme.of(ctx).textTheme;
@@ -1056,6 +1196,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
               final double horizontalPad =
                   (MediaQuery.of(ctx).size.width * 0.07)
                       .clamp(_spaceLg.toDouble(), _space2xl);
+              String selectedBookingMode = _bookingMode;
               return ConstrainedBox(
                 constraints: BoxConstraints(maxHeight: constraints.maxHeight),
                 child: SingleChildScrollView(
@@ -1074,112 +1215,166 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         top: Radius.circular(AppTheme.radiusM),
                       ),
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Center(
-                          child: Container(
-                            width: 44,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: colorScheme.outlineVariant,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: _spaceXl),
-                        Text(
-                          'Confirm Slot',
-                          style: textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: _spaceLg),
-                        FutsCard(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      courts[_courtIdx]['name'],
-                                      style: AppText.h3,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      '${courts[_courtIdx]['type']} · ${courts[_courtIdx]['surface']}',
-                                      style: AppText.bodySm,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
+                    child: StatefulBuilder(
+                      builder: (context, setSheetState) {
+                        final isSolo = selectedBookingMode == 'solo';
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Center(
+                              child: Container(
+                                width: 44,
+                                height: 4,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.outlineVariant,
+                                  borderRadius: BorderRadius.circular(999),
                                 ),
                               ),
-                              const SizedBox(width: _spaceMd),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
+                            ),
+                            const SizedBox(height: _spaceXl),
+                            Text(
+                              'Confirm Slot',
+                              style: textTheme.headlineSmall,
+                            ),
+                            const SizedBox(height: _spaceLg),
+                            FutsCard(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    '${slot['time']} – ${slot['endTime']}',
-                                    style: AppText.h3,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          courts[_courtIdx]['name'],
+                                          style: AppText.h3,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          '${courts[_courtIdx]['type']} · ${courts[_courtIdx]['surface']}',
+                                          style: AppText.bodySm,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  Text('60 minutes', style: AppText.bodySm),
+                                  const SizedBox(width: _spaceMd),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '${firstSlot['time']} – ${lastSlot['endTime']}',
+                                        style: AppText.h3,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                          '${_selectedSlots.length * 60} minutes',
+                                          style: AppText.bodySm),
+                                    ],
+                                  ),
                                 ],
                               ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: _spaceXl),
-                        Row(
-                          children: [
-                            Text('Total', style: textTheme.titleSmall),
-                            const Spacer(),
-                            Text(
-                              'Price shown at payment',
-                              style: textTheme.titleSmall?.copyWith(
-                                color: colorScheme.primary,
+                            ),
+                            const SizedBox(height: _spaceMd),
+                            FutsCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Booking Type',
+                                      style: textTheme.titleSmall),
+                                  const SizedBox(height: _spaceSm),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ChoiceChip(
+                                          label: const Text('Solo Booking'),
+                                          selected: isSolo,
+                                          onSelected: (_) {
+                                            setSheetState(() =>
+                                                selectedBookingMode = 'solo');
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: _spaceSm),
+                                      Expanded(
+                                        child: ChoiceChip(
+                                          label: const Text('Full Futsal'),
+                                          selected: !isSolo,
+                                          onSelected: (_) {
+                                            setSheetState(() =>
+                                                selectedBookingMode = 'full');
+                                          },
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: _spaceSm),
+                                  Text(
+                                    isSolo
+                                        ? 'Solo creates an open match where others can join.'
+                                        : 'Full futsal reserves the full court for your group.',
+                                    style: AppText.bodySm,
+                                  ),
+                                ],
                               ),
                             ),
-                          ],
-                        ),
-                        const SizedBox(height: _VenueDetailSpacing.smallGap),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            'Hold fee NPR 20 (non-refundable)',
-                            style: AppText.label,
-                          ),
-                        ),
-                        const SizedBox(height: _space2xl),
-                        FutsButton(
-                          label: 'Hold This Slot — 7 min',
-                          onPressed: () {
-                            final selectedDate = _selectedDate;
-                            final selectedCourt =
-                                courts[_courtIdx] as Map<String, dynamic>;
-                            Navigator.pop(ctx);
-                            Navigator.pushNamed(
-                              ctx,
-                              '/booking-hold',
-                              arguments: {
-                                'slot': slot,
-                                'venue': venue,
-                                'courtIdx': _courtIdx,
-                                'courtId': selectedCourt['id'],
-                                'bookingDate': selectedDate == null
-                                    ? null
-                                    : _formatApiDate(selectedDate),
-                                'startTime': slot['time'],
-                                'endTime': slot['endTime'],
+                            const SizedBox(height: _spaceXl),
+                            Row(
+                              children: [
+                                Text('Total', style: textTheme.titleSmall),
+                                const Spacer(),
+                                Text(
+                                  'Price shown at payment',
+                                  style: textTheme.titleSmall?.copyWith(
+                                    color: colorScheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(
+                                height: _VenueDetailSpacing.smallGap),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                'Hold fee NPR 20 (non-refundable)',
+                                style: AppText.label,
+                              ),
+                            ),
+                            const SizedBox(height: _space2xl),
+                            FutsButton(
+                              label: 'Hold This Slot — 7 min',
+                              onPressed: () {
+                                final selectedDate = _selectedDate;
+                                final selectedCourt =
+                                    courts[_courtIdx] as Map<String, dynamic>;
+                                _bookingMode = selectedBookingMode;
+                                Navigator.pop(ctx);
+                                Navigator.pushNamed(
+                                  ctx,
+                                  '/booking-hold',
+                                  arguments: {
+                                    'slot': firstSlot,
+                                    'venue': venue,
+                                    'courtIdx': _courtIdx,
+                                    'courtId': selectedCourt['id'],
+                                    'bookingDate': selectedDate == null
+                                        ? null
+                                        : _formatApiDate(selectedDate),
+                                    'startTime': firstSlot['time'],
+                                    'endTime': lastSlot['endTime'],
+                                    'bookingMode': selectedBookingMode,
+                                  },
+                                );
                               },
-                            );
-                          },
-                        ),
-                        const SizedBox(height: _spaceLg),
-                      ],
+                            ),
+                            const SizedBox(height: _spaceLg),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ),
@@ -1207,7 +1402,6 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(AppTheme.radiusM),
-          border: Border.all(color: colorScheme.outlineVariant),
         ),
         child: Text(
           'No reviews yet. Be the first to review this venue.',
@@ -1236,20 +1430,26 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
 class _LegendDot extends StatelessWidget {
   final Color color;
   final String label;
+  final bool isFilled;
 
-  const _LegendDot(this.color, this.label);
+  const _LegendDot(this.color, this.label, {this.isFilled = false});
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 8,
-          height: 8,
+          width: 10,
+          height: 10,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: color,
+            color: isFilled ? color : null,
+            border: Border.all(
+              color: color,
+              width: isFilled ? 0 : 2,
+            ),
           ),
         ),
         const SizedBox(width: _VenueDetailSpacing.smallGap),
@@ -1274,7 +1474,6 @@ class _MetaPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: colorScheme.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppTheme.radiusM),
-        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1307,28 +1506,24 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
-    final colorScheme = theme.colorScheme;
-    return FutsCard(
-      backgroundColor: colorScheme.surface,
-      borderRadius: BorderRadius.circular(AppTheme.radiusM),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: theme.textTheme.titleLarge,
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: theme.textTheme.titleLarge,
               ),
-              if (trailing != null) trailing!,
-            ],
-          ),
-          const SizedBox(height: _VenueDetailSpacing.sectionHeaderGap),
-          child,
-        ],
-      ),
+            ),
+            if (trailing != null) trailing!,
+          ],
+        ),
+        const SizedBox(height: _VenueDetailSpacing.sectionHeaderGap),
+        child,
+        const SizedBox(height: _VenueDetailSpacing.sectionGap),
+      ],
     );
   }
 }
@@ -1336,11 +1531,13 @@ class _SectionCard extends StatelessWidget {
 class _SlotChip extends StatelessWidget {
   final Map<String, dynamic> slot;
   final bool isSelected;
+  final bool isInRange;
   final VoidCallback? onTap;
 
   const _SlotChip({
     required this.slot,
     required this.isSelected,
+    this.isInRange = false,
     this.onTap,
   });
 
@@ -1358,18 +1555,21 @@ class _SlotChip extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppTheme.radiusM),
           color: isSelected
-              ? colorScheme.primary.withValues(alpha: 0.16)
-              : isUnavailable
-                  ? colorScheme.error.withValues(alpha: 0.08)
-                  : colorScheme.surfaceContainerHigh,
-          border: Border.all(
-            color: isSelected
-                ? colorScheme.primary
-                : isUnavailable
-                    ? colorScheme.error.withValues(alpha: 0.45)
-                    : colorScheme.outlineVariant,
-            width: isSelected ? 1.5 : 1.0,
-          ),
+              ? colorScheme.primary
+              : isInRange
+                  ? colorScheme.primary.withValues(alpha: 0.16)
+                  : isUnavailable
+                      ? colorScheme.error.withValues(alpha: 0.08)
+                      : colorScheme.surfaceContainerHigh,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: colorScheme.primary.withValues(alpha: 0.22),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : null,
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1380,10 +1580,12 @@ class _SlotChip extends StatelessWidget {
                 fontSize: 17,
                 fontWeight: AppFontWeights.semiBold,
                 color: isSelected
-                    ? colorScheme.primary
-                    : isUnavailable
-                        ? colorScheme.error
-                        : colorScheme.onSurface,
+                    ? colorScheme.onPrimary
+                    : isInRange
+                        ? colorScheme.primary
+                        : isUnavailable
+                            ? colorScheme.error
+                            : colorScheme.onSurface,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1392,10 +1594,12 @@ class _SlotChip extends StatelessWidget {
               slot['status'] == 'AVAILABLE' ? 'Available' : 'Unavailable',
               style: theme.textTheme.labelMedium?.copyWith(
                 color: isSelected
-                    ? colorScheme.primary.withValues(alpha: 0.85)
-                    : isUnavailable
-                        ? colorScheme.error
-                        : colorScheme.onSurfaceVariant,
+                    ? colorScheme.onPrimary.withValues(alpha: 0.85)
+                    : isInRange
+                        ? colorScheme.primary.withValues(alpha: 0.85)
+                        : isUnavailable
+                            ? colorScheme.error
+                            : colorScheme.onSurfaceVariant,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -1420,10 +1624,12 @@ class _ReviewCard extends StatelessWidget {
     final String author = (r['author'] as String?) ?? '';
     final String authorInitial = author.isNotEmpty ? author[0] : '?';
 
-    return FutsCard(
+    return Container(
       padding: _VenueDetailSpacing.reviewCardPadding,
-      backgroundColor: colorScheme.surfaceContainerHigh.withValues(alpha: 0.45),
-      borderRadius: BorderRadius.circular(AppTheme.radiusM),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1436,7 +1642,6 @@ class _ReviewCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                  border: Border.all(color: colorScheme.outlineVariant),
                 ),
                 alignment: Alignment.center,
                 child: Text(
@@ -1492,7 +1697,6 @@ class _ReviewCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                  border: Border.all(color: colorScheme.outlineVariant),
                 ),
                 child: Text(r['date'], style: theme.textTheme.labelMedium),
               ),
