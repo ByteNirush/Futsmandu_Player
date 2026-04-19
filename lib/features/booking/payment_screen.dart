@@ -26,6 +26,9 @@ class PaymentScreen extends ConsumerStatefulWidget {
 
 class _PaymentScreenState extends ConsumerState<PaymentScreen>
     with WidgetsBindingObserver {
+  // Temporary dev switch: bypass external payment gateways.
+  static const bool _bypassGatewayPayment = true;
+
   final AppLinks _appLinks = AppLinks();
 
   String? _gateway;
@@ -227,6 +230,24 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     return '';
   }
 
+  String _formattedAmountLabel(String amount) {
+    final normalized = amount.trim();
+    if (normalized.isEmpty) return 'NPR 0';
+
+    final upper = normalized.toUpperCase();
+    if (upper.startsWith('NPR ')) return normalized;
+    if (upper.startsWith('RS ')) {
+      return 'NPR ${normalized.substring(3).trim()}';
+    }
+
+    return 'NPR $normalized';
+  }
+
+  String _selectedGatewayCode() {
+    if (_gateway == 'esewa') return 'ESEWA';
+    return 'KHALTI';
+  }
+
   Future<void> _onPayPressed(Map<String, dynamic>? args) async {
     if (_gateway == 'khalti' && _isAwaitingKhaltiCallback) {
       await _verifyPendingKhaltiPayment(trigger: 'manual-check');
@@ -238,6 +259,22 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     if (bookingId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Booking hold not found. Please retry.')),
+      );
+      return;
+    }
+
+    if (_bypassGatewayPayment) {
+      _goToConfirmation(
+        args,
+        verification: {
+          'confirmed': {
+            'id': bookingId,
+            'status': 'CONFIRMED',
+          },
+          'matchGroup': {},
+          'bypassed': true,
+        },
+        gateway: _selectedGatewayCode(),
       );
       return;
     }
@@ -283,10 +320,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
           debugPrint('eSewa success payload (base64): $base64Payload');
         }
 
-        final verification =
-            await ref
-                .read(paymentActionControllerProvider.notifier)
-                .verifyEsewa(data: base64Payload);
+        final verification = await ref
+            .read(paymentActionControllerProvider.notifier)
+            .verifyEsewa(data: base64Payload);
 
         _goToConfirmation(
           args,
@@ -393,6 +429,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             : heldBooking['total_amount']?.toString() ??
                 args?['slot']?['price']?.toString() ??
                 '1800';
+    final amountLabel = _formattedAmountLabel(totalAmount);
 
     final selectedCourtName = args?['venue']?['courts'] is List &&
             args?['courtIdx'] is int &&
@@ -459,7 +496,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                               .copyWith(fontWeight: AppTextStyles.semiBold)),
                       const Spacer(),
                       Text(
-                        'NPR $totalAmount',
+                        amountLabel,
                         style: GoogleFonts.poppins(
                           fontSize: 16,
                           fontWeight: AppTextStyles.semiBold,
@@ -523,9 +560,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _isAwaitingKhaltiCallback
-                          ? 'Waiting for Khalti callback. We will verify automatically when you return.'
-                          : 'You will be redirected to the payment page. Return to auto-verify and confirm your booking.',
+                      _bypassGatewayPayment
+                          ? 'Temporary bypass is enabled. Selecting a payment method and tapping pay will confirm instantly.'
+                          : _isAwaitingKhaltiCallback
+                              ? 'Waiting for Khalti callback. We will verify automatically when you return.'
+                              : 'You will be redirected to the payment page. Return to auto-verify and confirm your booking.',
                       style: AppText.bodySm.copyWith(color: AppColors.blue),
                     ),
                   ),
@@ -534,9 +573,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             ),
             const SizedBox(height: 24),
             FutsButton(
-              label: _gateway == 'khalti' && _isAwaitingKhaltiCallback
+              label: !_bypassGatewayPayment &&
+                      _gateway == 'khalti' &&
+                      _isAwaitingKhaltiCallback
                   ? 'Check Khalti Payment Status'
-                  : 'Pay NPR $totalAmount',
+                  : 'Pay $amountLabel',
               isLoading: _loading,
               onPressed: _gateway == null ? null : () => _onPayPressed(args),
             ),
