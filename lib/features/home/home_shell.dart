@@ -28,7 +28,7 @@ class _HomeShellState extends State<HomeShell> {
     _NavItem(
         icon: Icons.sports_soccer_outlined,
         activeIcon: Icons.sports_soccer_rounded,
-        label: 'Futsal'),
+      label: 'Venues'),
     _NavItem(
         icon: Icons.people_alt_outlined,
         activeIcon: Icons.people_alt_rounded,
