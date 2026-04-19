@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/design_system/app_spacing.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/empty_state.dart';
-import '../../shared/widgets/filter_chip_row.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 import '../matches/data/models/player_match_models.dart';
 import '../matches/presentation/providers/matches_controller.dart';
@@ -34,6 +31,16 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     'Open Matches',
   ];
 
+  static const List<MatchDiscoveryTab> _searchDropdownTabs =
+      <MatchDiscoveryTab>[
+    MatchDiscoveryTab.tonight,
+    MatchDiscoveryTab.tomorrow,
+    MatchDiscoveryTab.weekend,
+  ];
+
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
@@ -42,12 +49,31 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     });
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   List<MatchSummary> _filteredMatches(MatchDiscoveryState state) {
+    final query = _searchQuery.toLowerCase();
     return state.activeItems.where((match) {
-      if (state.activeSkill == 'All') return true;
-      if (state.activeSkill == 'Friends') return match.friendsIn > 0;
-      return match.skillLevel == state.activeSkill;
+      if (query.isEmpty) {
+        return true;
+      }
+
+      return match.venueName.toLowerCase().contains(query) ||
+          match.courtName.toLowerCase().contains(query) ||
+          match.venueAddress.toLowerCase().contains(query);
     }).toList();
+  }
+
+  String _labelForTab(MatchDiscoveryTab tab) {
+    final index = _tabs.indexOf(tab);
+    if (index < 0) {
+      return _tabLabels.first;
+    }
+    return _tabLabels[index];
   }
 
   @override
@@ -58,6 +84,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     final state = asyncState.valueOrNull ?? MatchDiscoveryState.initial();
     final tabIndex = _tabs.indexOf(state.activeTab);
     final safeTabIndex = tabIndex < 0 ? 0 : tabIndex;
+    final selectedDropdownTab = _searchDropdownTabs.contains(state.activeTab)
+        ? state.activeTab
+        : _searchDropdownTabs.first;
     final matches = _filteredMatches(state);
     final isLoading = asyncState.isLoading || state.isRefreshing;
     final error =
@@ -99,94 +128,82 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 AppSpacing.sm2,
                 0,
               ),
-              padding: const EdgeInsets.all(AppSpacing.xs),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xs2,
+                vertical: AppSpacing.xs,
+              ),
               decoration: BoxDecoration(
                 color: scheme.errorContainer.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: scheme.error.withValues(alpha: 0.5),
-                ),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Text(
-                error,
-                style: AppText.bodySm.copyWith(color: scheme.error),
-              ),
-            ),
-          // TAB STRIP
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm2,
-              vertical: AppSpacing.xs2,
-            ),
-            child: Row(
-              children: _tabLabels.asMap().entries.map((entry) {
-                final int i = entry.key;
-                final String label = entry.value;
-                final bool isSelected = safeTabIndex == i;
-
-                return GestureDetector(
-                  onTap: () {
-                    ref
-                        .read(matchDiscoveryControllerProvider.notifier)
-                        .setTab(_tabs[i]);
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.only(right: AppSpacing.xs2),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm2,
-                      vertical: AppSpacing.xs3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.green
-                          : scheme.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(999),
-                      border: !isSelected
-                          ? Border.all(
-                              color: scheme.outlineVariant.withValues(
-                                alpha: 0.7,
-                              ),
-                            )
-                          : null,
-                    ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 18,
+                    color: scheme.error,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
                     child: Text(
-                      label,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight:
-                            isSelected ? AppTextStyles.semiBold : AppTextStyles.regular,
-                        color: isSelected
-                            ? scheme.onPrimary
-                            : scheme.onSurfaceVariant,
-                      ),
+                      error,
+                      style: AppText.bodySm.copyWith(color: scheme.error),
                     ),
                   ),
-                );
-              }).toList(),
+                ],
+              ),
             ),
-          ),
 
-          // SKILL FILTER
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
-            child: FilterChipRow(
-              options: const [
-                'All',
-                'Beginner',
-                'Intermediate',
-                'Advanced',
-                'Friends'
-              ],
-              selected: state.activeSkill,
-              onSelected: (v) {
-                ref.read(matchDiscoveryControllerProvider.notifier).setSkill(v);
-              },
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.sm2,
+              AppSpacing.sm2,
+              AppSpacing.sm2,
+              AppSpacing.xs,
+            ),
+            child: Material(
+              color: scheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(18),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.trim();
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Search venue, court, or location',
+                  hintStyle: AppText.bodySm.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  suffixIcon: _searchQuery.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Clear search',
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                            FocusScope.of(context).unfocus();
+                          },
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                  filled: false,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xs,
+                    vertical: AppSpacing.sm,
+                  ),
+                ),
+              ),
             ),
           ),
-
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xs),
 
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm2),
@@ -196,13 +213,41 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                   '${matches.length} matches',
                   style: AppText.bodySm.copyWith(
                     fontWeight: AppTextStyles.semiBold,
-                    color: scheme.onSurface,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
                 const Spacer(),
-                Text(
-                  _tabLabels[safeTabIndex],
-                  style: AppText.label.copyWith(color: scheme.onSurfaceVariant),
+                Material(
+                  color: scheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(14),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<MatchDiscoveryTab>(
+                      value: selectedDropdownTab,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs2,
+                      ),
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                      borderRadius: BorderRadius.circular(14),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        ref
+                            .read(matchDiscoveryControllerProvider.notifier)
+                            .setTab(value);
+                      },
+                      items: _searchDropdownTabs.map((tab) {
+                        return DropdownMenuItem<MatchDiscoveryTab>(
+                          value: tab,
+                          child: Text(
+                            _labelForTab(tab),
+                            style: AppText.label.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: AppTextStyles.semiBold,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -216,16 +261,21 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               duration: const Duration(milliseconds: 200),
               child: matches.isEmpty
                   ? EmptyState(
-                      key: ValueKey('empty_$safeTabIndex${state.activeSkill}'),
+                      key: ValueKey(
+                        'empty_$safeTabIndex$_searchQuery',
+                      ),
                       icon: Icons.explore_off,
                       title: 'No matches ${_tabLabels[safeTabIndex]}',
-                      subtitle: 'Check back later or explore open matches',
+                      subtitle:
+                          'Try changing your search or explore open matches',
                     )
                   : ListView.separated(
-                      key: ValueKey('list_$safeTabIndex${state.activeSkill}'),
+                      key: ValueKey(
+                        'list_$safeTabIndex$_searchQuery',
+                      ),
                       padding: EdgeInsets.fromLTRB(
                         AppSpacing.sm2,
-                        AppSpacing.xxs,
+                        AppSpacing.xs,
                         AppSpacing.sm2,
                         MediaQuery.of(context).padding.bottom +
                             kNavBarHeight +
