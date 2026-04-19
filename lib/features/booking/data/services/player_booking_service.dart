@@ -60,6 +60,7 @@ class PlayerBookingService {
     required String courtId,
     required String date,
     required String startTime,
+    String? bookingType,
     List<String>? friendIds,
   }) async {
     try {
@@ -69,6 +70,8 @@ class PlayerBookingService {
           'courtId': courtId,
           'date': date,
           'startTime': startTime,
+          if (bookingType != null && bookingType.isNotEmpty)
+            'bookingType': bookingType,
           if (friendIds != null && friendIds.isNotEmpty) 'friendIds': friendIds,
         },
       );
@@ -90,22 +93,23 @@ class PlayerBookingService {
         ApiConfig.bookingsEndpoint,
         queryParameters: {
           if (status != null && status.isNotEmpty) 'status': status,
-          'page': '$page',
-          'limit': '$limit',
+          'page': page,
+          'limit': limit,
           if (cursor != null && cursor.isNotEmpty) 'cursor': cursor,
         },
       );
 
-      final payload = _asMap(_unwrap(response.data));
-      final data = _asMapList(payload['data']);
-      final meta = _asMap(payload['meta']);
+      final body = _asOptionalMap(response.data);
+      final data = _extractBookingRecords(body);
+      final meta = _extractMeta(body);
 
       return BookingListResult(
         items: data
             .map(_mapBookingHistoryItem)
             .map(BookingHistoryItem.fromMap)
             .toList(growable: false),
-        nextCursor: _stringOrNull(meta['nextCursor']),
+        nextCursor: _stringOrNull(meta['nextCursor']) ??
+            _stringOrNull(meta['next_cursor']),
         limit: _toInt(meta['limit']) == 0 ? limit : _toInt(meta['limit']),
       );
     } on DioException catch (error) {
@@ -118,6 +122,22 @@ class PlayerBookingService {
       final response =
           await _apiClient.get(ApiConfig.bookingDetailEndpoint(bookingId));
       return BookingDetail(_asMap(_unwrap(response.data)));
+    } on DioException catch (error) {
+      throw _toBookingApiException(error);
+    }
+  }
+
+  Future<Map<String, dynamic>> joinBooking({
+    required String bookingId,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConfig.joinBookingEndpoint(bookingId),
+      );
+      final data = _unwrap(response.data);
+      return data is Map
+          ? data.cast<String, dynamic>()
+          : const <String, dynamic>{};
     } on DioException catch (error) {
       throw _toBookingApiException(error);
     }
@@ -170,17 +190,63 @@ class PlayerBookingService {
     return value.map(_asMap).toList(growable: false);
   }
 
+  List<Map<String, dynamic>> _extractBookingRecords(Map<String, dynamic> body) {
+    final rootData = body['data'];
+    if (rootData is List) {
+      return _asMapList(rootData);
+    }
+
+    if (rootData is Map) {
+      final payload = _asOptionalMap(rootData);
+      if (payload['data'] is List) {
+        return _asMapList(payload['data']);
+      }
+      if (payload['items'] is List) {
+        return _asMapList(payload['items']);
+      }
+      if (payload['records'] is List) {
+        return _asMapList(payload['records']);
+      }
+    }
+
+    if (body['items'] is List) {
+      return _asMapList(body['items']);
+    }
+    if (body['records'] is List) {
+      return _asMapList(body['records']);
+    }
+
+    return const <Map<String, dynamic>>[];
+  }
+
+  Map<String, dynamic> _extractMeta(Map<String, dynamic> body) {
+    if (body['meta'] is Map) {
+      return _asOptionalMap(body['meta']);
+    }
+
+    final rootData = body['data'];
+    if (rootData is Map) {
+      final payload = _asOptionalMap(rootData);
+      if (payload['meta'] is Map) {
+        return _asOptionalMap(payload['meta']);
+      }
+    }
+
+    return const <String, dynamic>{};
+  }
+
   Map<String, dynamic> _mapBookingHistoryItem(Map<String, dynamic> raw) {
-    final court = _asMap(raw['court']);
-    final venue = _asMap(court['venue']);
+    final court = _asOptionalMap(raw['court']);
+    final venue = _asOptionalMap(court['venue']);
     final payment = _asOptionalMap(raw['payment']);
+    final durationMins = _toInt(raw['duration_mins']);
 
     return {
       'id': _string(raw['id']),
       'status': _string(raw['status']),
       'date': _dateLabel(raw['booking_date']),
       'time': _timeRange(_string(raw['start_time']), _string(raw['end_time'])),
-      'duration': '${_toInt(raw['duration_mins'])} mins',
+      'duration': durationMins > 0 ? '$durationMins mins' : '-',
       'priceNPR': _toMoney(raw['total_amount']),
       'displayAmount': _string(raw['displayAmount']),
       'venueName': _string(venue['name']),

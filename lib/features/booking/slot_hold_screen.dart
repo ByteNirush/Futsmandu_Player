@@ -41,6 +41,8 @@ class _SlotHoldScreenState extends ConsumerState<SlotHoldScreen>
     final courtId = (args?['courtId'] as String?) ?? '';
     final bookingDate = (args?['bookingDate'] as String?) ?? '';
     final startTime = (args?['startTime'] as String?) ?? '';
+    final bookingMode = (args?['bookingMode'] as String?) ?? 'solo';
+    final bookingType = bookingMode == 'full' ? 'FULL' : 'FLEX';
 
     if (courtId.isEmpty || bookingDate.isEmpty || startTime.isEmpty) {
       if (!mounted) return;
@@ -62,6 +64,7 @@ class _SlotHoldScreenState extends ConsumerState<SlotHoldScreen>
             courtId: courtId,
             date: bookingDate,
             startTime: startTime,
+            bookingType: bookingType,
           );
 
       if (!mounted) return;

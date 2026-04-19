@@ -23,12 +23,14 @@ class BookingRepository {
     required String courtId,
     required String date,
     required String startTime,
+    String? bookingType,
     List<String>? friendIds,
   }) {
     return _service.holdSlot(
       courtId: courtId,
       date: date,
       startTime: startTime,
+      bookingType: bookingType,
       friendIds: friendIds,
     );
   }
@@ -49,6 +51,10 @@ class BookingRepository {
 
   Future<BookingDetail> getBookingDetail(String bookingId) {
     return _service.getBookingDetail(bookingId);
+  }
+
+  Future<Map<String, dynamic>> joinBooking({required String bookingId}) {
+    return _service.joinBooking(bookingId: bookingId);
   }
 
   Future<BookingCancellationResult> cancelBooking({
