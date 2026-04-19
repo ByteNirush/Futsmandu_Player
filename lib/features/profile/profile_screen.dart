@@ -893,6 +893,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             onPressed: () async {
               Navigator.pop(ctx);
               await ref.read(authSessionProvider.notifier).logout();
+              if (!context.mounted) return;
               Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
             },
             child: Text(
