@@ -22,6 +22,7 @@ class BookingHistoryScreen extends ConsumerStatefulWidget {
 
 class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
   final ScrollController _scrollController = ScrollController();
+  static const double _contentHorizontalPadding = AppSpacing.sm;
 
   static const List<String> _filters = <String>[
     'All',
@@ -344,7 +345,12 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs3),
+            padding: const EdgeInsets.fromLTRB(
+              _contentHorizontalPadding,
+              AppSpacing.xs3,
+              _contentHorizontalPadding,
+              AppSpacing.xs,
+            ),
             child: FilterChipRow(
               options: _filters,
               selected: selectedFilter,
@@ -374,22 +380,25 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
 
     if (stateAsync.hasError) {
       return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(
+          _contentHorizontalPadding,
+          AppSpacing.lg,
+          _contentHorizontalPadding,
+          AppSpacing.xl,
+        ),
         children: [
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              children: [
-                Text(stateAsync.error.toString(),
-                    style: AppText.body, textAlign: TextAlign.center),
-                const SizedBox(height: AppSpacing.sm),
-                ElevatedButton(
-                  onPressed: () => ref
-                      .read(bookingHistoryControllerProvider.notifier)
-                      .refresh(),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
+          Column(
+            children: [
+              Text(stateAsync.error.toString(),
+                  style: AppText.body, textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.sm),
+              ElevatedButton(
+                onPressed: () =>
+                    ref.read(bookingHistoryControllerProvider.notifier).refresh(),
+                child: const Text('Retry'),
+              ),
+            ],
           ),
         ],
       );
@@ -399,8 +408,14 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
 
     if (state.items.isEmpty) {
       return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(
+          _contentHorizontalPadding,
+          AppSpacing.lg,
+          _contentHorizontalPadding,
+          AppSpacing.xl,
+        ),
         children: const [
-          SizedBox(height: 40),
           EmptyState(
             icon: Icons.calendar_today_outlined,
             title: 'No bookings',
@@ -412,9 +427,11 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
 
     return ListView.separated(
       controller: _scrollController,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
+      padding: const EdgeInsets.fromLTRB(
+        _contentHorizontalPadding,
+        AppSpacing.xs,
+        _contentHorizontalPadding,
+        AppSpacing.xl,
       ),
       itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
       separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs2),
