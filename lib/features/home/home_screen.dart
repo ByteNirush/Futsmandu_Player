@@ -7,7 +7,9 @@ import '../../core/design_system/app_spacing.dart';
 import '../../core/mock/mock_data.dart';
 import '../../core/services/player_auth_storage_service.dart';
 import '../../core/theme/app_colors.dart'; // only for AppColors.warning (semantic const)
+import '../../features/booking/data/services/player_booking_service.dart';
 import '../../features/matches/data/services/player_match_service.dart';
+import '../../features/notifications/data/services/player_notifications_service.dart';
 import '../../features/venues/data/services/player_venues_service.dart';
 import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/futs_card.dart';
@@ -280,25 +282,8 @@ class _UpcomingBookingCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final String? matchId = b['matchId'] as String?;
-    Map<String, dynamic>? matchDetail;
-    if (matchId != null) {
-      for (final match in MockData.matches) {
-        if (match['id'] == matchId) {
-          matchDetail = match;
-          break;
-        }
-      }
-    }
-
     return GestureDetector(
-      onTap: matchDetail == null
-          ? null
-          : () => Navigator.pushNamed(
-                context,
-                '/match-detail',
-                arguments: matchDetail,
-              ),
+      onTap: () => Navigator.pushNamed(context, '/bookings'),
       child: FutsCard(
         padding: EdgeInsets.zero,
         child: IntrinsicHeight(
@@ -385,7 +370,7 @@ class _UpcomingBookingCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Top Futsal Card
+// Top Venue Card
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _TopFutsalCard extends StatelessWidget {
@@ -407,7 +392,8 @@ class _TopFutsalCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
-            onTap: () => Navigator.pushNamed(context, '/venues'),
+            onTap: () =>
+                Navigator.pushNamed(context, '/venue-detail', arguments: venue),
             child: Stack(
               children: [
                 CachedNetworkImage(
@@ -527,12 +513,19 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingTonightMatches = true;
   String? _tonightMatchesError;
 
+  List<Map<String, dynamic>> _upcomingBookings = [];
+  bool _isLoadingBookings = true;
+
+  int _unreadNotificationCount = 0;
+
   @override
   void initState() {
     super.initState();
     _loadCurrentUser();
     _loadTopFutsals();
     _loadTonightMatches();
+    _loadUpcomingBookings();
+    _loadUnreadNotificationCount();
   }
 
   Future<void> _loadCurrentUser() async {
@@ -590,6 +583,37 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _loadUpcomingBookings() async {
+    setState(() => _isLoadingBookings = true);
+    try {
+      final result = await PlayerBookingService.instance.getBookings(
+        status: 'CONFIRMED',
+        limit: 3,
+      );
+      if (!mounted) return;
+      setState(() {
+        _upcomingBookings =
+            result.items.map((item) => item.toMap()).toList(growable: false);
+        _isLoadingBookings = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoadingBookings = false);
+    }
+  }
+
+  Future<void> _loadUnreadNotificationCount() async {
+    try {
+      final page = await PlayerNotificationsService.instance
+          .getNotifications(limit: 30);
+      if (!mounted) return;
+      final unread = page.items.where((n) => !n.isRead).length;
+      setState(() => _unreadNotificationCount = unread);
+    } catch (_) {
+      // Fall back to 0 on error.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -603,13 +627,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ? _currentUser['name'].toString().trim()
             : 'Player';
     final String avatarUrl = _currentUser['avatarUrl']?.toString() ?? '';
-    final int notificationCount = MockData.notifications.length;
+    final int notificationCount = _unreadNotificationCount;
 
-    Map<String, dynamic>? upcomingBooking;
-    try {
-      upcomingBooking =
-          MockData.bookings.firstWhere((b) => b['status'] == 'CONFIRMED');
-    } catch (_) {}
+    final Map<String, dynamic>? upcomingBooking =
+        _upcomingBookings.isNotEmpty ? _upcomingBookings.first : null;
 
     return Scaffold(
       // scaffoldBackgroundColor is applied automatically from the theme.
@@ -751,7 +772,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-            // ── Top Futsal section ──────────────────────────────────────────
+            // ── Top Venue section ───────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.md),
@@ -759,7 +780,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SectionHeader(
-                      title: 'Top Futsal',
+                      title: 'Top Venues',
                       onAction: () => Navigator.pushNamed(context, '/venues'),
                     ),
                     const SizedBox(height: AppSpacing.xs2),
@@ -937,16 +958,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   children: [
                     SectionHeader(
                       title: 'Upcoming',
-                      onAction: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Use Bookings tab below'),
-                          ),
-                        );
-                      },
+                      onAction: () =>
+                          Navigator.pushNamed(context, '/bookings'),
                     ),
                     const SizedBox(height: AppSpacing.xs2),
-                    if (upcomingBooking != null)
+                    if (_isLoadingBookings)
+                      _SectionPlaceholder(
+                        height: 90,
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                      )
+                    else if (upcomingBooking != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.sm,
