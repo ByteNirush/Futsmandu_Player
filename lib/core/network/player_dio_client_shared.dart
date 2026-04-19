@@ -41,6 +41,22 @@ class PlayerAuthInterceptor extends QueuedInterceptorsWrapper {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    // Skip auth entirely for external storage services (Cloudflare R2, AWS S3).
+    // Sending a Bearer token to these services causes a 400 Bad Request because
+    // they interpret the Authorization header as their own signing scheme.
+    final host = options.uri.host;
+    final isExternalStorage = host.endsWith('.r2.cloudflarestorage.com') ||
+        host.endsWith('.cloudflarestorage.com') ||
+        host.endsWith('.amazonaws.com');
+
+    if (isExternalStorage) {
+      options.headers.remove('Authorization');
+      options.headers.remove('cookie');
+      options.headers.remove('Cookie');
+      handler.next(options);
+      return;
+    }
+
     final path = _normalizedPath(options.path);
     final isAuthRoute = path.startsWith(_authPrefix);
 

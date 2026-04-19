@@ -5,7 +5,8 @@ class ApiConfig {
   static const String baseUrl = String.fromEnvironment(
     'FUTSMANDU_API_BASE_URL',
     defaultValue: 'http://localhost:3001',
-  );
+    // defaultValue: 'http://192.168.18.104:3001',
+  ); 
   static const String apiPrefix = '/api/v1/player';
   static const String authEndpoint = '$apiPrefix/auth';
   static const String venuesEndpoint = '$apiPrefix/venues';
@@ -35,6 +36,9 @@ class ApiConfig {
 
   static String cancelBookingEndpoint(String bookingId) =>
       '$bookingsEndpoint/$bookingId/cancel';
+
+  static String joinBookingEndpoint(String bookingId) =>
+      '$bookingsEndpoint/$bookingId/join';
 
   static const String khaltiInitiateEndpoint =
       '$paymentsEndpoint/khalti-initiate';
