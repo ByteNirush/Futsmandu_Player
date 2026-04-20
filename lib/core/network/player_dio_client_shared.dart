@@ -45,9 +45,10 @@ class PlayerAuthInterceptor extends QueuedInterceptorsWrapper {
     // Sending a Bearer token to these services causes a 400 Bad Request because
     // they interpret the Authorization header as their own signing scheme.
     final host = options.uri.host;
-    final isExternalStorage = host.endsWith('.r2.cloudflarestorage.com') ||
-        host.endsWith('.cloudflarestorage.com') ||
-        host.endsWith('.amazonaws.com');
+    final isExternalStorage = host.isNotEmpty &&
+        (host.endsWith('.r2.cloudflarestorage.com') ||
+            host.endsWith('.cloudflarestorage.com') ||
+            host.endsWith('.amazonaws.com'));
 
     if (isExternalStorage) {
       options.headers.remove('Authorization');
