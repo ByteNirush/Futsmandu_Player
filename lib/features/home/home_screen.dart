@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -518,6 +519,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   int _unreadNotificationCount = 0;
 
+  // Search state
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  List<Map<String, dynamic>> _searchResults = [];
+  bool _isSearching = false;
+  bool _showSearchResults = false;
+  Timer? _searchDebounce;
+
   @override
   void initState() {
     super.initState();
@@ -612,6 +621,72 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       // Fall back to 0 on error.
     }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    if (value.trim().isEmpty) {
+      setState(() {
+        _searchResults = [];
+        _showSearchResults = false;
+        _isSearching = false;
+      });
+      return;
+    }
+    setState(() => _isSearching = true);
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 400),
+      () => _performSearch(value.trim()),
+    );
+  }
+
+  Future<void> _performSearch(String query) async {
+    try {
+      final results = await PlayerVenuesService.instance.browseVenues(
+        query: query,
+        limit: 10,
+      );
+      if (!mounted) return;
+      setState(() {
+        _searchResults = results;
+        _showSearchResults = true;
+        _isSearching = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _searchResults = [];
+        _showSearchResults = true;
+        _isSearching = false;
+      });
+    }
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    _searchFocusNode.unfocus();
+    setState(() {
+      _searchResults = [];
+      _showSearchResults = false;
+      _isSearching = false;
+    });
+  }
+
+  void _onVenueTap(Map<String, dynamic> venue) {
+    _clearSearch();
+    Navigator.pushNamed(
+      context,
+      '/venue-detail',
+      arguments: venue,
+    );
   }
 
   @override
@@ -772,6 +847,176 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
+            // ── Search field ────────────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.sm,
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                  0,
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  onChanged: _onSearchChanged,
+                  decoration: InputDecoration(
+                    hintText: 'Search venues...',
+                    hintStyle: textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    prefixIcon: Icon(
+                      Icons.search,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.clear,
+                              color: colorScheme.onSurfaceVariant,
+                              size: 18,
+                            ),
+                            onPressed: _clearSearch,
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: colorScheme.surfaceContainerHighest,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSpacing.xs2),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                      vertical: AppSpacing.xs2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Search results ──────────────────────────────────────────────
+            if (_showSearchResults)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.sm,
+                    AppSpacing.xs,
+                    AppSpacing.sm,
+                    0,
+                  ),
+                  child: Material(
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(AppSpacing.xs2),
+                    clipBehavior: Clip.antiAlias,
+                    elevation: 2,
+                    child: _isSearching
+                        ? const Padding(
+                            padding: EdgeInsets.all(AppSpacing.md),
+                            child: Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          )
+                        : _searchResults.isEmpty
+                            ? Padding(
+                                padding: const EdgeInsets.all(AppSpacing.md),
+                                child: Text(
+                                  'No venues found',
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              )
+                            : ListView.separated(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: _searchResults.length,
+                                separatorBuilder: (_, __) => const Divider(
+                                  height: 1,
+                                  indent: AppSpacing.sm,
+                                  endIndent: AppSpacing.sm,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final venue = _searchResults[index];
+                                  return ListTile(
+                                    dense: true,
+                                    leading: venue['coverUrl'] != null
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(4),
+                                            child: CachedNetworkImage(
+                                              imageUrl: venue['coverUrl'] as String,
+                                              width: 40,
+                                              height: 40,
+                                              fit: BoxFit.cover,
+                                              placeholder: (_, __) => Container(
+                                                width: 40,
+                                                height: 40,
+                                                color: colorScheme.onSurface
+                                                    .withValues(alpha: 0.08),
+                                              ),
+                                              errorWidget: (_, __, ___) => Container(
+                                                width: 40,
+                                                height: 40,
+                                                color: colorScheme.onSurface
+                                                    .withValues(alpha: 0.08),
+                                                child: Icon(
+                                                  Icons.broken_image_outlined,
+                                                  size: 20,
+                                                  color: colorScheme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                        : Icon(
+                                            Icons.sports_soccer,
+                                            color: colorScheme.primary,
+                                          ),
+                                    title: Text(
+                                      venue['name']?.toString() ?? 'Unknown',
+                                      style: textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    subtitle: venue['rating'] != null
+                                        ? Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.star,
+                                                size: 14,
+                                                color: AppColors.warning,
+                                              ),
+                                              const SizedBox(width: 2),
+                                              Text(
+                                                '${venue['rating']}',
+                                                style: textTheme.bodySmall?.copyWith(
+                                                  color: colorScheme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : null,
+                                    trailing: Icon(
+                                      Icons.chevron_right,
+                                      color: colorScheme.onSurfaceVariant,
+                                      size: 20,
+                                    ),
+                                    onTap: () => _onVenueTap(venue),
+                                  );
+                                },
+                              ),
+                  ),
+                ),
+              ),
+
             // ── Top Venue section ───────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
@@ -780,7 +1025,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SectionHeader(
-                      title: 'Top Venues',
+                      title: 'Popular Venues',
                       onAction: () => Navigator.pushNamed(context, '/venues'),
                     ),
                     const SizedBox(height: AppSpacing.xs2),
@@ -849,7 +1094,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // ── Play Tonight section ────────────────────────────────────────
+            // ── Join a Match section ────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.only(top: AppSpacing.md),
@@ -857,7 +1102,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     SectionHeader(
-                      title: 'Play Tonight',
+                      title: 'Join a Match',
                       onAction: () =>
                           Navigator.pushNamed(context, '/discovery'),
                     ),
