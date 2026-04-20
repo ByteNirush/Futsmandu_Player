@@ -197,9 +197,14 @@ class PlayerVenuesService {
     final reviews =
         _asMapList(raw['reviews']).map(_mapReview).toList(growable: false);
 
+    final owner = raw['owner'] is Map
+        ? _asMap(raw['owner'])
+        : const <String, dynamic>{};
+
     final venue = _mapVenueSummary(raw);
     venue['courts'] = courts;
     venue['reviews'] = reviews;
+    venue['ownerPhone'] = _string(owner['phone']);
     return venue;
   }
 
