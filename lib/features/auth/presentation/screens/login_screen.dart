@@ -75,6 +75,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     return AuthScaffold(
       role: AppRole.player,
+      allowScroll: false,
       child: AuthCard(
         role: AppRole.player,
         title: 'Welcome Back',
@@ -94,6 +95,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             children: [
               AppInputField(
                 label: 'Email',
+                showLabelAboveField: true,
                 hint: 'Enter your email',
                 prefixIcon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
@@ -105,6 +107,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: AppSpacing.sm),
               AppInputField(
                 label: 'Password',
+                showLabelAboveField: true,
                 hint: 'Enter your password',
                 prefixIcon: Icons.lock_outline,
                 isPassword: true,
