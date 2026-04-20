@@ -146,6 +146,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             children: [
               AppInputField(
                 label: 'Full Name',
+                showLabelAboveField: true,
                 hint: 'Enter your full name',
                 prefixIcon: Icons.person_outline,
                 maxLength: 100,
@@ -153,9 +154,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _nameController,
                 validator: _validateName,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.sm),
               AppInputField(
                 label: 'Email',
+                showLabelAboveField: true,
                 hint: 'Enter your email',
                 prefixIcon: Icons.email_outlined,
                 keyboardType: TextInputType.emailAddress,
@@ -164,9 +166,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _emailController,
                 validator: _validateEmail,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.sm),
               AppInputField(
                 label: 'Phone',
+                showLabelAboveField: true,
                 hint: 'Enter phone number',
                 prefixIcon: Icons.phone_outlined,
                 keyboardType: TextInputType.phone,
@@ -175,9 +178,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _phoneController,
                 validator: _validatePhone,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.sm),
               AppInputField(
                 label: 'Password',
+                showLabelAboveField: true,
                 hint: 'Create password',
                 prefixIcon: Icons.lock_outline,
                 isPassword: true,
@@ -186,9 +190,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _passwordController,
                 validator: _validatePassword,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.sm),
               AppInputField(
                 label: 'Confirm Password',
+                showLabelAboveField: true,
                 hint: 'Confirm password',
                 prefixIcon: Icons.lock_outline,
                 isPassword: true,
@@ -198,13 +203,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _confirmPasswordController,
                 validator: _validateConfirmPassword,
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.lg),
               PrimaryButton(
                 label: 'Sign Up',
                 isLoading: _isLoading,
                 onPressed: _handleRegister,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.md),
               Center(
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),
