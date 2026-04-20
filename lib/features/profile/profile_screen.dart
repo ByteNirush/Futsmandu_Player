@@ -3,7 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import 'package:futsmandu_design_system/futsmandu_design_system.dart'
-    show ProfileSectionHeader, SettingsTile;
+    show ProfileSectionHeader;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,7 +17,6 @@ import '../../core/services/player_auth_storage_service.dart';
 import 'data/models/player_profile_models.dart';
 import 'data/services/player_profile_service.dart';
 import '../auth/presentation/providers/auth_controller.dart';
-import '../../shared/widgets/futs_card.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -57,6 +56,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   bool _isSavingProfile = false;
   String? _errorMessage;
   Map<String, dynamic> _user = _fallbackUser;
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
 
   static String _themeModeLabel(ThemeMode mode) {
     switch (mode) {
@@ -68,9 +69,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         return 'Dark';
     }
   }
-
-  late AnimationController _animController;
-  late Animation<double> _fadeAnim;
 
   @override
   void initState() {
@@ -174,7 +172,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 titleSpacing: 16,
                 title: Text(
                   'Profile',
-                  style: AppText.h3.copyWith(fontSize: 18),
+                  style: AppText.h3.copyWith(
+                    fontSize: 18,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
                 actions: [
                   _AppBarAction(
@@ -199,220 +200,207 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               // ── Content ──────────────────────────────────────────────────
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(
-                  16,
-                  20,
-                  16,
-                  bottomPad + kNavBarHeight + 16,
+                  AppSpacing.sm2,
+                  AppSpacing.md,
+                  AppSpacing.sm2,
+                  bottomPad + kNavBarHeight + AppSpacing.md,
                 ),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
                     // Performance Section
                     const _SectionLabel(label: 'Performance'),
-                    const SizedBox(height: 12),
-                    FutsCard(
-                      padding: const EdgeInsets.all(AppSpacing.sm),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Top row: matches + win rate
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _MetricCard(
-                                  icon: Icons.sports_score_outlined,
-                                  label: 'Matches',
-                                  value: '$matchesPlayed',
-                                  color: AppColors.blue,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _MetricCard(
-                                  icon: Icons.emoji_events_outlined,
-                                  label: 'Win Rate',
-                                  value: '${(winRate * 100).round()}%',
-                                  color: AppColors.green,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          // Bottom row: won / lost / draw
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _MetricCard(
-                                  icon: Icons.check_circle_outline,
-                                  label: 'Won',
-                                  value: '$won',
-                                  color: AppColors.green,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _MetricCard(
-                                  icon: Icons.cancel_outlined,
-                                  label: 'Lost',
-                                  value: '$lost',
-                                  color: AppColors.red,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _MetricCard(
-                                  icon: Icons.remove_circle_outline,
-                                  label: 'Draw',
-                                  value: '$draw',
-                                  color: AppColors.amber,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Win Progress', style: AppText.label),
-                              Text(
-                                '${(winRate * 100).round()}%',
-                                style: AppText.label.copyWith(
-                                  color: AppColors.green,
-                                  fontWeight: AppTextStyles.semiBold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(999),
-                            child: LinearProgressIndicator(
-                              value: winRate,
-                              minHeight: 7,
-                              backgroundColor: AppColors.bgElevated,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.green,
+                    const SizedBox(height: AppSpacing.sm),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            _PerformanceStat(
+                              icon: Icons.sports_score_outlined,
+                              label: 'Matches',
+                              value: '$matchesPlayed',
+                              color: AppColors.blue,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            _PerformanceStat(
+                              icon: Icons.emoji_events_outlined,
+                              label: 'Win Rate',
+                              value: '${(winRate * 100).round()}%',
+                              color: AppColors.green,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Row(
+                          children: [
+                            _StatPill(
+                              label: 'Won',
+                              value: '$won',
+                              color: AppColors.green,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            _StatPill(
+                              label: 'Lost',
+                              value: '$lost',
+                              color: AppColors.red,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            _StatPill(
+                              label: 'Draw',
+                              value: '$draw',
+                              color: AppColors.amber,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Win Progress',
+                              style: AppText.label.copyWith(
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
+                            Text(
+                              '${(winRate * 100).round()}%',
+                              style: AppText.label.copyWith(
+                                color: AppColors.green,
+                                fontWeight: AppTextStyles.semiBold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                          child: LinearProgressIndicator(
+                            value: winRate,
+                            minHeight: 7,
+                            backgroundColor:
+                                AppColors.green.withValues(alpha: 0.12),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.green,
+                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.md),
 
                     // Reliability Section
                     const _SectionLabel(label: 'Reliability Score'),
-                    const SizedBox(height: 12),
-                    FutsCard(
-                      padding: const EdgeInsets.all(AppSpacing.sm),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 88,
-                            height: 88,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                CustomPaint(
-                                  size: const Size.square(88),
-                                  painter:
-                                      ReliabilityRingPainter(score, scoreColor),
-                                ),
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      '$score',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 24,
-                                        fontWeight: AppTextStyles.semiBold,
-                                        color: scoreColor,
-                                        height: 1,
-                                      ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 88,
+                          height: 88,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CustomPaint(
+                                size: const Size.square(88),
+                                painter:
+                                    ReliabilityRingPainter(score, scoreColor),
+                              ),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '$score',
+                                    style: GoogleFonts.poppins(
+                                      fontSize: 24,
+                                      fontWeight: AppTextStyles.semiBold,
+                                      color: scoreColor,
+                                      height: 1,
                                     ),
-                                    Text(
-                                      '/100',
-                                      style: AppText.label.copyWith(
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        color: scoreColor,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      scoreLabel,
-                                      style: AppText.h3.copyWith(
-                                        fontSize: 17,
-                                        color: scoreColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  score >= 70
-                                      ? 'Excellent attendance and booking behavior.'
-                                      : score >= 40
-                                          ? 'Improve attendance to avoid account limits.'
-                                          : 'Current score may impact booking eligibility.',
-                                  style: AppText.bodySm.copyWith(
-                                    color: AppColors.txtDisabled,
-                                    fontSize: 13,
                                   ),
-                                ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    _InfoChip(
-                                      label: 'No-shows',
-                                      value: '${user['noShows']}',
-                                      color: AppColors.red,
+                                  Text(
+                                    '/100',
+                                    style: AppText.label.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                      fontSize: 11,
                                     ),
-                                    const SizedBox(width: 8),
-                                    _InfoChip(
-                                      label: 'Late cancels',
-                                      value: '${user['lateCancels']}',
-                                      color: AppColors.amber,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: scoreColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    scoreLabel,
+                                    style: AppText.h3.copyWith(
+                                      fontSize: 17,
+                                      color: scoreColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                score >= 70
+                                    ? 'Excellent attendance and booking behavior.'
+                                    : score >= 40
+                                        ? 'Improve attendance to avoid account limits.'
+                                        : 'Current score may impact booking eligibility.',
+                                style: AppText.bodySm.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.xs2),
+                              Wrap(
+                                spacing: AppSpacing.xs,
+                                runSpacing: AppSpacing.xs,
+                                children: [
+                                  _InfoChip(
+                                    label: 'No-shows',
+                                    value: '${user['noShows']}',
+                                    color: AppColors.red,
+                                  ),
+                                  _InfoChip(
+                                    label: 'Late cancels',
+                                    value: '${user['lateCancels']}',
+                                    color: AppColors.amber,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.md),
 
                     // Quick Actions Section
                     const _SectionLabel(label: 'Quick Actions'),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.sm),
                     _QuickActionsGrid(
                       context: context,
                       onEditProfile: _openEditProfileSheet,
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.md),
 
                     // Preferences Section
                     const ProfileSectionHeader(
@@ -424,67 +412,63 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       animation: ThemeProvider.instance,
                       builder: (context, _) {
                         final themeMode = ThemeProvider.instance.themeMode;
-                        return FutsCard(
-                          padding: EdgeInsets.zero,
-                          child: Column(
-                            children: [
-                              SettingsTile(
-                                icon: Icons.notifications_outlined,
-                                title: 'Notifications',
-                                subtitle: 'Booking alerts and account updates',
-                                trailing: Switch.adaptive(
-                                  value: _notificationsEnabled,
-                                  onChanged: (value) {
-                                    setState(
-                                      () => _notificationsEnabled = value,
-                                    );
-                                  },
-                                ),
+                        return Column(
+                          children: [
+                            _PreferenceTile(
+                              icon: Icons.notifications_outlined,
+                              title: 'Notifications',
+                              subtitle: 'Booking alerts and account updates',
+                              trailing: Switch.adaptive(
+                                value: _notificationsEnabled,
+                                onChanged: (value) {
+                                  setState(
+                                    () => _notificationsEnabled = value,
+                                  );
+                                },
                               ),
-                              const Divider(height: 1),
-                              SettingsTile(
-                                icon: Icons.brightness_6_outlined,
-                                title: 'Theme',
-                                subtitle: _themeModeLabel(themeMode),
-                                trailing: ToggleButtons(
-                                  borderRadius: BorderRadius.circular(
-                                    AppRadius.md,
-                                  ),
-                                  constraints: const BoxConstraints(
-                                    minHeight: 36,
-                                    minWidth: 44,
-                                  ),
-                                  isSelected: [
-                                    themeMode == ThemeMode.light,
-                                    themeMode == ThemeMode.dark,
-                                  ],
-                                  onPressed: (index) {
-                                    ThemeProvider.instance.setThemeMode(
-                                      index == 0
-                                          ? ThemeMode.light
-                                          : ThemeMode.dark,
-                                    );
-                                  },
-                                  children: const [
-                                    Icon(Icons.light_mode_outlined, size: 18),
-                                    Icon(Icons.dark_mode_outlined, size: 18),
-                                  ],
+                            ),
+                            const SizedBox(height: AppSpacing.xs2),
+                            _PreferenceTile(
+                              icon: Icons.brightness_6_outlined,
+                              title: 'Theme',
+                              subtitle: _themeModeLabel(themeMode),
+                              trailing: ToggleButtons(
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.md,
                                 ),
-                              ),
-                              const Divider(height: 1),
-                              SettingsTile(
-                                icon: Icons.help_outline_rounded,
-                                title: 'Help & Support',
-                                subtitle:
-                                    'See FAQs or contact the support team',
-                                trailing: Icon(
-                                  Icons.chevron_right_rounded,
-                                  color: colorScheme.onSurfaceVariant,
+                                constraints: const BoxConstraints(
+                                  minHeight: 36,
+                                  minWidth: 44,
                                 ),
-                                onTap: () => _showSupportSheet(context),
+                                isSelected: [
+                                  themeMode == ThemeMode.light,
+                                  themeMode == ThemeMode.dark,
+                                ],
+                                onPressed: (index) {
+                                  ThemeProvider.instance.setThemeMode(
+                                    index == 0
+                                        ? ThemeMode.light
+                                        : ThemeMode.dark,
+                                  );
+                                },
+                                children: const [
+                                  Icon(Icons.light_mode_outlined, size: 18),
+                                  Icon(Icons.dark_mode_outlined, size: 18),
+                                ],
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(height: AppSpacing.xs2),
+                            _PreferenceTile(
+                              icon: Icons.help_outline_rounded,
+                              title: 'Help & Support',
+                              subtitle: 'See FAQs or contact the support team',
+                              trailing: Icon(
+                                Icons.chevron_right_rounded,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              onTap: () => _showSupportSheet(context),
+                            ),
+                          ],
                         );
                       },
                     ),
@@ -596,6 +580,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+
         return StatefulBuilder(
           builder: (ctx, setLocalState) {
             return Padding(
@@ -609,7 +595,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Edit Profile', style: AppText.h3),
+                  Text(
+                    'Edit Profile',
+                    style: AppText.h3.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: nameController,
@@ -634,7 +625,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     },
                   ),
                   const SizedBox(height: 12),
-                  Text('Preferred Roles', style: AppText.bodySm),
+                  Text(
+                    'Preferred Roles',
+                    style: AppText.bodySm.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -876,17 +872,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgElevated,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Log Out', style: AppText.h3.copyWith(fontSize: 18)),
+        title: Text(
+          'Log Out',
+          style: AppText.h3.copyWith(
+            fontSize: 18,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
         content: Text(
           'Are you sure you want to log out?',
-          style: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+          style: AppText.bodySm.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               'Cancel',
-              style: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+              style: AppText.bodySm.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           TextButton(
@@ -933,6 +939,8 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -1023,8 +1031,6 @@ class _ProfileHeader extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: AppColors.green,
                           shape: BoxShape.circle,
-                          border:
-                              Border.all(color: AppColors.bgPrimary, width: 2),
                         ),
                         child: Icon(
                           isAvatarUploading
@@ -1042,7 +1048,10 @@ class _ProfileHeader extends StatelessWidget {
               // Name
               Text(
                 user['name'] as String,
-                style: AppText.h2.copyWith(fontSize: 22),
+                style: AppText.h2.copyWith(
+                  fontSize: 22,
+                  color: colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 2),
               Row(
@@ -1051,7 +1060,7 @@ class _ProfileHeader extends StatelessWidget {
                   Text(
                     user['handle'] as String,
                     style: AppText.bodySm.copyWith(
-                      color: AppColors.txtDisabled,
+                      color: colorScheme.onSurfaceVariant,
                       fontSize: 13,
                     ),
                   ),
@@ -1080,9 +1089,6 @@ class _ProfileHeader extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.green.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: AppColors.green.withValues(alpha: 0.35),
-                        ),
                       ),
                       child: Text(
                         'Edit',
@@ -1126,19 +1132,12 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 3,
-          height: 18,
-          decoration: BoxDecoration(
-            color: AppColors.green,
-            borderRadius: BorderRadius.circular(999),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(label, style: AppText.h3.copyWith(fontSize: 16)),
-      ],
+    return Text(
+      label,
+      style: AppText.h3.copyWith(
+        fontSize: 17,
+        color: Theme.of(context).colorScheme.onSurface,
+      ),
     );
   }
 }
@@ -1157,12 +1156,11 @@ class _AppBarAction extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 36,
-        height: 36,
+        width: 38,
+        height: 38,
         decoration: BoxDecoration(
-          color: AppColors.bgElevated,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.borderClr),
+          color: AppColors.bgElevated.withValues(alpha: 0.7),
+          shape: BoxShape.circle,
         ),
         child: Icon(icon, size: 18, color: AppColors.txtPrimary),
       ),
@@ -1230,7 +1228,6 @@ class _Badge extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.13),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Text(
         text,
@@ -1244,17 +1241,13 @@ class _Badge extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Metric card (inside performance section)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _MetricCard extends StatelessWidget {
+class _PerformanceStat extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
   final Color color;
 
-  const _MetricCard({
+  const _PerformanceStat({
     required this.icon,
     required this.label,
     required this.value,
@@ -1263,41 +1256,89 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs2,
-        vertical: AppSpacing.xs2,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.bgElevated,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderClr),
-      ),
+    return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 28,
-            height: 28,
+            width: 30,
+            height: 30,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+              color: color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(9),
             ),
-            child: Icon(icon, size: 15, color: color),
+            child: Icon(icon, size: 16, color: color),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             value,
             style: GoogleFonts.poppins(
-              fontSize: 22,
+              fontSize: 23,
               fontWeight: AppTextStyles.semiBold,
               color: AppColors.txtPrimary,
               height: 1,
             ),
           ),
-          const SizedBox(height: 2),
-          Text(label, style: AppText.label),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: AppText.label.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _StatPill extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _StatPill({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xs3,
+          vertical: AppSpacing.xxs,
+        ),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              value,
+              style: AppText.bodySm.copyWith(
+                fontWeight: AppTextStyles.semiBold,
+                color: color,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.label.copyWith(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1327,8 +1368,7 @@ class _InfoChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1344,7 +1384,10 @@ class _InfoChip extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             label,
-            style: AppText.label.copyWith(fontSize: 11),
+            style: AppText.label.copyWith(
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ],
       ),
@@ -1435,7 +1478,7 @@ class _QuickActionTile extends StatelessWidget {
     return SizedBox(
       width: width,
       child: Material(
-        color: AppColors.bgSurface,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
@@ -1447,7 +1490,7 @@ class _QuickActionTile extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.borderClr),
+              color: AppColors.bgElevated.withValues(alpha: 0.55),
             ),
             child: Row(
               children: [
@@ -1466,6 +1509,7 @@ class _QuickActionTile extends StatelessWidget {
                     label,
                     style: AppText.bodySm.copyWith(
                       fontWeight: AppFontWeights.semiBold,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 13,
                     ),
                     maxLines: 2,
@@ -1474,6 +1518,81 @@ class _QuickActionTile extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PreferenceTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Widget trailing;
+  final VoidCallback? onTap;
+
+  const _PreferenceTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.trailing,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xs2,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.bgElevated.withValues(alpha: 0.48),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.green.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(icon, size: 18, color: AppColors.green),
+              ),
+              const SizedBox(width: AppSpacing.xs2),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppText.bodySm.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: AppTextStyles.semiBold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: AppText.label.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs2),
+              trailing,
+            ],
           ),
         ),
       ),
