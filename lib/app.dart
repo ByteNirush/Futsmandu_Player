@@ -17,6 +17,7 @@ import 'features/auth/presentation/screens/reset_password_screen.dart';
 import 'features/home/home_shell.dart';
 import 'features/venues/venue_list_screen.dart';
 import 'features/venues/venue_detail_screen.dart';
+import 'features/booking/book_court_screen.dart';
 import 'features/booking/slot_hold_screen.dart';
 import 'features/booking/payment_screen.dart';
 import 'features/booking/payment_history_screen.dart';
@@ -119,6 +120,7 @@ class _FutsmanduAppState extends ConsumerState<FutsmanduApp> {
           '/shell': (_) => const HomeShell(),
           '/venues': (_) => const VenueListScreen(),
           '/venue-detail': (_) => const VenueDetailScreen(),
+          '/book-court': (_) => const BookCourtScreen(),
           '/booking-hold': (_) => const SlotHoldScreen(),
           '/payment': (_) => const PaymentScreen(),
           '/payment-history': (_) => const PaymentHistoryScreen(),
