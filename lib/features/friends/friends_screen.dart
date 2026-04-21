@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
@@ -588,9 +587,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                           ),
                                           child: Text(
                                             isSent ? 'Requested' : 'Add Friend',
-                                            style: GoogleFonts.poppins(
-                                              fontSize: 12,
-                                              fontWeight: AppTextStyles.regular,
+                                            style: AppTypography.textTheme(
+                                              colorScheme,
+                                            ).labelMedium?.copyWith(
+                                              fontWeight: AppFontWeights.regular,
                                               color: isSent
                                                   ? colorScheme.onSurfaceVariant
                                                   : colorScheme.primary,
@@ -749,10 +749,11 @@ class _SkillBadge extends StatelessWidget {
       ),
       child: Text(
         skill,
-        style: GoogleFonts.poppins(
-          fontSize: 10,
+        style: AppTypography.textTheme(
+          Theme.of(context).colorScheme,
+        ).labelSmall?.copyWith(
           color: c,
-          fontWeight: AppTextStyles.regular,
+          fontWeight: AppFontWeights.regular,
         ),
       ),
     );
