@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
 import '../../core/design_system/app_spacing.dart';
 import 'futs_button.dart';
 
@@ -22,6 +21,7 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -32,13 +32,13 @@ class EmptyState extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
             Text(
               title,
-              style: AppText.h3.copyWith(color: AppColors.txtDisabled),
+              style: textTheme.titleLarge?.copyWith(color: AppColors.txtDisabled),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               subtitle,
-              style: AppText.bodySm,
+              style: textTheme.bodyMedium,
               textAlign: TextAlign.center,
             ),
             if (buttonLabel != null && onButton != null) ...[
