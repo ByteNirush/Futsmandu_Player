@@ -75,6 +75,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
     return AuthScaffold(
       role: AppRole.player,
       showAppBar: true,
+      showAccentStrip: false,
+      allowScroll: false,
       child: AuthCard(
         role: AppRole.player,
         title: 'Reset Password',

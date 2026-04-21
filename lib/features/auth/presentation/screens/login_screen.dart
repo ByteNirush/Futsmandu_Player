@@ -104,7 +104,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 controller: _emailController,
                 validator: _validateEmail,
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.md),
               AppInputField(
                 label: 'Password',
                 showLabelAboveField: true,
@@ -117,6 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 controller: _passwordController,
                 validator: _validatePassword,
               ),
+              const SizedBox(height: AppSpacing.xs),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -125,35 +126,64 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: const Text('Forgot Password?'),
                 ),
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.sm),
               PrimaryButton(
                 label: 'Sign In',
                 isLoading: _isLoading,
                 onPressed: _handleLogin,
               ),
               const SizedBox(height: AppSpacing.md),
-              Row(
-                children: [
-                  const Expanded(child: Divider()),
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                    child: Text(
-                      'OR',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontWeight: AppFontWeights.semiBold,
-                          ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Divider(
+                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      ),
                     ),
-                  ),
-                  const Expanded(child: Divider()),
-                ],
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                      child: Text(
+                        'OR',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: AppFontWeights.semiBold,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Divider(
+                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: AppSpacing.md),
-              SecondaryButton(
-                label: 'Create Account',
-                onPressed: () => Navigator.pushNamed(context, '/register'),
+              Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "Don't have an account? ",
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pushNamed(context, '/register'),
+                      child: Text(
+                        'Register',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

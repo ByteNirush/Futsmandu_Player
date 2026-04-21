@@ -154,7 +154,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _nameController,
                 validator: _validateName,
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.md),
               AppInputField(
                 label: 'Email',
                 showLabelAboveField: true,
@@ -166,7 +166,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _emailController,
                 validator: _validateEmail,
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.md),
               AppInputField(
                 label: 'Phone',
                 showLabelAboveField: true,
@@ -178,7 +178,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _phoneController,
                 validator: _validatePhone,
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.md),
               AppInputField(
                 label: 'Password',
                 showLabelAboveField: true,
@@ -190,7 +190,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _passwordController,
                 validator: _validatePassword,
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.md),
               AppInputField(
                 label: 'Confirm Password',
                 showLabelAboveField: true,
@@ -209,11 +209,29 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 isLoading: _isLoading,
                 onPressed: _handleRegister,
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.lg),
               Center(
-                child: TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Already have an account? Login'),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Already have an account? ',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Text(
+                        'Login',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

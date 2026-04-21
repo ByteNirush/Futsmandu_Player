@@ -104,7 +104,6 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     final email = args?['email']?.toString() ?? '';
     
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
     final primaryColor = colorScheme.primary;
     
     final emailDisplay = email.trim();
@@ -138,10 +137,10 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               // Typography: Heading
               Text(
                 'Verify your account',
-                style: textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: colorScheme.onSurface.withValues(alpha: 0.9), // Dark slate gray equivalent
-                  letterSpacing: -0.5,
+                style: AppTypography.subHeading(
+                  context,
+                  colorScheme,
+                  color: colorScheme.onSurface.withValues(alpha: 0.9),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -150,8 +149,10 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               // Typography: Instruction Text
               Text(
                 'Enter the 6-digit code sent to',
-                style: textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8), // Softer, legible gray
+                style: AppTypography.body(
+                  context,
+                  colorScheme,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -167,10 +168,10 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                 ),
                 child: Text(
                   destination,
-                  style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
-                  ),
+                  style: AppTypography.body(
+                    context,
+                    colorScheme,
+                  ).copyWith(fontWeight: AppFontWeights.semiBold),
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -210,12 +211,11 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
+                      : Text(
                           'Verify',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
+                          style: AppTypography.button(
+                            context,
+                            colorScheme,
                           ),
                         ),
                 ),
@@ -227,9 +227,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
               TextButton(
                 style: TextButton.styleFrom(
                   foregroundColor: colorScheme.onSurfaceVariant,
-                  textStyle: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                  textStyle: AppTypography.textTheme(colorScheme).bodySmall?.copyWith(
+                    fontWeight: AppFontWeights.semiBold,
                   ),
                 ),
                 onPressed: _isLoading ? null : () => _resend(userId),
