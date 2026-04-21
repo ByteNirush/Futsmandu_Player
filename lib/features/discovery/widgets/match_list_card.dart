@@ -1,11 +1,10 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/mock/mock_data.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text.dart';
 import '../../../core/design_system/app_spacing.dart';
 import '../../matches/data/models/player_match_models.dart';
 import '../../../shared/widgets/futs_card.dart';
@@ -101,8 +100,9 @@ class MatchListCard extends StatelessWidget {
                           match.venueName.isEmpty
                               ? 'Unknown Venue'
                               : match.venueName,
-                          style: AppText.h3.copyWith(
-                              fontSize: 16, fontWeight: AppTextStyles.semiBold),
+                          style: AppTypography.textTheme(
+                            Theme.of(context).colorScheme,
+                          ).titleSmall?.copyWith(fontWeight: AppFontWeights.semiBold),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -116,8 +116,9 @@ class MatchListCard extends StatelessWidget {
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
                     match.courtName,
-                    style:
-                        AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+                    style: AppTypography.textTheme(
+                      Theme.of(context).colorScheme,
+                    ).bodySmall?.copyWith(color: AppColors.txtDisabled),
                   ),
                   const SizedBox(height: AppSpacing.sm),
 
@@ -154,10 +155,11 @@ class MatchListCard extends StatelessWidget {
                                       MockData.friends.length > i
                                           ? MockData.friends[i]['name'][0]
                                           : '?',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 10,
+                                      style: AppTypography.textTheme(
+                                        Theme.of(context).colorScheme,
+                                      ).labelSmall?.copyWith(
                                         color: AppColors.txtDisabled,
-                                        fontWeight: AppTextStyles.semiBold,
+                                        fontWeight: AppFontWeights.semiBold,
                                       ),
                                     ),
                                   ),
@@ -167,9 +169,11 @@ class MatchListCard extends StatelessWidget {
                               Flexible(
                                 child: Text(
                                   '+$friendsCount friends',
-                                  style: AppText.label.copyWith(
+                                  style: AppTypography.textTheme(
+                                    Theme.of(context).colorScheme,
+                                  ).labelMedium?.copyWith(
                                     color: AppColors.success,
-                                    fontWeight: AppTextStyles.semiBold,
+                                    fontWeight: AppFontWeights.semiBold,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -181,10 +185,11 @@ class MatchListCard extends StatelessWidget {
                         const Spacer(),
                       Text(
                         'NPR ${match.priceNpr}',
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
+                        style: AppTypography.textTheme(
+                          Theme.of(context).colorScheme,
+                        ).titleSmall?.copyWith(
                           color: AppColors.success,
-                          fontWeight: AppTextStyles.semiBold,
+                          fontWeight: AppFontWeights.semiBold,
                         ),
                       ),
                     ],
@@ -213,7 +218,12 @@ class _InfoChip extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: color ?? AppColors.txtDisabled),
         const SizedBox(width: 4),
-        Text(text, style: AppText.label.copyWith(color: color)),
+        Text(
+          text,
+          style: AppTypography.textTheme(
+            Theme.of(context).colorScheme,
+          ).labelMedium?.copyWith(color: color),
+        ),
       ],
     );
   }

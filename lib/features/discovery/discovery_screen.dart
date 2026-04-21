@@ -97,7 +97,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
       backgroundColor: scheme.surface,
       appBar: AppBar(
         title: Text(
-          'Discover',
+          'Explore',
           style: AppText.h2.copyWith(color: scheme.onSurface),
         ),
         elevation: 0,
