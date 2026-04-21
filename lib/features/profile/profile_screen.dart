@@ -1,10 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import 'package:futsmandu_design_system/futsmandu_design_system.dart'
     show ProfileSectionHeader;
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -172,10 +170,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 titleSpacing: 16,
                 title: Text(
                   'Profile',
-                  style: AppText.h3.copyWith(
-                    fontSize: 18,
-                    color: colorScheme.onSurface,
-                  ),
+                  style: AppTypography.subHeading(
+                    context,
+                    colorScheme,
+                  ).copyWith(fontSize: 18),
                 ),
                 actions: [
                   _AppBarAction(
@@ -311,18 +309,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                                 children: [
                                   Text(
                                     '$score',
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 24,
-                                      fontWeight: AppTextStyles.semiBold,
-                                      color: scoreColor,
-                                      height: 1,
-                                    ),
+                                    style: AppTypography.textTheme(colorScheme)
+                                        .headlineSmall
+                                        ?.copyWith(
+                                          color: scoreColor,
+                                          fontWeight: AppFontWeights.semiBold,
+                                        ),
                                   ),
                                   Text(
                                     '/100',
-                                    style: AppText.label.copyWith(
-                                      color: colorScheme.onSurfaceVariant,
-                                      fontSize: 11,
+                                    style: AppTypography.caption(
+                                      context,
+                                      colorScheme,
                                     ),
                                   ),
                                 ],
@@ -991,9 +989,13 @@ class _ProfileHeader extends StatelessWidget {
             AppSpacing.sm,
             AppSpacing.sm,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
+          child: SingleChildScrollView(
+            reverse: true,
+            physics: const ClampingScrollPhysics(),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
               // Avatar
               Stack(
                 clipBehavior: Clip.none,
@@ -1116,6 +1118,7 @@ class _ProfileHeader extends StatelessWidget {
               ),
             ],
           ),
+          ),
         ),
       ],
     );
@@ -1132,12 +1135,13 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Text(
       label,
-      style: AppText.h3.copyWith(
-        fontSize: 17,
-        color: Theme.of(context).colorScheme.onSurface,
-      ),
+      style: AppTypography.subHeading(
+        context,
+        colorScheme,
+      ).copyWith(fontSize: 17),
     );
   }
 }
@@ -1272,11 +1276,11 @@ class _PerformanceStat extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
           Text(
             value,
-            style: GoogleFonts.poppins(
-              fontSize: 23,
-              fontWeight: AppTextStyles.semiBold,
+            style: AppTypography.textTheme(
+              Theme.of(context).colorScheme,
+            ).headlineSmall?.copyWith(
               color: AppColors.txtPrimary,
-              height: 1,
+              fontWeight: AppFontWeights.semiBold,
             ),
           ),
           const SizedBox(height: 3),
