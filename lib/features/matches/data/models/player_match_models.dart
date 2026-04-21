@@ -22,16 +22,19 @@ class MatchMember {
   final bool isAdmin;
 
   factory MatchMember.fromMap(Map<String, dynamic> raw) {
+    final profileImageUrl =
+        _string(raw['avatarUrl']).isNotEmpty ? _string(raw['avatarUrl']) : _string(raw['profileImageUrl']);
+    final role = _string(raw['role']);
     return MatchMember(
-      id: _string(raw['id']),
+      id: _string(raw['id']).isNotEmpty ? _string(raw['id']) : _string(raw['userId']),
       name: _string(raw['name']),
-      avatarUrl: _string(raw['avatarUrl']),
+      avatarUrl: profileImageUrl,
       skillLevel: _string(raw['skillLevel']),
       eloRating: _toInt(raw['eloRating']),
-      position: _string(raw['position']),
-      team: _string(raw['team']),
+      position: _string(raw['position']).isNotEmpty ? _string(raw['position']) : '-',
+      team: _string(raw['team']).isNotEmpty ? _string(raw['team']) : '-',
       status: _string(raw['status']),
-      isAdmin: raw['isAdmin'] == true,
+      isAdmin: raw['isAdmin'] == true || role == 'admin',
     );
   }
 
@@ -327,13 +330,23 @@ class MatchJoinRequest {
   factory MatchJoinRequest.fromMap(Map<String, dynamic> raw) {
     return MatchJoinRequest(
       id: _string(raw['id']),
-      matchId: _string(raw['matchId']),
-      playerId: _string(raw['playerId']),
+      matchId: _string(raw['matchId']).isNotEmpty
+        ? _string(raw['matchId'])
+        : _string(raw['match_group_id']),
+      playerId: _string(raw['playerId']).isNotEmpty
+        ? _string(raw['playerId'])
+        : _string(raw['user_id']),
       playerName: _string(raw['playerName']),
-      playerAvatarUrl: _string(raw['playerAvatarUrl']),
-      requestedPosition: _string(raw['requestedPosition']),
+      playerAvatarUrl: _string(raw['playerAvatarUrl']).isNotEmpty
+        ? _string(raw['playerAvatarUrl'])
+        : _string(raw['profileImageUrl']),
+      requestedPosition: _string(raw['requestedPosition']).isNotEmpty
+        ? _string(raw['requestedPosition'])
+        : _string(raw['position']),
       status: _string(raw['status']),
-      createdAt: _string(raw['createdAt']),
+      createdAt: _string(raw['createdAt']).isNotEmpty
+        ? _string(raw['createdAt'])
+        : _string(raw['created_at']),
     );
   }
 
@@ -367,12 +380,21 @@ class MatchJoinResponse {
   final String message;
 
   factory MatchJoinResponse.fromMap(Map<String, dynamic> raw) {
+    final status = _string(raw['status']);
     return MatchJoinResponse(
-      requestId: _string(raw['requestId']),
-      matchId: _string(raw['matchId']),
-      playerId: _string(raw['playerId']),
-      action: _string(raw['action']),
-      message: _string(raw['message']),
+      requestId: _string(raw['requestId']).isNotEmpty
+          ? _string(raw['requestId'])
+          : _string(raw['id']),
+      matchId: _string(raw['matchId']).isNotEmpty
+          ? _string(raw['matchId'])
+          : _string(raw['match_group_id']),
+      playerId: _string(raw['playerId']).isNotEmpty
+          ? _string(raw['playerId'])
+          : _string(raw['user_id']),
+      action: _string(raw['action']).isNotEmpty ? _string(raw['action']) : status,
+      message: _string(raw['message']).isNotEmpty
+          ? _string(raw['message'])
+          : (status.isNotEmpty ? 'Request $status' : 'Request updated'),
     );
   }
 
@@ -399,10 +421,17 @@ class MatchMemberAddResult {
   final String message;
 
   factory MatchMemberAddResult.fromMap(Map<String, dynamic> raw) {
+    final memberId = _string(raw['id']);
     return MatchMemberAddResult(
-      friendId: _string(raw['friendId']),
-      success: raw['success'] == true,
-      message: _string(raw['message']),
+      friendId: _string(raw['friendId']).isNotEmpty
+          ? _string(raw['friendId'])
+          : _string(raw['user_id']),
+      success: raw['success'] == true || memberId.isNotEmpty,
+      message: _string(raw['message']).isNotEmpty
+          ? _string(raw['message'])
+          : (memberId.isNotEmpty
+              ? 'Friend added to match'
+              : 'Unable to add friend to match'),
     );
   }
 

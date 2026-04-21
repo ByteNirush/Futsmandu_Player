@@ -314,7 +314,7 @@ class PlayerMatchService {
       final response = await _client.post(
         '${ApiConfig.matchesEndpoint}/join',
         data: {
-          'matchId': matchId,
+          'matchGroupId': matchId,
           if (position != null && position.isNotEmpty) 'position': position,
         },
       );
@@ -330,9 +330,10 @@ class PlayerMatchService {
     required String action,
   }) async {
     try {
+      final normalizedAction = action.trim().toUpperCase();
       final response = await _client.post(
         '${ApiConfig.matchesEndpoint}/join-requests/$requestId/respond',
-        data: {'action': action},
+        data: {'action': normalizedAction},
       );
 
       return MatchJoinResponse.fromMap(_asMap(_unwrap(response.data)));
@@ -572,6 +573,12 @@ class PlayerMatchService {
     if (decoded is Map && decoded['matches'] is List) {
       return decoded['matches'];
     }
+    if (decoded is Map && decoded['data'] is List) {
+      return decoded['data'];
+    }
+    if (decoded is Map && decoded['items'] is List) {
+      return decoded['items'];
+    }
     return decoded;
   }
 
@@ -582,6 +589,8 @@ class PlayerMatchService {
     String? currentUserId,
   }) {
     final venue = _asOptionalMap(raw['venue']);
+    final court = _asOptionalMap(raw['court']);
+    final admin = _asOptionalMap(raw['admin']);
     final venueName = _string(raw['venueName']).isNotEmpty
         ? _string(raw['venueName'])
         : _string(venue['name']);
@@ -608,7 +617,9 @@ class PlayerMatchService {
         : _toInt(raw['max_players']);
     final spotsLeft = _toInt(raw['spotsLeft']) > 0
         ? _toInt(raw['spotsLeft'])
-        : maxPlayers - _asMapList(raw['members']).length;
+      : (_toInt(raw['slotsAvailable']) > 0
+        ? _toInt(raw['slotsAvailable'])
+        : maxPlayers - _toInt(raw['memberCount']));
     final venueLat = _toDouble(raw['venueLat']) != 0
         ? _toDouble(raw['venueLat'])
         : _toDouble(venue['latitude']);
@@ -630,9 +641,11 @@ class PlayerMatchService {
       'venueName': venueName,
       'venueImage': venueImage,
       'venueAddress': venueAddress,
-      'courtName': _string(raw['courtName']).isNotEmpty
+        'courtName': _string(raw['courtName']).isNotEmpty
           ? _string(raw['courtName'])
-          : 'Open Match',
+          : (_string(court['name']).isNotEmpty
+            ? _string(court['name'])
+            : 'Open Match'),
       'date': _dateLabel(matchDate),
       'matchDate': matchDate,
       'time': startTime,
@@ -644,8 +657,13 @@ class PlayerMatchService {
       'distance': distance,
       'friendsIn': 0,
       'isOpen': true,
-      'isAdmin': _string(raw['admin_id']) == currentUserId,
-      'adminId': _string(raw['admin_id']),
+        'isAdmin': (_string(raw['admin_id']).isNotEmpty
+            ? _string(raw['admin_id'])
+            : _string(admin['id'])) ==
+          currentUserId,
+        'adminId': _string(raw['admin_id']).isNotEmpty
+          ? _string(raw['admin_id'])
+          : _string(admin['id']),
       'priceNPR': _toInt(raw['price']) > 0
           ? _toInt(raw['price']).toString()
           : _toInt(raw['priceNPR']).toString(),
@@ -659,7 +677,9 @@ class PlayerMatchService {
         'address': venueAddress,
       },
       'court': {
-        'name': _string(raw['courtName']),
+        'name': _string(raw['courtName']).isNotEmpty
+            ? _string(raw['courtName'])
+            : _string(court['name']),
         'court_type': _string(raw['courtType']),
         'surface': _string(raw['courtSurface']),
       },

@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/design_system/app_spacing.dart';
 import '../../core/painters/field_painter.dart';
@@ -236,7 +235,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _isSubmitting = true);
     try {
-      await _matchService.joinMatch(
+      await _matchService.requestToJoinMatch(
         matchId: _matchId,
         position: _selectedPosition,
       );
@@ -697,10 +696,11 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                           ),
                           child: Text(
                             'Copy Link',
-                            style: TextStyle(
-                              color: AppColors.bgPrimary,
-                              fontWeight: AppTextStyles.semiBold,
-                            ),
+                            style: AppTypography.textTheme(
+                        Theme.of(context).colorScheme,
+                      ).labelLarge?.copyWith(
+                        color: AppColors.bgPrimary,
+                      ),
                           ),
                         ),
                       ],
@@ -708,7 +708,9 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                   ),
                   const SizedBox(height: 20),
                   if (_isAdmin) ...[
-                    Text('Admin Tools', style: AppText.h3),
+                    Text('Admin Tools', style: AppTypography.textTheme(
+                        Theme.of(context).colorScheme,
+                      ).headlineMedium),
                     const SizedBox(height: 12),
                     FutsCard(
                       child: Column(
@@ -765,7 +767,9 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                     const SizedBox(height: 20),
                   ],
                   if (_pendingMembers.isNotEmpty && _isAdmin) ...[
-                    Text('Pending Requests', style: AppText.h3),
+                    Text('Pending Requests', style: AppTypography.textTheme(
+                        Theme.of(context).colorScheme,
+                      ).headlineMedium),
                     const SizedBox(height: 12),
                     ..._pendingMembers.map(
                       (member) => Padding(
@@ -805,9 +809,13 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(member['name']?.toString() ?? '-',
-                                        style: AppText.bodySm),
+                                        style: AppTypography.textTheme(
+                        Theme.of(context).colorScheme,
+                      ).bodyMedium),
                                     Text(member['position']?.toString() ?? '-',
-                                        style: AppText.label),
+                                        style: AppTypography.textTheme(
+                        Theme.of(context).colorScheme,
+                      ).bodySmall),
                                   ],
                                 ),
                               ),
@@ -816,15 +824,24 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                                     ? null
                                     : () => _approveMember(
                                         member['id']?.toString() ?? ''),
-                                child: const Text('Approve'),
+                                child: Text(
+                                  'Approve',
+                                  style: AppTypography.textTheme(
+                        Theme.of(context).colorScheme,
+                      ).bodyMedium,
+                                ),
                               ),
                               TextButton(
                                 onPressed: _isSubmitting
                                     ? null
                                     : () => _rejectMember(
                                         member['id']?.toString() ?? ''),
-                                child: Text('Reject',
-                                    style: TextStyle(color: AppColors.red)),
+                                child: Text(
+                                  'Reject',
+                                  style: AppTypography.textTheme(
+                        Theme.of(context).colorScheme,
+                      ).bodyMedium?.copyWith(color: AppColors.red),
+                                ),
                               ),
                             ],
                           ),
@@ -898,9 +915,10 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                                 ),
                                 child: Text(
                                   label,
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 15,
-                                    fontWeight: AppTextStyles.semiBold,
+                                  style: AppTypography.textTheme(
+                        Theme.of(context).colorScheme,
+                      ).bodyMedium?.copyWith(
+                                    fontWeight: AppFontWeights.semiBold,
                                     color: isSelected
                                         ? AppColors.bgPrimary
                                         : AppColors.txtDisabled,
@@ -958,9 +976,13 @@ class _StatCol extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(value, style: AppText.h2.copyWith(color: color)),
+          Text(value, style: AppTypography.textTheme(
+                        Theme.of(context).colorScheme,
+                      ).headlineMedium?.copyWith(color: color)),
           const SizedBox(height: 3),
-          Text(label, style: AppText.label),
+          Text(label, style: AppTypography.textTheme(
+                        Theme.of(context).colorScheme,
+                      ).bodySmall),
         ],
       ),
     );
@@ -1004,18 +1026,23 @@ class _TeamColumn extends StatelessWidget {
                 child: Center(
                   child: Text(
                     team,
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      fontWeight: AppTextStyles.semiBold,
-                      color: color,
-                    ),
+                    style: AppTypography.textTheme(
+                        Theme.of(context).colorScheme,
+                      ).bodySmall?.copyWith(
+                        fontWeight: AppFontWeights.semiBold,
+                        color: color,
+                      ),
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              Text('Team $team', style: AppText.h3.copyWith(fontSize: 16)),
+              Text('Team $team', style: AppTypography.textTheme(
+                        Theme.of(context).colorScheme,
+                      ).headlineMedium?.copyWith(fontSize: 16)),
               const Spacer(),
-              Text('${members.length}/5', style: AppText.label),
+              Text('${members.length}/5', style: AppTypography.textTheme(
+                        Theme.of(context).colorScheme,
+                      ).bodySmall),
             ],
           ),
           const SizedBox(height: 8),
