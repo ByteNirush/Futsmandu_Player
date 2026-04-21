@@ -36,7 +36,7 @@ class _HomeShellState extends State<HomeShell> {
     _NavItem(
         icon: Icons.explore_outlined,
         activeIcon: Icons.explore_rounded,
-        label: 'Discover'),
+        label: 'Explore'),
     _NavItem(
         icon: Icons.person_outline_rounded,
         activeIcon: Icons.person_rounded,

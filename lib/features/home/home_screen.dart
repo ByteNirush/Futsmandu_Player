@@ -103,7 +103,7 @@ class _MatchMiniCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.only(right: AppSpacing.xs2),
         child: Material(
-          color: Colors.transparent,
+          color: colorScheme.surface.withValues(alpha: 0),
           borderRadius: BorderRadius.circular(16),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
@@ -151,11 +151,14 @@ class _MatchMiniCard extends StatelessWidget {
                 Container(
                   width: double.infinity,
                   height: double.infinity,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Color(0xD9000000)],
+                      colors: [
+                        colorScheme.surface.withValues(alpha: 0),
+                        colorScheme.scrim.withValues(alpha: 0.85),
+                      ],
                       stops: [0.3, 1.0],
                     ),
                   ),
@@ -177,7 +180,7 @@ class _MatchMiniCard extends StatelessWidget {
                       Text(
                         match['venueName'] as String? ?? '',
                         style: textTheme.labelLarge?.copyWith(
-                          color: Colors.white,
+                          color: colorScheme.onPrimary,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -186,14 +189,14 @@ class _MatchMiniCard extends StatelessWidget {
                           Icon(
                             Icons.access_time,
                             size: 11,
-                            color: Colors.white.withValues(alpha: 0.7),
+                            color: colorScheme.onPrimary.withValues(alpha: 0.7),
                           ),
                           const SizedBox(width: AppSpacing.xxs),
                           Flexible(
                             child: Text(
                               '${match['time']} · ${match['distance']}',
                               style: textTheme.labelSmall?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.7),
+                                color: colorScheme.onPrimary.withValues(alpha: 0.7),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -389,7 +392,7 @@ class _TopFutsalCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.only(right: AppSpacing.xs2),
         child: Material(
-          color: Colors.transparent,
+          color: colorScheme.surface.withValues(alpha: 0),
           borderRadius: BorderRadius.circular(16),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
@@ -430,7 +433,7 @@ class _TopFutsalCard extends StatelessWidget {
                 ),
 
                 // Gradient overlay
-                const SizedBox(
+                SizedBox(
                   width: 220,
                   height: 140,
                   child: DecoratedBox(
@@ -438,7 +441,10 @@ class _TopFutsalCard extends StatelessWidget {
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [Color(0x1A000000), Color(0xCC000000)],
+                        colors: [
+                          colorScheme.scrim.withValues(alpha: 0.10),
+                          colorScheme.scrim.withValues(alpha: 0.80),
+                        ],
                       ),
                     ),
                   ),
@@ -455,7 +461,7 @@ class _TopFutsalCard extends StatelessWidget {
                       Text(
                         venue['name'] as String? ?? '',
                         style: textTheme.labelLarge?.copyWith(
-                          color: Colors.white,
+                          color: colorScheme.onPrimary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -473,7 +479,7 @@ class _TopFutsalCard extends StatelessWidget {
                             child: Text(
                               '${venue['rating']}${venue['distance'] != null && venue['distance'].toString().isNotEmpty ? '  ·  ${venue['distance']}' : ''}',
                               style: textTheme.labelSmall?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.90),
+                                color: colorScheme.onPrimary.withValues(alpha: 0.9),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -522,9 +528,11 @@ class _HomeScreenState extends State<HomeScreen> {
   // Search state
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final GlobalKey _searchFieldKey = GlobalKey();
   List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
   bool _showSearchResults = false;
+  double _searchDropdownTop = 0;
   Timer? _searchDebounce;
 
   @override
@@ -648,6 +656,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _updateSearchDropdownPosition() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final renderBox = _searchFieldKey.currentContext?.findRenderObject() as RenderBox?;
+      if (renderBox != null) {
+        final position = renderBox.localToGlobal(Offset.zero);
+        final dropdownTop = position.dy + renderBox.size.height;
+        if (_searchDropdownTop != dropdownTop) {
+          setState(() => _searchDropdownTop = dropdownTop);
+        }
+      }
+    });
+  }
+
   Future<void> _performSearch(String query) async {
     try {
       final results = await PlayerVenuesService.instance.browseVenues(
@@ -707,11 +729,18 @@ class _HomeScreenState extends State<HomeScreen> {
     final Map<String, dynamic>? upcomingBooking =
         _upcomingBookings.isNotEmpty ? _upcomingBookings.first : null;
 
+    // Calculate dropdown position when showing results
+    if (_showSearchResults) {
+      _updateSearchDropdownPosition();
+    }
+
     return Scaffold(
       // scaffoldBackgroundColor is applied automatically from the theme.
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
+        child: Stack(
+          children: [
+            CustomScrollView(
+              slivers: [
             // ── Email nudge banner ──────────────────────────────────────────
             if (!isVerified)
               const SliverToBoxAdapter(child: _EmailNudgeBanner()),
@@ -850,6 +879,7 @@ class _HomeScreenState extends State<HomeScreen> {
             // ── Search field ────────────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
+                key: _searchFieldKey,
                 padding: const EdgeInsets.fromLTRB(
                   AppSpacing.sm,
                   AppSpacing.md,
@@ -859,6 +889,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: TextField(
                   controller: _searchController,
                   focusNode: _searchFocusNode,
+                  onTap: _updateSearchDropdownPosition,
                   onChanged: _onSearchChanged,
                   decoration: InputDecoration(
                     hintText: 'Search venues...',
@@ -894,128 +925,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
-            // ── Search results ──────────────────────────────────────────────
-            if (_showSearchResults)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.sm,
-                    AppSpacing.xs,
-                    AppSpacing.sm,
-                    0,
-                  ),
-                  child: Material(
-                    color: colorScheme.surface,
-                    borderRadius: BorderRadius.circular(AppSpacing.xs2),
-                    clipBehavior: Clip.antiAlias,
-                    elevation: 2,
-                    child: _isSearching
-                        ? const Padding(
-                            padding: EdgeInsets.all(AppSpacing.md),
-                            child: Center(
-                              child: SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                            ),
-                          )
-                        : _searchResults.isEmpty
-                            ? Padding(
-                                padding: const EdgeInsets.all(AppSpacing.md),
-                                child: Text(
-                                  'No venues found',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              )
-                            : ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: _searchResults.length,
-                                separatorBuilder: (_, __) => const Divider(
-                                  height: 1,
-                                  indent: AppSpacing.sm,
-                                  endIndent: AppSpacing.sm,
-                                ),
-                                itemBuilder: (context, index) {
-                                  final venue = _searchResults[index];
-                                  return ListTile(
-                                    dense: true,
-                                    leading: venue['coverUrl'] != null
-                                        ? ClipRRect(
-                                            borderRadius: BorderRadius.circular(4),
-                                            child: CachedNetworkImage(
-                                              imageUrl: venue['coverUrl'] as String,
-                                              width: 40,
-                                              height: 40,
-                                              fit: BoxFit.cover,
-                                              placeholder: (_, __) => Container(
-                                                width: 40,
-                                                height: 40,
-                                                color: colorScheme.onSurface
-                                                    .withValues(alpha: 0.08),
-                                              ),
-                                              errorWidget: (_, __, ___) => Container(
-                                                width: 40,
-                                                height: 40,
-                                                color: colorScheme.onSurface
-                                                    .withValues(alpha: 0.08),
-                                                child: Icon(
-                                                  Icons.broken_image_outlined,
-                                                  size: 20,
-                                                  color: colorScheme.onSurfaceVariant,
-                                                ),
-                                              ),
-                                            ),
-                                          )
-                                        : Icon(
-                                            Icons.sports_soccer,
-                                            color: colorScheme.primary,
-                                          ),
-                                    title: Text(
-                                      venue['name']?.toString() ?? 'Unknown',
-                                      style: textTheme.bodyMedium?.copyWith(
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    subtitle: venue['rating'] != null
-                                        ? Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.star,
-                                                size: 14,
-                                                color: AppColors.warning,
-                                              ),
-                                              const SizedBox(width: 2),
-                                              Text(
-                                                '${venue['rating']}',
-                                                style: textTheme.bodySmall?.copyWith(
-                                                  color: colorScheme.onSurfaceVariant,
-                                                ),
-                                              ),
-                                            ],
-                                          )
-                                        : null,
-                                    trailing: Icon(
-                                      Icons.chevron_right,
-                                      color: colorScheme.onSurfaceVariant,
-                                      size: 20,
-                                    ),
-                                    onTap: () => _onVenueTap(venue),
-                                  );
-                                },
-                              ),
-                  ),
-                ),
-              ),
 
             // ── Top Venue section ───────────────────────────────────────────
             SliverToBoxAdapter(
@@ -1244,6 +1153,128 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
+          ],
+            ),
+            // ── Search results overlay ──────────────────────────────────────
+            if (_showSearchResults)
+              Positioned(
+                left: AppSpacing.sm,
+                right: AppSpacing.sm,
+                top: _searchDropdownTop - MediaQuery.of(context).padding.top,
+                child: Material(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(AppSpacing.xs2),
+                  clipBehavior: Clip.antiAlias,
+                  elevation: 4,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 280),
+                    child: _isSearching
+                        ? const Padding(
+                            padding: EdgeInsets.all(AppSpacing.md),
+                            child: Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            ),
+                          )
+                        : _searchResults.isEmpty
+                            ? Padding(
+                                padding: const EdgeInsets.all(AppSpacing.md),
+                                child: Text(
+                                  'No venues found',
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              )
+                            : ListView.separated(
+                                shrinkWrap: true,
+                                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                                itemCount: _searchResults.length,
+                                separatorBuilder: (_, __) => const Divider(
+                                  height: 1,
+                                  indent: AppSpacing.sm,
+                                  endIndent: AppSpacing.sm,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final venue = _searchResults[index];
+                                  return ListTile(
+                                    dense: true,
+                                    leading: venue['coverUrl'] != null
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(4),
+                                            child: CachedNetworkImage(
+                                              imageUrl: venue['coverUrl'] as String,
+                                              width: 40,
+                                              height: 40,
+                                              fit: BoxFit.cover,
+                                              placeholder: (_, __) => Container(
+                                                width: 40,
+                                                height: 40,
+                                                color: colorScheme.onSurface
+                                                    .withValues(alpha: 0.08),
+                                              ),
+                                              errorWidget: (_, __, ___) => Container(
+                                                width: 40,
+                                                height: 40,
+                                                color: colorScheme.onSurface
+                                                    .withValues(alpha: 0.08),
+                                                child: Icon(
+                                                  Icons.broken_image_outlined,
+                                                  size: 20,
+                                                  color: colorScheme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                        : Icon(
+                                            Icons.sports_soccer,
+                                            color: colorScheme.primary,
+                                          ),
+                                    title: Text(
+                                      venue['name']?.toString() ?? 'Unknown',
+                                      style: textTheme.bodyMedium?.copyWith(
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    subtitle: venue['rating'] != null
+                                        ? Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(
+                                                Icons.star,
+                                                size: 14,
+                                                color: AppColors.warning,
+                                              ),
+                                              const SizedBox(width: 2),
+                                              Text(
+                                                '${venue['rating']}',
+                                                style: textTheme.bodySmall?.copyWith(
+                                                  color: colorScheme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : null,
+                                    trailing: Icon(
+                                      Icons.chevron_right,
+                                      color: colorScheme.onSurfaceVariant,
+                                      size: 20,
+                                    ),
+                                    onTap: () => _onVenueTap(venue),
+                                  );
+                                },
+                              ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
