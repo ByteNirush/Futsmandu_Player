@@ -174,12 +174,33 @@ class PlayerVenuesService {
     final courts =
         _asMapList(raw['courts']).map(_mapCourtSummary).toList(growable: false);
 
+    // Parse address as object (street, city, district) like owner app
+    final addressRaw = raw['address'];
+    String displayAddress;
+    String street = '';
+    String city = '';
+    String district = '';
+    if (addressRaw is Map) {
+      street = _string(addressRaw['street']);
+      city = _string(addressRaw['city']);
+      district = _string(addressRaw['district']);
+      displayAddress = '$street, $city, $district'.replaceAll(RegExp(r'^,\s*|,\s*$'), '').trim();
+      if (displayAddress.isEmpty && addressRaw['formatted'] is String) {
+        displayAddress = addressRaw['formatted'] as String;
+      }
+    } else {
+      displayAddress = _string(addressRaw);
+    }
+
     return {
       'id': _string(raw['id']),
       'name': _string(raw['name']),
       'slug': _string(raw['slug']),
       'description': _string(raw['description']),
-      'address': _string(raw['address']),
+      'address': displayAddress,
+      'addressStreet': street,
+      'addressCity': city,
+      'addressDistrict': district,
       'lat': _toDouble(raw['latitude']),
       'lng': _toDouble(raw['longitude']),
       'coverUrl': _string(raw['cover_image_url']),
@@ -275,7 +296,9 @@ class PlayerVenuesService {
 
   String _normalizeSlotStatus(String status) {
     final normalized = status.toUpperCase();
-    if (normalized == 'AVAILABLE') return 'AVAILABLE';
+    if (normalized == 'AVAILABLE' || normalized == 'OPEN_TO_JOIN') {
+      return normalized;
+    }
     return 'UNAVAILABLE';
   }
 

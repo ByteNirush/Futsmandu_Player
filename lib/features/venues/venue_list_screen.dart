@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -23,10 +21,8 @@ class VenueListScreen extends ConsumerStatefulWidget {
 class _VenueListScreenState extends ConsumerState<VenueListScreen> {
   final ScrollController _scrollController = ScrollController();
 
-  String _search = '';
   String _activeFilter = 'All';
   _VenueViewMode _viewMode = _VenueViewMode.list;
-  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -37,7 +33,6 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
-    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -49,23 +44,8 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
     }
   }
 
-  void _onSearchChanged(String value) {
-    setState(() => _search = value.trim());
-    _searchDebounce?.cancel();
-    _searchDebounce = Timer(
-      const Duration(milliseconds: 400),
-      () => ref.read(venueDiscoveryControllerProvider.notifier).search(_search),
-    );
-  }
-
   List<Map<String, dynamic>> _filteredFrom(List<Map<String, dynamic>> venues) {
     return venues.where((v) {
-      if (_search.isNotEmpty) {
-        final nameMatches =
-            (v['name'] as String).toLowerCase().contains(_search.toLowerCase());
-        if (!nameMatches) return false;
-      }
-
       if (_activeFilter == 'All') return true;
       if (_activeFilter == 'Near Me') return true;
       if (_activeFilter == 'Verified') return v['isVerified'] == true;
@@ -173,10 +153,9 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
       BuildContext context, List<Map<String, dynamic>> filtered) {
     final bottomInset = MediaQuery.of(context).padding.bottom;
     final theme = context.appTheme;
+    final colorScheme = theme.colorScheme;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.xs),
-      child: Stack(
+    return Stack(
         clipBehavior: Clip.none,
         fit: StackFit.expand,
         children: [
@@ -189,46 +168,41 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
             ),
           ),
           Positioned(
-            top: AppSpacing.sm,
+            top: AppSpacing.md,
             left: AppSpacing.pagePadding,
             right: AppSpacing.pagePadding,
-            child: _SearchPanel(
-              onSearchChanged: _onSearchChanged,
-            ),
-          ),
-          Positioned(
-            top: 80,
-            left: 0,
-            right: 0,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    theme.scaffoldBackgroundColor.withValues(alpha: 0.92),
-                    theme.scaffoldBackgroundColor.withValues(alpha: 0),
-                  ],
-                ),
-              ),
-              child: FilterChipRow(
-                options: const [
-                  'All',
-                  'Near Me',
-                  'Turf',
-                  'Indoor',
-                  '5v5',
-                  '7v7',
-                  'Verified'
+                color: theme.scaffoldBackgroundColor.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(AppTheme.radiusM),
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.shadow.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
                 ],
-                selected: _activeFilter,
-                onSelected: (v) => setState(() => _activeFilter = v),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                child: FilterChipRow(
+                  options: const [
+                    'All',
+                    'Near Me',
+                    'Turf',
+                    'Indoor',
+                    '5v5',
+                    '7v7',
+                    'Verified'
+                  ],
+                  selected: _activeFilter,
+                  onSelected: (v) => setState(() => _activeFilter = v),
+                ),
               ),
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildListBody(
@@ -246,18 +220,10 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.pagePadding,
-              AppSpacing.sm,
+              AppSpacing.md,
               AppSpacing.pagePadding,
               AppSpacing.md,
             ),
-            child: _SearchPanel(
-              onSearchChanged: _onSearchChanged,
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
             child: FilterChipRow(
               options: const [
                 'All',
@@ -275,16 +241,21 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.pagePadding,
-              vertical: AppSpacing.xs,
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.pagePadding,
+              0,
+              AppSpacing.pagePadding,
+              AppSpacing.sm,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${filtered.length} matches',
-                  style: theme.textTheme.headlineSmall,
+                  '${filtered.length} court${filtered.length == 1 ? '' : 's'}',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 FilledButton.tonalIcon(
                   onPressed: () {},
@@ -293,6 +264,7 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
                   label: const Text('Sort'),
                   style: FilledButton.styleFrom(
                     visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppTheme.radiusM),
                     ),
@@ -433,7 +405,14 @@ class _VenueCard extends StatelessWidget {
           : BoxDecoration(
               color: colorScheme.surface,
               borderRadius: radius,
-              border: Border.all(color: colorScheme.outlineVariant),
+              border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+              boxShadow: [
+                BoxShadow(
+                  color: colorScheme.shadow.withValues(alpha: 0.04),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
       child: Material(
         color: Colors.transparent,
@@ -446,7 +425,7 @@ class _VenueCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
-                height: 136,
+                height: 152,
                 child: CachedNetworkImage(
                   imageUrl: venue['coverUrl'] ?? '',
                   fit: BoxFit.cover,
@@ -455,7 +434,7 @@ class _VenueCard extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(AppSpacing.cardPadding),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -652,39 +631,3 @@ class _VenueCard extends StatelessWidget {
   }
 }
 
-class _SearchPanel extends StatelessWidget {
-  final ValueChanged<String> onSearchChanged;
-
-  const _SearchPanel({required this.onSearchChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.appTheme;
-
-    return TextField(
-      onChanged: onSearchChanged,
-      decoration: InputDecoration(
-        hintText: 'Search by venue name...',
-        prefixIcon: const Icon(Icons.search_rounded),
-        filled: true,
-        fillColor: theme.colorScheme.surfaceContainerHigh,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusM),
-          borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusM),
-          borderSide: BorderSide(color: theme.colorScheme.outlineVariant),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppTheme.radiusM),
-          borderSide: BorderSide(color: theme.colorScheme.primary),
-        ),
-      ),
-    );
-  }
-}

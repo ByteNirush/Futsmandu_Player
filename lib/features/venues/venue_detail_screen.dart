@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
 import '../../shared/widgets/futs_button.dart';
 import 'data/services/player_venues_service.dart';
 
@@ -30,7 +30,6 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   final PlayerVenuesService _venuesService = PlayerVenuesService.instance;
   final ScrollController _detailScrollController = ScrollController();
 
-  static const double _spaceXs = 4;
   static const double _spaceSm = 8;
   static const double _spaceMd = 12;
   static const double _spaceLg = 16;
@@ -46,11 +45,32 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   bool _showCollapsedTitle = false;
 
   final Map<String, IconData> _amenityIcons = {
-    'Parking': Icons.local_parking,
+    'Parking': Icons.local_parking_rounded,
     'Changing Room': Icons.checkroom_outlined,
     'Floodlights': Icons.highlight_outlined,
     'Cafeteria': Icons.restaurant_outlined,
+    'Wifi': Icons.wifi_rounded,
+    'Restroom': Icons.wc_outlined,
+    'Shower': Icons.shower_outlined,
+    'Seating': Icons.chair_rounded,
+    'Lights': Icons.light_rounded,
+    'Equipment': Icons.sports_rounded,
+    'Water': Icons.water_drop_outlined,
   };
+
+  IconData _getAmenityIcon(String amenity) {
+    final lower = amenity.toLowerCase();
+    if (lower.contains('park')) return Icons.local_parking_rounded;
+    if (lower.contains('wifi') || lower.contains('internet')) return Icons.wifi_rounded;
+    if (lower.contains('food') || lower.contains('cafe') || lower.contains('restaurant')) return Icons.restaurant_rounded;
+    if (lower.contains('seating') || lower.contains('lounge')) return Icons.chair_rounded;
+    if (lower.contains('light') || lower.contains('flood')) return Icons.light_rounded;
+    if (lower.contains('shoe') || lower.contains('equipment')) return Icons.sports_rounded;
+    if (lower.contains('water') || lower.contains('drink')) return Icons.water_drop_outlined;
+    if (lower.contains('restroom') || lower.contains('toilet') || lower.contains('changing')) return Icons.wc_outlined;
+    if (lower.contains('shower')) return Icons.shower_outlined;
+    return _amenityIcons[amenity] ?? Icons.check_circle_rounded;
+  }
 
   @override
   void initState() {
@@ -151,6 +171,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (sheetContext) {
+        final sheetColorScheme = Theme.of(sheetContext).colorScheme;
         return StatefulBuilder(
           builder: (context, setSheetState) {
             return Padding(
@@ -164,7 +185,10 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Write Review', style: AppText.h3),
+                  Text(
+                    'Write Review',
+                    style: AppTypography.subHeading(context, sheetColorScheme),
+                  ),
                   const SizedBox(height: AppSpacing.sm),
                   TextField(
                     controller: bookingIdController,
@@ -177,14 +201,18 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Your rating', style: AppText.bodySm),
+                      Text(
+                        'Your rating',
+                        style: AppTypography.caption(context, sheetColorScheme),
+                      ),
                       const SizedBox(width: AppSpacing.xs),
                       Text(
                         '$rating/5 - ${ratingLabels[rating - 1]}',
-                        style: AppText.bodySm.copyWith(
-                          color: AppColors.warning,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: AppTypography.caption(context, sheetColorScheme)
+                            .copyWith(
+                              color: AppColors.warning,
+                              fontWeight: AppFontWeights.bold,
+                            ),
                       ),
                     ],
                   ),
@@ -192,8 +220,10 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   Center(
                     child: Text(
                       'Tap a star to rate your experience',
-                      style: AppText.bodySm.copyWith(
-                        color: AppColors.txtDisabled,
+                      style: AppTypography.caption(
+                        context,
+                        sheetColorScheme,
+                        color: sheetColorScheme.onSurfaceVariant,
                       ),
                     ),
                   ),
@@ -322,7 +352,11 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                 Text(
                   _errorMessage ?? 'Could not load venue details.',
                   textAlign: TextAlign.center,
-                  style: AppText.body.copyWith(color: AppColors.txtDisabled),
+                  style: AppTypography.body(
+                    context,
+                    Theme.of(context).colorScheme,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 ElevatedButton(
@@ -476,28 +510,6 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: _spaceSm),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.place_rounded,
-                        size: 18,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(width: _spaceSm),
-                      Expanded(
-                        child: Text(
-                          venue['address'],
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: _spaceMd),
                   Wrap(
                     spacing: _spaceSm,
@@ -546,45 +558,75 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.place_rounded,
-                                size: 18, color: colorScheme.primary),
-                            const SizedBox(width: _spaceSm),
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.location_on_rounded,
+                                size: 24,
+                                color: colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: _spaceMd),
                             Expanded(
-                              child: Text(
-                                venue['address'] ?? '',
-                                style: textTheme.bodyMedium?.copyWith(
-                                    color: colorScheme.onSurfaceVariant),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    venue['address'] ?? '',
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      color: colorScheme.onSurface,
+                                    ),
+                                  ),
+                                  if ((venue['addressCity'] ?? '').isNotEmpty ||
+                                      (venue['addressDistrict'] ?? '').isNotEmpty) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${venue['addressCity'] ?? ''}, ${venue['addressDistrict'] ?? ''}',
+                                      style: textTheme.bodySmall?.copyWith(
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
                           ],
                         ),
                         if (venue['latitude'] != null &&
                             venue['longitude'] != null) ...[
-                          const SizedBox(height: _spaceSm),
-                          GestureDetector(
-                            onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content:
-                                        Text('Maps integration coming soon')),
-                              );
-                            },
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.map_outlined,
-                                    size: 15, color: colorScheme.primary),
-                                const SizedBox(width: _spaceXs),
-                                Text(
-                                  'View on map',
-                                  style: textTheme.labelMedium?.copyWith(
-                                    color: colorScheme.primary,
-                                    decoration: TextDecoration.underline,
-                                    decorationColor: colorScheme.primary,
-                                  ),
+                          const SizedBox(height: _spaceMd),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.my_location_outlined,
+                                size: 16,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: _spaceSm),
+                              Text(
+                                'Lat: ${(venue['latitude'] as num).toStringAsFixed(6)}',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
-                              ],
-                            ),
+                              ),
+                              const SizedBox(width: _spaceLg),
+                              Icon(
+                                Icons.my_location_outlined,
+                                size: 16,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: _spaceSm),
+                              Text(
+                                'Lng: ${(venue['longitude'] as num).toStringAsFixed(6)}',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ],
@@ -632,7 +674,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                _amenityIcons[amenity] ?? Icons.circle,
+                                _getAmenityIcon(amenity),
                                 size: 15,
                                 color: colorScheme.primary,
                               ),
