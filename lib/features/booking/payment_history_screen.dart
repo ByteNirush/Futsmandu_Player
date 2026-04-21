@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
@@ -234,8 +233,7 @@ class _PaymentHistoryCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(gatewayLabel,
-                    style: GoogleFonts.poppins(
-                      fontSize: 11,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       fontWeight: AppTextStyles.semiBold,
                       color: AppColors.txtDisabled,
                     )),

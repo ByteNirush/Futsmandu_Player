@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
@@ -51,6 +50,11 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
         _scrollController.position.maxScrollExtent - 240) {
       ref.read(bookingHistoryControllerProvider.notifier).loadMore();
     }
+  }
+
+  bool _isCancellableStatus(String? status) {
+    final normalized = (status ?? '').toUpperCase();
+    return normalized == 'CONFIRMED' || normalized == 'HELD';
   }
 
   Future<void> _showCancelSheet(BookingHistoryItem booking) async {
@@ -276,6 +280,8 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
             final payment = booking['payment'] is Map
                 ? (booking['payment'] as Map).cast<String, dynamic>()
                 : const <String, dynamic>{};
+            final isCancellable =
+                _isCancellableStatus(booking['status']?.toString());
 
             return SafeArea(
               child: Padding(
@@ -316,6 +322,43 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
                     _DetailRow(
                         'Gateway', payment['gateway']?.toString() ?? '-'),
                     const SizedBox(height: AppSpacing.md),
+                    if (isCancellable) ...[
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.red,
+                          foregroundColor:
+                              Theme.of(sheetContext).colorScheme.onError,
+                        ),
+                        onPressed: () {
+                          Navigator.pop(sheetContext);
+                          final item = BookingHistoryItem.fromMap({
+                            'id': booking['id'],
+                            'status': booking['status'],
+                            'date': _dateForCard(booking),
+                            'time': _timeForCard(booking),
+                            'duration': _durationForCard(booking),
+                            'priceNPR': _priceForCard(booking),
+                            'displayAmount': booking['displayAmount'],
+                            'venueName': _venueNameForCard(booking, venue),
+                            'courtName': _courtNameForCard(booking, court),
+                            'startTime': booking['start_time'],
+                            'endTime': booking['end_time'],
+                            'bookingDate': booking['booking_date'],
+                            'refundStatus': booking['refund_status'],
+                            'refundAmount': booking['refund_amount'],
+                            'holdExpiresAt': booking['hold_expires_at'],
+                            'paymentGateway': payment['gateway'],
+                            'paymentStatus': payment['status'],
+                            'venueAddress': venue['address'],
+                            'venueId': venue['id'],
+                            'courtId': court['id'],
+                          });
+                          _showCancelSheet(item);
+                        },
+                        child: const Text('Cancel Booking'),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                    ],
                     OutlinedButton(
                       onPressed: () => Navigator.pop(sheetContext),
                       child: const Text('Close'),
@@ -444,11 +487,30 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
         }
 
         final booking = state.items[index];
+        final isCancellable = _isCancellableStatus(booking.status);
         return _BookingCard(
           booking: booking.toMap(),
           onTap: () => _showBookingDetail(booking.id),
-          onCancel: booking.status == 'CONFIRMED'
+          onCancel: isCancellable
               ? () => _showCancelSheet(booking)
+              : null,
+          onJoin: booking.status == 'OPEN_TO_JOIN'
+              ? () async {
+                  try {
+                    await ref
+                        .read(bookingHistoryControllerProvider.notifier)
+                        .joinBooking(bookingId: booking.id);
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Joined booking slot')),
+                    );
+                  } catch (error) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(error.toString())),
+                    );
+                  }
+                }
               : null,
         );
       },
@@ -461,11 +523,13 @@ class _BookingCard extends StatelessWidget {
     required this.booking,
     required this.onTap,
     required this.onCancel,
+    required this.onJoin,
   });
 
   final Map<String, dynamic> booking;
   final VoidCallback onTap;
   final VoidCallback? onCancel;
+  final VoidCallback? onJoin;
 
   @override
   Widget build(BuildContext context) {
@@ -489,7 +553,7 @@ class _BookingCard extends StatelessWidget {
                     children: [
                       Text(
                         booking['venueName']?.toString() ?? '-',
-                        style: AppText.h3.copyWith(fontSize: 16),
+                        style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 2),
                       Text(booking['courtName']?.toString() ?? '-',
@@ -523,13 +587,31 @@ class _BookingCard extends StatelessWidget {
               children: [
                 Text(
                   amount,
-                  style: GoogleFonts.poppins(
-                    fontSize: 18,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: AppTextStyles.semiBold,
                     color: AppColors.txtPrimary,
                   ),
                 ),
                 const Spacer(),
+                if (onJoin != null)
+                  SizedBox(
+                    height: 34,
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: AppColors.green),
+                        foregroundColor: AppColors.green,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      ),
+                      onPressed: onJoin,
+                      child: const Text('Join'),
+                    ),
+                  ),
+                if (onCancel != null && onJoin != null)
+                  const SizedBox(width: AppSpacing.xs),
                 if (onCancel != null)
                   SizedBox(
                     height: 34,
@@ -544,7 +626,7 @@ class _BookingCard extends StatelessWidget {
                         ),
                       ),
                       onPressed: onCancel,
-                      child: const Text('Cancel'),
+                      child: const Text('Cancel Booking'),
                     ),
                   ),
               ],
@@ -554,6 +636,56 @@ class _BookingCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _dateForCard(Map<String, dynamic> booking) {
+  final value = booking['date']?.toString() ?? '';
+  if (value.isNotEmpty) return value;
+  return booking['booking_date']?.toString() ?? '-';
+}
+
+String _timeForCard(Map<String, dynamic> booking) {
+  final value = booking['time']?.toString() ?? '';
+  if (value.isNotEmpty) return value;
+  final start = booking['start_time']?.toString() ?? '';
+  final end = booking['end_time']?.toString() ?? '';
+  if (start.isEmpty && end.isEmpty) return '-';
+  if (end.isEmpty) return start;
+  return '$start - $end';
+}
+
+String _durationForCard(Map<String, dynamic> booking) {
+  final value = booking['duration']?.toString() ?? '';
+  if (value.isNotEmpty) return value;
+  return '-';
+}
+
+String _priceForCard(Map<String, dynamic> booking) {
+  final value = booking['priceNPR']?.toString() ?? '';
+  if (value.isNotEmpty) return value;
+  return booking['total_amount']?.toString() ?? '0';
+}
+
+String _venueNameForCard(
+  Map<String, dynamic> booking,
+  Map<String, dynamic> venue,
+) {
+  final name = booking['venueName']?.toString() ?? '';
+  if (name.isNotEmpty) return name;
+  final fromVenue = venue['name']?.toString() ?? '';
+  if (fromVenue.isNotEmpty) return fromVenue;
+  return '-';
+}
+
+String _courtNameForCard(
+  Map<String, dynamic> booking,
+  Map<String, dynamic> court,
+) {
+  final name = booking['courtName']?.toString() ?? '';
+  if (name.isNotEmpty) return name;
+  final fromCourt = court['name']?.toString() ?? '';
+  if (fromCourt.isNotEmpty) return fromCourt;
+  return '-';
 }
 
 class _Meta extends StatelessWidget {

@@ -168,6 +168,23 @@ class BookingHistoryController extends AsyncNotifier<BookingHistoryState> {
     return result;
   }
 
+  Future<void> joinBooking({required String bookingId}) async {
+    final repository = ref.read(bookingRepositoryProvider);
+    await repository.joinBooking(bookingId: bookingId);
+
+    final current = state.valueOrNull;
+    if (current != null) {
+      final updated = current.items.map((item) {
+        if (item.id != bookingId) return item;
+        return BookingHistoryItem.fromMap({
+          ...item.toMap(),
+          'status': 'CONFIRMED',
+        });
+      }).toList(growable: false);
+      state = AsyncData(current.copyWith(items: updated));
+    }
+  }
+
   String? _backendStatusFilter(String uiFilter) {
     switch (uiFilter) {
       case 'Confirmed':

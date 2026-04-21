@@ -5,7 +5,6 @@ import 'package:esewa_flutter/esewa_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/esewa_payment_config.dart';
@@ -497,9 +496,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                       const Spacer(),
                       Text(
                         amountLabel,
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          fontWeight: AppTextStyles.semiBold,
+                        style: AppTypography.textTheme(
+                          Theme.of(context).colorScheme,
+                        ).titleSmall?.copyWith(
+                          fontWeight: AppFontWeights.semiBold,
                           color: AppColors.green,
                         ),
                       ),
@@ -615,9 +615,10 @@ class _TimerPill extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             text,
-            style: GoogleFonts.poppins(
-              fontSize: 16,
-              fontWeight: AppTextStyles.semiBold,
+            style: AppTypography.textTheme(
+              Theme.of(context).colorScheme,
+            ).titleSmall?.copyWith(
+              fontWeight: AppFontWeights.semiBold,
               color: color,
             ),
           ),
@@ -702,10 +703,11 @@ class _PaymentCard extends StatelessWidget {
                     child: Center(
                       child: Text(
                         name,
-                        style: GoogleFonts.poppins(
-                          fontSize: 12,
+                        style: AppTypography.textTheme(
+                          Theme.of(context).colorScheme,
+                        ).labelMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: AppTextStyles.semiBold,
+                          fontWeight: AppFontWeights.semiBold,
                         ),
                       ),
                     ),

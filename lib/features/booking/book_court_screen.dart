@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:futsmandu_design_system/core/theme/app_typography.dart';
@@ -7,7 +6,6 @@ import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../venues/data/services/player_venues_service.dart';
 
@@ -559,36 +557,48 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                   color: AppColors.txtPrimary),
               rightChevronIcon: Icon(Icons.chevron_right_rounded,
                   color: AppColors.txtPrimary),
-              titleTextStyle: AppText.h3.copyWith(fontSize: 18),
+              titleTextStyle: AppTypography.textTheme(Theme.of(context).colorScheme)
+                  .titleLarge!
+                  .copyWith(fontSize: 18),
             ),
             daysOfWeekStyle: DaysOfWeekStyle(
-              weekdayStyle:
-                  AppText.label.copyWith(color: AppColors.txtDisabled),
-              weekendStyle:
-                  AppText.label.copyWith(color: AppColors.txtDisabled),
+              weekdayStyle: AppTypography.textTheme(Theme.of(context).colorScheme)
+                  .labelMedium!
+                  .copyWith(color: AppColors.txtDisabled),
+              weekendStyle: AppTypography.textTheme(Theme.of(context).colorScheme)
+                  .labelMedium!
+                  .copyWith(color: AppColors.txtDisabled),
             ),
             calendarStyle: CalendarStyle(
-              defaultTextStyle: AppText.bodySm,
-              weekendTextStyle: AppText.bodySm,
-              outsideTextStyle: AppText.label.copyWith(
-                color: AppColors.txtDisabled.withValues(alpha: 0.45),
-              ),
+              defaultTextStyle: AppTypography.textTheme(Theme.of(context).colorScheme)
+                  .bodyMedium!,
+              weekendTextStyle: AppTypography.textTheme(Theme.of(context).colorScheme)
+                  .bodyMedium!,
+              outsideTextStyle: AppTypography.textTheme(Theme.of(context).colorScheme)
+                  .bodySmall!
+                  .copyWith(
+                    color: AppColors.txtDisabled.withValues(alpha: 0.45),
+                  ),
               todayDecoration: BoxDecoration(
                 color: AppColors.green.withValues(alpha: 0.18),
                 shape: BoxShape.circle,
               ),
-              todayTextStyle: AppText.body.copyWith(
-                color: AppColors.green,
-                fontWeight: AppFontWeights.semiBold,
-              ),
+              todayTextStyle: AppTypography.textTheme(Theme.of(context).colorScheme)
+                  .bodyMedium!
+                  .copyWith(
+                    color: AppColors.green,
+                    fontWeight: AppFontWeights.semiBold,
+                  ),
               selectedDecoration: const BoxDecoration(
                 color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
-              selectedTextStyle: AppText.body.copyWith(
-                color: AppColors.bgPrimary,
-                fontWeight: AppFontWeights.semiBold,
-              ),
+              selectedTextStyle: AppTypography.textTheme(Theme.of(context).colorScheme)
+                  .bodyMedium!
+                  .copyWith(
+                    color: AppColors.bgPrimary,
+                    fontWeight: AppFontWeights.semiBold,
+                  ),
             ),
             onDaySelected: (selectedDay, focusedDay) {
               setState(() {
@@ -727,18 +737,19 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                         children: [
                           Text(
                             slot['time'],
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: AppFontWeights.semiBold,
-                              height: 1.2,
-                              color: isSelected
-                                  ? colorScheme.onPrimary
-                                  : isInRange
-                                      ? colorScheme.primary
-                                      : isUnavailable
-                                          ? colorScheme.error
-                                          : colorScheme.onSurface,
-                            ),
+                            style: AppTypography.textTheme(colorScheme)
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: AppFontWeights.semiBold,
+                                  height: 1.2,
+                                  color: isSelected
+                                      ? colorScheme.onPrimary
+                                      : isInRange
+                                          ? colorScheme.primary
+                                          : isUnavailable
+                                              ? colorScheme.error
+                                              : colorScheme.onSurface,
+                                ),
                           ),
                           const SizedBox(height: AppSpacing.xxs),
                           Text(
@@ -1039,13 +1050,14 @@ class _StepCircle extends StatelessWidget {
               size: 14, color: colorScheme.onPrimary)
           : Text(
               '$number',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isActive
-                    ? colorScheme.onPrimary
-                    : colorScheme.onSurfaceVariant,
-              ),
+              style: AppTypography.textTheme(colorScheme)
+                  .labelSmall
+                  ?.copyWith(
+                    fontWeight: AppFontWeights.semiBold,
+                    color: isActive
+                        ? colorScheme.onPrimary
+                        : colorScheme.onSurfaceVariant,
+                  ),
             ),
     );
   }
