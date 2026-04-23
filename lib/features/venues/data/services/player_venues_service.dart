@@ -222,10 +222,18 @@ class PlayerVenuesService {
         ? _asMap(raw['owner'])
         : const <String, dynamic>{};
 
+    // Map gallery images from API response
+    final galleryImages = _asMapList(raw['gallery_images']);
+    final galleryUrls = galleryImages
+        .map((img) => _string(img['signed_url'] ?? img['cdn_url'] ?? img['url']))
+        .where((url) => url.isNotEmpty)
+        .toList(growable: false);
+
     final venue = _mapVenueSummary(raw);
     venue['courts'] = courts;
     venue['reviews'] = reviews;
     venue['ownerPhone'] = _string(owner['phone']);
+    venue['galleryUrls'] = galleryUrls;
     return venue;
   }
 
