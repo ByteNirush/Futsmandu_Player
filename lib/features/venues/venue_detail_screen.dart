@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_theme.dart';
@@ -29,6 +28,7 @@ class VenueDetailScreen extends StatefulWidget {
 class _VenueDetailScreenState extends State<VenueDetailScreen> {
   final PlayerVenuesService _venuesService = PlayerVenuesService.instance;
   final ScrollController _detailScrollController = ScrollController();
+  late final PageController _pageController;
 
   static const double _spaceSm = 8;
   static const double _spaceMd = 12;
@@ -43,6 +43,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
 
   int _courtIdx = 0;
   bool _showCollapsedTitle = false;
+  int _currentImagePage = 0;
 
   final Map<String, IconData> _amenityIcons = {
     'Parking': Icons.local_parking_rounded,
@@ -76,6 +77,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   void initState() {
     super.initState();
     _detailScrollController.addListener(_onDetailScroll);
+    _pageController = PageController();
   }
 
   @override
@@ -83,7 +85,27 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
     _detailScrollController
       ..removeListener(_onDetailScroll)
       ..dispose();
+    _pageController.dispose();
     super.dispose();
+  }
+
+  /// Get list of images for carousel: cover image + any gallery images
+  List<String> get _carouselImages {
+    final images = <String>[];
+    final coverUrl = _venue?['coverUrl'] as String?;
+    if (coverUrl != null && coverUrl.isNotEmpty) {
+      images.add(coverUrl);
+    }
+    // Add gallery images if available (from API)
+    final galleryUrls = _venue?['galleryUrls'] as List<dynamic>?;
+    if (galleryUrls != null) {
+      for (final url in galleryUrls) {
+        if (url is String && url.isNotEmpty && !images.contains(url)) {
+          images.add(url);
+        }
+      }
+    }
+    return images;
   }
 
   void _onDetailScroll() {
@@ -443,30 +465,13 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
               ),
             ),
             flexibleSpace: FlexibleSpaceBar(
-              background: Stack(
-                children: [
-                  CachedNetworkImage(
-                    imageUrl: venue['coverUrl'],
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                  ),
-                  Container(
-                    width: double.infinity,
-                    height: double.infinity,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          colorScheme.scrim.withValues(alpha: 0.06),
-                          theme.scaffoldBackgroundColor.withValues(alpha: 0.98),
-                        ],
-                        stops: const [0.32, 1.0],
-                      ),
-                    ),
-                  ),
-                ],
+              background: _VenueCoverCarousel(
+                imageUrls: _carouselImages,
+                venueName: venue['name'] ?? '',
+                isVerified: isVerified,
+                pageController: _pageController,
+                currentPage: _currentImagePage,
+                onPageChanged: (page) => setState(() => _currentImagePage = page),
               ),
             ),
             actions: [
@@ -954,6 +959,235 @@ class _ReviewCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ============================================================================
+// _VenueCoverCarousel
+// Swipeable image slider for the venue details hero area.
+// • Shows cover image first, then any gallery images.
+// • Animated dot indicators + swipe gesture support.
+// • Image counter badge when multiple images.
+// • Gradient overlay for text readability.
+// ============================================================================
+
+class _VenueCoverCarousel extends StatelessWidget {
+  const _VenueCoverCarousel({
+    required this.imageUrls,
+    required this.venueName,
+    required this.isVerified,
+    required this.pageController,
+    required this.currentPage,
+    required this.onPageChanged,
+  });
+
+  final List<String> imageUrls;
+  final String venueName;
+  final bool isVerified;
+  final PageController pageController;
+  final int currentPage;
+  final ValueChanged<int> onPageChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final hasImages = imageUrls.isNotEmpty;
+    final multipleImages = imageUrls.length > 1;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // ── Page view with images ─────────────────────────────────────────
+        if (hasImages)
+          PageView.builder(
+            controller: pageController,
+            onPageChanged: onPageChanged,
+            itemCount: imageUrls.length,
+            itemBuilder: (context, index) {
+              final url = imageUrls[index];
+              return Image.network(
+                url,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+                loadingBuilder: (context, child, progress) {
+                  if (progress == null) return child;
+                  return Container(
+                    color: colorScheme.surfaceContainerHighest,
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        value: progress.expectedTotalBytes != null
+                            ? progress.cumulativeBytesLoaded /
+                                progress.expectedTotalBytes!
+                            : null,
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: colorScheme.surfaceContainerHighest,
+                  child: Center(
+                    child: Icon(
+                      Icons.image_not_supported_outlined,
+                      size: 48,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              );
+            },
+          )
+        else
+          // No images — show placeholder
+          Container(
+            color: colorScheme.primaryContainer,
+            child: Center(
+              child: Icon(
+                Icons.sports_soccer_rounded,
+                size: 80,
+                color: colorScheme.primary.withValues(alpha: 0.5),
+              ),
+            ),
+          ),
+
+        // ── Gradient overlay ───────────────────────────────────────────────
+        Positioned(
+          bottom: 0,
+          left: 0,
+          right: 0,
+          child: Container(
+            height: 160,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  colorScheme.scrim.withValues(alpha: 0.65),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        // ── Image counter badge (multi-image only) ─────────────────────────
+        if (multipleImages)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 60,
+            right: 16,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.photo_library_outlined,
+                    size: 14,
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${currentPage + 1} / ${imageUrls.length}',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // ── Dot indicators (multi-image only) ─────────────────────────────
+        if (multipleImages)
+          Positioned(
+            bottom: 16,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(imageUrls.length, (index) {
+                final isActive = index == currentPage;
+                return AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  width: isActive ? 20 : 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(3),
+                    color: isActive
+                        ? Colors.white
+                        : Colors.white.withValues(alpha: 0.45),
+                  ),
+                );
+              }),
+            ),
+          ),
+
+        // ── Left chevron (multi-image only) ────────────────────────────────
+        if (multipleImages && currentPage > 0)
+          Positioned(
+            left: 8,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: GestureDetector(
+                onTap: () => pageController.previousPage(
+                  duration: const Duration(milliseconds: 350),
+                  curve: Curves.easeInOut,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.38),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.chevron_left_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+        // ── Right chevron (multi-image only) ───────────────────────────────
+        if (multipleImages && currentPage < imageUrls.length - 1)
+          Positioned(
+            right: 8,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: GestureDetector(
+                onTap: () => pageController.nextPage(
+                  duration: const Duration(milliseconds: 350),
+                  curve: Curves.easeInOut,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.38),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
