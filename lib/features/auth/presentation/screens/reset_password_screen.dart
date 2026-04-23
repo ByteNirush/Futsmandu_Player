@@ -124,6 +124,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
             children: [
               AppInputField(
                 label: 'Reset Token',
+                showLabelAboveField: true,
                 hint: 'Paste the token from your email',
                 prefixIcon: Icons.confirmation_number_outlined,
                 maxLength: 256,
@@ -134,6 +135,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               const SizedBox(height: AppSpacing.xs),
               AppInputField(
                 label: 'New Password',
+                showLabelAboveField: true,
                 hint: 'Create new password',
                 prefixIcon: Icons.lock_outline,
                 isPassword: true,
@@ -145,6 +147,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
               const SizedBox(height: AppSpacing.xs),
               AppInputField(
                 label: 'Confirm Password',
+                showLabelAboveField: true,
                 hint: 'Confirm new password',
                 prefixIcon: Icons.lock_outline,
                 isPassword: true,
