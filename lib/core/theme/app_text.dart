@@ -1,187 +1,111 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:futsmandu_design_system/futsmandu_design_system.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 
-import 'app_colors.dart';
+export 'package:futsmandu_design_system/core/theme/app_typography.dart'
+    show AppFontWeights, AppTypography, AppTypographyScale;
 
+/// Re-export of design system typography with app-specific naming.
+///
+/// This file serves as a thin wrapper around the design system's typography
+/// to maintain backward compatibility while using the centralized design system.
+///
+/// Prefer using AppTypography directly from the design system for new code.
 class AppTextStyles {
-  // Poppins supports 100-900 and is loaded via google_fonts across platforms.
-  // Font Weights
+  AppTextStyles._();
+
+  // Re-export font weights from design system
   static const FontWeight thin = FontWeight.w100;
-  static const FontWeight light = AppFontWeights.light;
+  static const FontWeight light = FontWeight.w300;
   static const FontWeight regular = AppFontWeights.regular;
   static const FontWeight normal = regular;
-  static const FontWeight medium = AppFontWeights.medium;
+  static const FontWeight medium = FontWeight.w500;
   static const FontWeight semiBold = AppFontWeights.semiBold;
   static const FontWeight bold = AppFontWeights.bold;
   static const FontWeight extraBold = AppFontWeights.extraBold;
 
-  static TextStyle poppinsTextTheme({
-    required double fontSize,
-    required FontWeight fontWeight,
-    required Color color,
-  }) {
-    return GoogleFonts.poppins(
-      fontSize: fontSize,
-      fontWeight: fontWeight,
-      color: color,
-    );
-  }
+  // Headings - delegate to design system
+  static TextStyle h1(BuildContext context, ColorScheme scheme) =>
+      AppTypography.heading(context, scheme);
 
-  // Headings
-  static TextStyle h1(ColorScheme scheme) => poppinsTextTheme(
-        fontSize: 28,
-        fontWeight: bold,
-        color: scheme.onSurface,
-      ).copyWith(height: 1.2, letterSpacing: -0.2);
+  static TextStyle h2(BuildContext context, ColorScheme scheme) =>
+      AppTypography.subHeading(context, scheme);
 
-  static TextStyle h2(ColorScheme scheme) => poppinsTextTheme(
-        fontSize: 24,
-        fontWeight: semiBold,
-        color: scheme.onSurface,
-      ).copyWith(height: 1.25, letterSpacing: -0.1);
+  static TextStyle h3(BuildContext context, ColorScheme scheme) =>
+      AppTypography.subHeading(context, scheme)
+          .copyWith(fontSize: 20 * AppTypographyScale.fromContext(context));
 
-  static TextStyle h3(ColorScheme scheme) => poppinsTextTheme(
-        fontSize: 20,
-        fontWeight: semiBold,
-        color: scheme.onSurface,
-      ).copyWith(height: 1.3);
+  // Titles - use Material 3 text theme from design system
+  static TextStyle titleMd(BuildContext context, ColorScheme scheme) =>
+      AppTypography.textTheme(scheme).titleMedium!;
 
-  // Titles
-  static TextStyle titleMd(ColorScheme scheme) => poppinsTextTheme(
-        fontSize: 16,
-        fontWeight: semiBold,
-        color: scheme.onSurface,
-    ).copyWith(height: 1.35);
+  static TextStyle titleSm(BuildContext context, ColorScheme scheme) =>
+      AppTypography.textTheme(scheme).titleSmall!;
 
-  static TextStyle titleSm(ColorScheme scheme) => poppinsTextTheme(
-        fontSize: 14,
-        fontWeight: medium,
-        color: scheme.onSurface,
-    ).copyWith(height: 1.35);
+  // Body - delegate to design system
+  static TextStyle body(BuildContext context, ColorScheme scheme) =>
+      AppTypography.body(context, scheme);
 
-  // Body
-  static TextStyle body(ColorScheme scheme) => poppinsTextTheme(
-        fontSize: 16,
-        fontWeight: regular,
-        color: scheme.onSurface,
-      ).copyWith(height: 1.5);
+  static TextStyle bodySm(BuildContext context, ColorScheme scheme) =>
+      AppTypography.body(context, scheme)
+          .copyWith(fontSize: 14 * AppTypographyScale.fromContext(context));
 
-  static TextStyle bodySm(ColorScheme scheme) => poppinsTextTheme(
-        fontSize: 14,
-        fontWeight: regular,
-        color: scheme.onSurface,
-      ).copyWith(height: 1.45);
-
-  static TextStyle bodyXs(ColorScheme scheme) => poppinsTextTheme(
-        fontSize: 12,
-        fontWeight: regular,
-        color: scheme.onSurfaceVariant,
-      ).copyWith(height: 1.35);
+  static TextStyle bodyXs(BuildContext context, ColorScheme scheme) =>
+      AppTypography.caption(context, scheme);
 
   // Labels / utility
-  static TextStyle label(ColorScheme scheme) => poppinsTextTheme(
-        fontSize: 13,
-        fontWeight: medium,
-        color: scheme.onSurface,
-      ).copyWith(height: 1.3, letterSpacing: 0.15);
+  static TextStyle label(BuildContext context, ColorScheme scheme) =>
+      AppTypography.textTheme(scheme).labelMedium!;
 
-  static TextStyle labelSm(ColorScheme scheme) => poppinsTextTheme(
-        fontSize: 12,
-        fontWeight: medium,
-        color: scheme.onSurfaceVariant,
-    ).copyWith(height: 1.3, letterSpacing: 0.2);
+  static TextStyle labelSm(BuildContext context, ColorScheme scheme) =>
+      AppTypography.caption(context, scheme);
 
-  static TextStyle labelXs(ColorScheme scheme) => poppinsTextTheme(
-        fontSize: 11,
-        fontWeight: medium,
-        color: scheme.onSurfaceVariant,
-    ).copyWith(height: 1.25, letterSpacing: 0.2);
+  static TextStyle labelXs(BuildContext context, ColorScheme scheme) =>
+      AppTypography.textTheme(scheme).labelSmall!;
 
-    static TextStyle button(ColorScheme scheme) => poppinsTextTheme(
-      fontSize: 15,
-      fontWeight: semiBold,
-      color: scheme.onPrimary,
-    ).copyWith(height: 1.2, letterSpacing: 0.25);
+  static TextStyle button(BuildContext context, ColorScheme scheme) =>
+      AppTypography.button(context, scheme);
 
-    static TextStyle buttonSm(ColorScheme scheme) => poppinsTextTheme(
-      fontSize: 13,
-      fontWeight: semiBold,
-      color: scheme.onPrimary,
-    ).copyWith(height: 1.2, letterSpacing: 0.2);
+  static TextStyle buttonSm(BuildContext context, ColorScheme scheme) =>
+      AppTypography.button(context, scheme)
+          .copyWith(fontSize: 13 * AppTypographyScale.fromContext(context));
 
-    static TextStyle caption(ColorScheme scheme) => poppinsTextTheme(
-      fontSize: 11,
-      fontWeight: regular,
-      color: scheme.onSurfaceVariant,
-    ).copyWith(height: 1.3);
+  static TextStyle caption(BuildContext context, ColorScheme scheme) =>
+      AppTypography.caption(context, scheme);
 
   static TextTheme textTheme(ColorScheme scheme) {
     return AppTypography.textTheme(scheme);
   }
 }
 
-/// Centralized text styles used across the UI.
-///
-/// This is intentionally context-free (no `BuildContext`), so callers can use
-/// `AppText.h1`, `AppText.bodySm`, etc. The colors are derived from
-/// `AppColors`, which already tracks the current theme mode.
 class AppText {
-  // Headings
-  static TextStyle get h1 => GoogleFonts.poppins(
-        fontSize: 34,
-        fontWeight: AppTextStyles.extraBold,
-        color: AppColors.txtPrimary,
-      ).copyWith(height: 1.18, letterSpacing: -0.2);
+  AppText._();
 
-  static TextStyle get h2 => GoogleFonts.poppins(
-        fontSize: 22,
-        fontWeight: AppTextStyles.bold,
-        color: AppColors.txtPrimary,
-      ).copyWith(height: 1.24, letterSpacing: -0.1);
+  // These getters are deprecated and will be removed.
+  // Use AppTypography methods with BuildContext instead.
 
-  static TextStyle get h3 => GoogleFonts.poppins(
-        fontSize: 20,
-        fontWeight: AppTextStyles.bold,
-        color: AppColors.txtPrimary,
-      ).copyWith(height: 1.28);
+  static TextStyle get h1 => _deprecatedStyle(34, FontWeight.w800);
 
-  // Body
-  static TextStyle get body => GoogleFonts.poppins(
-        fontSize: 15,
-        fontWeight: AppTextStyles.regular,
-        color: AppColors.txtPrimary,
-      ).copyWith(height: 1.45);
+  static TextStyle get h2 => _deprecatedStyle(22, FontWeight.w700);
 
-  static TextStyle get bodySm => GoogleFonts.poppins(
-        fontSize: 14,
-        fontWeight: AppTextStyles.regular,
-        color: AppColors.txtPrimary,
-      ).copyWith(height: 1.42);
+  static TextStyle get h3 => _deprecatedStyle(20, FontWeight.w700);
 
-  // Labels / metadata
-  static TextStyle get label => GoogleFonts.poppins(
-        fontSize: 13,
-        fontWeight: AppTextStyles.semiBold,
-        color: AppColors.txtDisabled,
-      ).copyWith(height: 1.26, letterSpacing: 0.15);
+  static TextStyle get body => _deprecatedStyle(15, FontWeight.w400);
 
-  static TextStyle get button => GoogleFonts.poppins(
-        fontSize: 15,
-        fontWeight: AppTextStyles.semiBold,
-        color: AppColors.txtPrimary,
-      ).copyWith(height: 1.2, letterSpacing: 0.25);
+  static TextStyle get bodySm => _deprecatedStyle(14, FontWeight.w400);
 
-  static TextStyle get caption => GoogleFonts.poppins(
-      fontSize: 12,
-        fontWeight: AppTextStyles.regular,
-        color: AppColors.txtDisabled,
-      ).copyWith(height: 1.3);
+  static TextStyle get label => _deprecatedStyle(13, FontWeight.w600);
 
-  /// Monospaced style for numeric / code-like values.
-  static TextStyle get mono => GoogleFonts.robotoMono(
-      fontSize: 15,
-        fontWeight: AppTextStyles.medium,
-        color: AppColors.txtPrimary,
-      );
+  static TextStyle get button => _deprecatedStyle(15, FontWeight.w600);
+
+  static TextStyle get caption => _deprecatedStyle(12, FontWeight.w400);
+
+  static TextStyle get mono => _deprecatedStyle(15, FontWeight.w500);
+
+  static TextStyle _deprecatedStyle(double fontSize, FontWeight weight) {
+    return TextStyle(
+      fontFamily: 'Poppins',
+      fontSize: fontSize,
+      fontWeight: weight,
+    );
+  }
 }

@@ -2,32 +2,33 @@ import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
+import '../network/token_manager.dart';
+
 class PlayerAuthStorageService {
   PlayerAuthStorageService._internal();
 
   static final PlayerAuthStorageService instance =
       PlayerAuthStorageService._internal();
 
-  static const String _accessTokenKey = 'player_access_token';
-  static const String _refreshTokenKey = 'player_refresh_token';
   static const String _userKey = 'player_user';
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final TokenManager _tokenManager = TokenManager();
 
   Future<void> saveAccessToken(String token) async {
-    await _storage.write(key: _accessTokenKey, value: token);
+    await _tokenManager.saveAccessToken(token);
   }
 
   Future<String?> getAccessToken() {
-    return _storage.read(key: _accessTokenKey);
+    return _tokenManager.getAccessToken();
   }
 
   Future<void> saveRefreshToken(String token) async {
-    await _storage.write(key: _refreshTokenKey, value: token);
+    await _tokenManager.saveRefreshToken(token);
   }
 
   Future<String?> getRefreshToken() {
-    return _storage.read(key: _refreshTokenKey);
+    return _tokenManager.getRefreshToken();
   }
 
   Future<void> saveUser(Map<String, dynamic> user) async {
@@ -67,9 +68,10 @@ class PlayerAuthStorageService {
   }
 
   Future<void> clearSession() async {
-    await _storage.delete(key: _accessTokenKey);
-    await _storage.delete(key: _refreshTokenKey);
-    await _storage.delete(key: _userKey);
+    await Future.wait([
+      _tokenManager.clearAll(),
+      _storage.delete(key: _userKey),
+    ]);
   }
 
   Future<bool> hasStoredRefreshToken() async {

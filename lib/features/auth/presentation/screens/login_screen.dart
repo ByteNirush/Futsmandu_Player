@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 
-import '../../../../core/design_system/app_spacing.dart';
 import '../../data/services/player_auth_service.dart';
-import '../../../../shared/widgets/app_button.dart';
-import '../../../../shared/widgets/app_input_field.dart';
-import '../../../../shared/widgets/app_logo.dart';
+import '../../../../shared/widgets/error_message_widget.dart';
 import '../providers/auth_controller.dart';
-import '../widgets/auth_header.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -70,144 +67,129 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       setState(() => _errorMessage = 'Login failed: $e');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-
-    return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              physics: const ClampingScrollPhysics(),
-              padding: EdgeInsets.only(
-                left: AppSpacing.md,
-                right: AppSpacing.md,
-                bottom: bottomInset + AppSpacing.lg,
+    return AuthScaffold(
+      role: AppRole.player,
+      allowScroll: false,
+      child: AuthCard(
+        role: AppRole.player,
+        title: 'Welcome Back',
+        subtitle: 'Sign in to book and play futsal',
+        errorWidget: _errorMessage != null
+            ? ErrorMessageWidget(
+                message: _errorMessage!,
+                backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+              )
+            : null,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppInputField(
+                label: 'Email',
+                showLabelAboveField: true,
+                hint: 'Enter your email',
+                prefixIcon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+                maxLength: 254,
+                showCounter: false,
+                controller: _emailController,
+                validator: _validateEmail,
               ),
-              child: Form(
-                key: _formKey,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: AppSpacing.xl),
-                      const Center(child: AppLogo(size: 80.0)),
-                      const SizedBox(height: AppSpacing.md),
-                      const AuthHeader(
-                        title: 'Welcome Back',
-                        subtitle: 'Sign in to manage your futsal venue',
-                      ),
-                      if (_errorMessage != null) ...[
-                        const SizedBox(height: AppSpacing.sm),
-                        Container(
-                          padding: const EdgeInsets.all(AppSpacing.sm),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.errorContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.error_outline,
-                                color: theme.colorScheme.onErrorContainer,
-                                size: 20,
-                              ),
-                              const SizedBox(width: AppSpacing.xs),
-                              Expanded(
-                                child: Text(
-                                  _errorMessage!,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onErrorContainer,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: AppSpacing.md),
-                      AppInputField(
-                        label: 'Email',
-                        hint: 'Enter your email',
-                        prefixIcon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                        maxLength: 254,
-                        showCounter: false,
-                        controller: _emailController,
-                        validator: _validateEmail,
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      AppInputField(
-                        label: 'Password',
-                        hint: 'Enter your password',
-                        prefixIcon: Icons.lock_outline,
-                        isPassword: true,
-                        textInputAction: TextInputAction.done,
-                        maxLength: 128,
-                        showCounter: false,
-                        controller: _passwordController,
-                        validator: _validatePassword,
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton(
-                          onPressed: () => Navigator.pushNamed(
-                            context,
-                            '/forgot-password',
-                          ),
-                          child: const Text('Forgot Password?'),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      AppButton(
-                        label: 'Login',
-                        isLoading: _isLoading,
-                        onPressed: _handleLogin,
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      Row(
-                        children: [
-                          const Expanded(child: Divider()),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.sm,
-                            ),
-                            child: Text(
-                              'OR',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                          const Expanded(child: Divider()),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      AppButton(
-                        label: 'Create Account',
-                        variant: AppButtonVariant.outlined,
-                        onPressed: () => Navigator.pushNamed(
-                          context,
-                          '/register',
-                        ),
-                      ),
-                    ],
+              const SizedBox(height: AppSpacing.sm),
+              AppInputField(
+                label: 'Password',
+                showLabelAboveField: true,
+                hint: 'Enter your password',
+                prefixIcon: Icons.lock_outline,
+                isPassword: true,
+                textInputAction: TextInputAction.done,
+                maxLength: 128,
+                showCounter: false,
+                controller: _passwordController,
+                validator: _validatePassword,
+              ),
+              const SizedBox(height: AppSpacing.xxs),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
+                  onPressed: () =>
+                      Navigator.pushNamed(context, '/forgot-password'),
+                  child: const Text('Forgot Password?'),
                 ),
               ),
-            );
-          },
+              const SizedBox(height: AppSpacing.xs),
+              PrimaryButton(
+                label: 'Sign In',
+                isLoading: _isLoading,
+                onPressed: _handleLogin,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Divider(
+                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                      child: Text(
+                        'OR',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: AppFontWeights.semiBold,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Divider(
+                        color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "Don't have an account?",
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () => Navigator.pushNamed(context, '/register'),
+                      child: const Text('Register'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -1,5 +1,5 @@
-class PlayerAuthProfile {
-  const PlayerAuthProfile({
+class Player {
+  const Player({
     required this.id,
     required this.name,
     required this.email,
@@ -29,7 +29,7 @@ class PlayerAuthProfile {
   final DateTime? createdAt;
   final int refreshTokenVersion;
 
-  factory PlayerAuthProfile.fromJson(Map<String, dynamic> json) {
+  factory Player.fromJson(Map<String, dynamic> json) {
     DateTime? parseDate(dynamic value) {
       if (value is DateTime) return value;
       if (value is String && value.isNotEmpty) {
@@ -66,7 +66,7 @@ class PlayerAuthProfile {
       json['avatarUrl'] ?? json['profileImageUrl'] ?? json['profile_image_url'],
     );
 
-    return PlayerAuthProfile(
+    return Player(
       id: toStringValue(json['id']),
       name: toStringValue(json['name'], fallback: 'Player'),
       email: toStringValue(json['email']),
@@ -89,7 +89,7 @@ class PlayerAuthProfile {
     );
   }
 
-  factory PlayerAuthProfile.empty() => const PlayerAuthProfile(
+  factory Player.empty() => const Player(
         id: '',
         name: 'Player',
         email: '',
@@ -124,6 +124,61 @@ class PlayerAuthProfile {
   }
 }
 
+typedef PlayerAuthProfile = Player;
+
+class Token {
+  const Token({
+    required this.accessToken,
+    this.refreshToken,
+    this.tokenType = 'Bearer',
+  });
+
+  final String accessToken;
+  final String? refreshToken;
+  final String tokenType;
+
+  bool get isValid => accessToken.trim().isNotEmpty;
+
+  factory Token.fromJson(Map<String, dynamic> json) {
+    return Token(
+      accessToken: json['accessToken']?.toString() ?? '',
+      refreshToken: json['refreshToken']?.toString(),
+      tokenType: json['tokenType']?.toString() ?? 'Bearer',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return <String, dynamic>{
+      'accessToken': accessToken,
+      if (refreshToken != null) 'refreshToken': refreshToken,
+      'tokenType': tokenType,
+    };
+  }
+}
+
+class AuthResponse {
+  const AuthResponse({required this.token, this.player});
+
+  final Token token;
+  final Player? player;
+
+  factory AuthResponse.fromLoginJson(Map<String, dynamic> json) {
+    final playerJson = json['user'];
+    if (playerJson is! Map<String, dynamic>) {
+      throw const FormatException('Missing user in authentication response.');
+    }
+
+    return AuthResponse(
+      token: Token.fromJson(json),
+      player: Player.fromJson(playerJson),
+    );
+  }
+
+  factory AuthResponse.fromRefreshJson(Map<String, dynamic> json) {
+    return AuthResponse(token: Token.fromJson(json));
+  }
+}
+
 class PlayerAuthLoginResult {
   const PlayerAuthLoginResult({
     required this.accessToken,
@@ -131,7 +186,19 @@ class PlayerAuthLoginResult {
   });
 
   final String accessToken;
-  final PlayerAuthProfile user;
+  final Player user;
+
+  factory PlayerAuthLoginResult.fromAuthResponse(AuthResponse response) {
+    final player = response.player;
+    if (player == null) {
+      throw const FormatException('Missing player in login response.');
+    }
+
+    return PlayerAuthLoginResult(
+      accessToken: response.token.accessToken,
+      user: player,
+    );
+  }
 }
 
 class PlayerAuthSession {
@@ -141,5 +208,22 @@ class PlayerAuthSession {
   });
 
   final String accessToken;
-  final PlayerAuthProfile user;
+  final Player user;
+}
+
+class OtpVerificationResult {
+  const OtpVerificationResult({
+    required this.success,
+    required this.message,
+  });
+
+  final bool success;
+  final String message;
+
+  factory OtpVerificationResult.fromJson(Map<String, dynamic> json) {
+    return OtpVerificationResult(
+      success: json['success'] == true,
+      message: json['message']?.toString() ?? 'OTP verification failed.',
+    );
+  }
 }

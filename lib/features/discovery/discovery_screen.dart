@@ -1,34 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/design_system/app_spacing.dart';
-import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/empty_state.dart';
-import '../../shared/widgets/filter_chip_row.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
-import '../matches/data/services/player_match_service.dart';
+import '../matches/data/models/player_match_models.dart';
+import '../matches/presentation/providers/matches_controller.dart';
 import 'widgets/match_list_card.dart';
 
-class DiscoveryScreen extends StatefulWidget {
+class DiscoveryScreen extends ConsumerStatefulWidget {
   const DiscoveryScreen({super.key});
 
   @override
-  State<DiscoveryScreen> createState() => _DiscoveryScreenState();
+  ConsumerState<DiscoveryScreen> createState() => _DiscoveryScreenState();
 }
 
-class _DiscoveryScreenState extends State<DiscoveryScreen> {
-  static const double _fallbackLatitude = 27.7172;
-  static const double _fallbackLongitude = 85.3240;
-
-  final PlayerMatchService _matchService = PlayerMatchService.instance;
-
-  int _tabIndex = 0;
-  String _activeSkill = 'All';
-  bool _isLoading = false;
-  String? _error;
-  final Map<int, List<Map<String, dynamic>>> _tabMatches =
-      <int, List<Map<String, dynamic>>>{};
+class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
+  static const List<MatchDiscoveryTab> _tabs = <MatchDiscoveryTab>[
+    MatchDiscoveryTab.tonight,
+    MatchDiscoveryTab.tomorrow,
+    MatchDiscoveryTab.weekend,
+    MatchDiscoveryTab.open,
+  ];
 
   static const List<String> _tabLabels = [
     'Tonight',
@@ -37,126 +31,87 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
     'Open Matches',
   ];
 
+  static const List<MatchDiscoveryTab> _searchDropdownTabs =
+      <MatchDiscoveryTab>[
+    MatchDiscoveryTab.tonight,
+    MatchDiscoveryTab.tomorrow,
+    MatchDiscoveryTab.weekend,
+  ];
+
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
-    _loadTabMatches(_tabIndex);
+    Future<void>.microtask(() {
+      ref.read(matchDiscoveryControllerProvider.notifier).setTab(_tabs.first);
+    });
   }
 
-  bool _isEveningMatch(Map<String, dynamic> match) {
-    final time = (match['time'] ?? '').toString();
-    final hour = int.tryParse(time.split(':').first) ?? 0;
-    return hour >= 17;
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
-  bool _passesTab(Map<String, dynamic> match) {
-    switch (_tabIndex) {
-      case 0:
-        return _isEveningMatch(match);
-      case 1:
-        return !_isEveningMatch(match);
-      case 2:
-        final date = (match['date'] ?? '').toString();
-        return date.startsWith('Sat') || date.startsWith('Sun');
-      case 3:
-        return match['isOpen'] == true;
-      default:
+  List<MatchSummary> _filteredMatches(MatchDiscoveryState state) {
+    final query = _searchQuery.toLowerCase();
+    return state.activeItems.where((match) {
+      if (query.isEmpty) {
         return true;
-    }
-  }
+      }
 
-  List<Map<String, dynamic>> get _filteredMatches {
-    final currentTabMatches =
-        _tabMatches[_tabIndex] ?? const <Map<String, dynamic>>[];
-    return currentTabMatches.where((match) {
-      if (!_passesTab(match)) return false;
-      if (_activeSkill == 'All') return true;
-      if (_activeSkill == 'Friends') return (match['friendsIn'] ?? 0) > 0;
-      return match['skillLevel'] == _activeSkill;
+      return match.venueName.toLowerCase().contains(query) ||
+          match.courtName.toLowerCase().contains(query) ||
+          match.venueAddress.toLowerCase().contains(query);
     }).toList();
   }
 
-  Future<void> _loadTabMatches(int tabIndex, {bool forceReload = false}) async {
-    if (!forceReload && _tabMatches.containsKey(tabIndex)) {
-      return;
+  String _labelForTab(MatchDiscoveryTab tab) {
+    final index = _tabs.indexOf(tab);
+    if (index < 0) {
+      return _tabLabels.first;
     }
-
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      late final List<Map<String, dynamic>> matches;
-      switch (tabIndex) {
-        case 0:
-          matches = await _matchService.getTonightMatches(
-            latitude: _fallbackLatitude,
-            longitude: _fallbackLongitude,
-          );
-          break;
-        case 1:
-          matches = await _matchService.getTomorrowMatches(
-            latitude: _fallbackLatitude,
-            longitude: _fallbackLongitude,
-          );
-          break;
-        case 2:
-          matches = await _matchService.getWeekendMatches(
-            latitude: _fallbackLatitude,
-            longitude: _fallbackLongitude,
-          );
-          break;
-        case 3:
-          matches = await _matchService.getOpenMatches(
-            latitude: _fallbackLatitude,
-            longitude: _fallbackLongitude,
-          );
-          break;
-        default:
-          matches = const <Map<String, dynamic>>[];
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _tabMatches[tabIndex] = matches;
-      });
-    } on MatchApiException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _error = e.message;
-        _tabMatches[tabIndex] = const <Map<String, dynamic>>[];
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _error = 'Unable to load matches right now';
-        _tabMatches[tabIndex] = const <Map<String, dynamic>>[];
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    return _tabLabels[index];
   }
 
   @override
   Widget build(BuildContext context) {
-    final matches = _filteredMatches;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final asyncState = ref.watch(matchDiscoveryControllerProvider);
+    final state = asyncState.valueOrNull ?? MatchDiscoveryState.initial();
+    final tabIndex = _tabs.indexOf(state.activeTab);
+    final safeTabIndex = tabIndex < 0 ? 0 : tabIndex;
+    final selectedDropdownTab = _searchDropdownTabs.contains(state.activeTab)
+        ? state.activeTab
+        : _searchDropdownTabs.first;
+    final matches = _filteredMatches(state);
+    final isLoading = asyncState.isLoading || state.isRefreshing;
+    final error =
+        asyncState.whenOrNull(error: (error, _) => error.toString()) ??
+            state.activeError;
 
     return Scaffold(
-      backgroundColor: AppColors.bgPrimary,
+      backgroundColor: scheme.surface,
       appBar: AppBar(
-        title: Text('Discover', style: AppText.h2),
+        title: Text(
+          'Explore',
+          style: AppText.h2.copyWith(color: scheme.onSurface),
+        ),
         elevation: 0,
-        backgroundColor: AppColors.bgPrimary,
+        backgroundColor: scheme.surface,
         scrolledUnderElevation: 0,
         centerTitle: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => _loadTabMatches(_tabIndex, forceReload: true),
+            onPressed: () {
+              ref
+                  .read(matchDiscoveryControllerProvider.notifier)
+                  .refreshActiveTab();
+            },
             tooltip: 'Refresh',
           ),
         ],
@@ -164,8 +119,8 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (_isLoading) const LinearProgressIndicator(minHeight: 2),
-          if (_error != null)
+          if (isLoading) const LinearProgressIndicator(minHeight: 2),
+          if (error != null)
             Container(
               margin: const EdgeInsets.fromLTRB(
                 AppSpacing.sm2,
@@ -173,87 +128,82 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
                 AppSpacing.sm2,
                 0,
               ),
-              padding: const EdgeInsets.all(AppSpacing.xs),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.xs2,
+                vertical: AppSpacing.xs,
+              ),
               decoration: BoxDecoration(
-                color: AppColors.red.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: AppColors.red.withValues(alpha: 0.4),
-                ),
+                color: scheme.errorContainer.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Text(
-                _error!,
-                style: AppText.bodySm.copyWith(color: AppColors.red),
-              ),
-            ),
-          // TAB STRIP
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm2,
-              vertical: AppSpacing.xs2,
-            ),
-            child: Row(
-              children: _tabLabels.asMap().entries.map((entry) {
-                final int i = entry.key;
-                final String label = entry.value;
-                final bool isSelected = _tabIndex == i;
-
-                return GestureDetector(
-                  onTap: () {
-                    setState(() => _tabIndex = i);
-                    _loadTabMatches(i);
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: const EdgeInsets.only(right: AppSpacing.xs2),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm2,
-                      vertical: AppSpacing.xs3,
-                    ),
-                    decoration: BoxDecoration(
-                      color:
-                          isSelected ? AppColors.green : AppColors.bgElevated,
-                      borderRadius: BorderRadius.circular(999),
-                      border: !isSelected
-                          ? Border.all(
-                              color: AppColors.borderClr.withValues(alpha: 0.5))
-                          : null,
-                    ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline_rounded,
+                    size: 18,
+                    color: scheme.error,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
                     child: Text(
-                      label,
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.w500,
-                        color: isSelected
-                            ? AppColors.bgPrimary
-                            : AppColors.txtDisabled,
-                      ),
+                      error,
+                      style: AppText.bodySm.copyWith(color: scheme.error),
                     ),
                   ),
-                );
-              }).toList(),
+                ],
+              ),
             ),
-          ),
 
-          // SKILL FILTER
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
-            child: FilterChipRow(
-              options: const [
-                'All',
-                'Beginner',
-                'Intermediate',
-                'Advanced',
-                'Friends'
-              ],
-              selected: _activeSkill,
-              onSelected: (v) => setState(() => _activeSkill = v),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.sm2,
+              AppSpacing.sm2,
+              AppSpacing.sm2,
+              AppSpacing.xs,
+            ),
+            child: Material(
+              color: scheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(18),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.trim();
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Search venue, court, or location',
+                  hintStyle: AppText.bodySm.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  prefixIcon: Icon(
+                    Icons.search_rounded,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  suffixIcon: _searchQuery.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: 'Clear search',
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchQuery = '';
+                            });
+                            FocusScope.of(context).unfocus();
+                          },
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                  filled: false,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xs,
+                    vertical: AppSpacing.sm,
+                  ),
+                ),
+              ),
             ),
           ),
-
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xs),
 
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm2),
@@ -261,12 +211,43 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
               children: [
                 Text(
                   '${matches.length} matches',
-                  style: AppText.bodySm.copyWith(fontWeight: FontWeight.w600),
+                  style: AppText.bodySm.copyWith(
+                    fontWeight: AppTextStyles.semiBold,
+                    color: scheme.onSurfaceVariant,
+                  ),
                 ),
                 const Spacer(),
-                Text(
-                  _tabLabels[_tabIndex],
-                  style: AppText.label,
+                Material(
+                  color: scheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(14),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<MatchDiscoveryTab>(
+                      value: selectedDropdownTab,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs2,
+                      ),
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                      borderRadius: BorderRadius.circular(14),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        ref
+                            .read(matchDiscoveryControllerProvider.notifier)
+                            .setTab(value);
+                      },
+                      items: _searchDropdownTabs.map((tab) {
+                        return DropdownMenuItem<MatchDiscoveryTab>(
+                          value: tab,
+                          child: Text(
+                            _labelForTab(tab),
+                            style: AppText.label.copyWith(
+                              color: scheme.onSurfaceVariant,
+                              fontWeight: AppTextStyles.semiBold,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -280,16 +261,21 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
               duration: const Duration(milliseconds: 200),
               child: matches.isEmpty
                   ? EmptyState(
-                      key: ValueKey('empty_$_tabIndex$_activeSkill'),
+                      key: ValueKey(
+                        'empty_$safeTabIndex$_searchQuery',
+                      ),
                       icon: Icons.explore_off,
-                      title: 'No matches ${_tabLabels[_tabIndex]}',
-                      subtitle: 'Check back later or explore open matches',
+                      title: 'No matches ${_tabLabels[safeTabIndex]}',
+                      subtitle:
+                          'Try changing your search or explore open matches',
                     )
                   : ListView.separated(
-                      key: ValueKey('list_$_tabIndex$_activeSkill'),
+                      key: ValueKey(
+                        'list_$safeTabIndex$_searchQuery',
+                      ),
                       padding: EdgeInsets.fromLTRB(
                         AppSpacing.sm2,
-                        AppSpacing.xxs,
+                        AppSpacing.xs,
                         AppSpacing.sm2,
                         MediaQuery.of(context).padding.bottom +
                             kNavBarHeight +

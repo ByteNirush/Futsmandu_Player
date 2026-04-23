@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 
-import '../../../../core/design_system/app_spacing.dart';
-import '../../../../shared/widgets/app_button.dart';
-import '../../../../shared/widgets/app_input_field.dart';
 import '../../data/services/player_auth_service.dart';
+import '../../../../shared/widgets/error_message_widget.dart';
 import '../providers/auth_controller.dart';
-import '../widgets/auth_header.dart';
-import '../widgets/auth_screen_scaffold.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -94,7 +91,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     try {
-      await ref.read(authSessionProvider.notifier).register(
+      final player = await ref.read(authSessionProvider.notifier).register(
             name: _nameController.text,
             email: _emailController.text,
             phone: _phoneController.text,
@@ -104,13 +101,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text(
-                'Account created successfully. Please verify your email.')),
+          content: Text('Account created. Enter the OTP sent to your email.'),
+        ),
       );
       Navigator.pushReplacementNamed(
         context,
-        '/verify-email',
-        arguments: {'email': _emailController.text.trim()},
+        '/otp-verification',
+        arguments: {
+          'userId': player.id,
+          'email': _emailController.text.trim(),
+        },
       );
     } on AuthException catch (e) {
       if (!mounted) return;
@@ -119,123 +119,121 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (!mounted) return;
       setState(() => _errorMessage = 'Registration failed: $e');
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AuthScreenScaffold(
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const AuthHeader(
-              title: 'Create Account',
-              subtitle: 'Register your futsal profile',
-            ),
-            if (_errorMessage != null) ...[
+    return AuthScaffold(
+      role: AppRole.player,
+      child: AuthCard(
+        role: AppRole.player,
+        title: 'Create Account',
+        subtitle: 'Register your futsal profile',
+        errorWidget: _errorMessage != null
+            ? ErrorMessageWidget(
+                message: _errorMessage!,
+                backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+              )
+            : null,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppInputField(
+                label: 'Full Name',
+                showLabelAboveField: true,
+                hint: 'Enter your full name',
+                prefixIcon: Icons.person_outline,
+                maxLength: 100,
+                showCounter: false,
+                controller: _nameController,
+                validator: _validateName,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              AppInputField(
+                label: 'Email',
+                showLabelAboveField: true,
+                hint: 'Enter your email',
+                prefixIcon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+                maxLength: 254,
+                showCounter: false,
+                controller: _emailController,
+                validator: _validateEmail,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              AppInputField(
+                label: 'Phone',
+                showLabelAboveField: true,
+                hint: 'Enter phone number',
+                prefixIcon: Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+                maxLength: 14,
+                showCounter: false,
+                controller: _phoneController,
+                validator: _validatePhone,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              AppInputField(
+                label: 'Password',
+                showLabelAboveField: true,
+                hint: 'Create password',
+                prefixIcon: Icons.lock_outline,
+                isPassword: true,
+                maxLength: 64,
+                showCounter: false,
+                controller: _passwordController,
+                validator: _validatePassword,
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              AppInputField(
+                label: 'Confirm Password',
+                showLabelAboveField: true,
+                hint: 'Confirm password',
+                prefixIcon: Icons.lock_outline,
+                isPassword: true,
+                textInputAction: TextInputAction.done,
+                maxLength: 64,
+                showCounter: false,
+                controller: _confirmPasswordController,
+                validator: _validateConfirmPassword,
+              ),
               const SizedBox(height: AppSpacing.sm),
-              Container(
-                padding: const EdgeInsets.all(AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(12),
-                ),
+              PrimaryButton(
+                label: 'Sign Up',
+                isLoading: _isLoading,
+                onPressed: _handleRegister,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Center(
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.error_outline,
-                      color: Theme.of(context).colorScheme.onErrorContainer,
-                      size: 20,
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Expanded(
-                      child: Text(
-                        _errorMessage!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onErrorContainer,
-                            ),
+                    Text(
+                      'Already have an account?',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Login'),
                     ),
                   ],
                 ),
               ),
             ],
-            const SizedBox(height: AppSpacing.md),
-            AppInputField(
-              label: 'Full Name',
-              hint: 'Enter your full name',
-              prefixIcon: Icons.person_outline,
-              maxLength: 100,
-              showCounter: false,
-              controller: _nameController,
-              validator: _validateName,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            AppInputField(
-              label: 'Email',
-              hint: 'Enter your email',
-              prefixIcon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-              maxLength: 254,
-              showCounter: false,
-              controller: _emailController,
-              validator: _validateEmail,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            AppInputField(
-              label: 'Phone',
-              hint: 'Enter phone number',
-              prefixIcon: Icons.phone_outlined,
-              keyboardType: TextInputType.phone,
-              maxLength: 14,
-              showCounter: false,
-              controller: _phoneController,
-              validator: _validatePhone,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            AppInputField(
-              label: 'Password',
-              hint: 'Create password',
-              prefixIcon: Icons.lock_outline,
-              isPassword: true,
-              maxLength: 64,
-              showCounter: false,
-              controller: _passwordController,
-              validator: _validatePassword,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            AppInputField(
-              label: 'Confirm Password',
-              hint: 'Confirm password',
-              prefixIcon: Icons.lock_outline,
-              isPassword: true,
-              textInputAction: TextInputAction.done,
-              maxLength: 64,
-              showCounter: false,
-              controller: _confirmPasswordController,
-              validator: _validateConfirmPassword,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            AppButton(
-              label: 'Sign Up',
-              isLoading: _isLoading,
-              onPressed: _handleRegister,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Center(
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Already have an account? Login'),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -139,7 +139,7 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
 
     setState(() => _isJoining = true);
     try {
-      await _matchService.joinMatch(
+      await _matchService.requestToJoinMatch(
         matchId: matchGroupId,
         position: _selectedPosition,
       );

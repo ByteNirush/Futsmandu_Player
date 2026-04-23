@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 
-import '../../../../core/design_system/app_spacing.dart';
-import '../../../../shared/widgets/app_input_field.dart';
-import '../../../../shared/widgets/app_button.dart';
 import '../../data/services/player_auth_service.dart';
 import '../providers/auth_controller.dart';
-import '../widgets/auth_header.dart';
-import '../widgets/auth_screen_scaffold.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
   const OtpVerificationScreen({super.key});
@@ -18,15 +14,13 @@ class OtpVerificationScreen extends ConsumerStatefulWidget {
 }
 
 class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _tokenController = TextEditingController();
+  final TextEditingController _otpController = TextEditingController();
 
   bool _isLoading = false;
-  String? _errorMessage;
 
   @override
   void dispose() {
-    _tokenController.dispose();
+    _otpController.dispose();
     super.dispose();
   }
 
@@ -36,115 +30,212 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     return null;
   }
 
-  String? _validateToken(String? value) {
-    final token = value?.trim() ?? '';
-    if (token.isEmpty) return 'Verification token is required';
-    if (token.length < 6) return 'Verification token is invalid';
-    if (token.length > 256) return 'Verification token is too long';
-    return null;
-  }
+  Future<void> _verify(String userId) async {
+    if (userId.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Missing user id for OTP verification.')),
+      );
+      return;
+    }
 
-  Future<void> _handleVerifyEmail() async {
-    if (!_formKey.currentState!.validate()) return;
+    final otp = _otpController.text.trim();
+    if (!RegExp(r'^\d{6}$').hasMatch(otp)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid 6-digit OTP.')),
+      );
+      return;
+    }
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final message = await ref.read(authSessionProvider.notifier).verifyEmail(
-            token: _tokenController.text,
-          );
+      final result = await ref
+          .read(authSessionProvider.notifier)
+          .verifyOtp(userId: userId, otp: otp);
+
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
-      Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+          .showSnackBar(SnackBar(content: Text(result.message)));
+      Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
     } on AuthException catch (e) {
       if (!mounted) return;
-      setState(() => _errorMessage = e.message);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
     } catch (e) {
       if (!mounted) return;
-      setState(() => _errorMessage = 'Email verification failed: $e');
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('OTP verification failed: $e')));
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _resend(String userId) async {
+    if (userId.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Missing user id for OTP resend.')),
+      );
+      return;
+    }
+
+    try {
+      final result = await ref
+          .read(authSessionProvider.notifier)
+          .resendOtp(userId: userId);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(result.message)));
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Unable to resend OTP: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final args = _routeArgs(context);
-    final email = args?['email'] as String?;
+    final userId = args?['userId']?.toString() ?? '';
+    final email = args?['email']?.toString() ?? '';
+    
+    final colorScheme = Theme.of(context).colorScheme;
+    final primaryColor = colorScheme.primary;
+    
+    final emailDisplay = email.trim();
+    final hasEmail = emailDisplay.isNotEmpty;
+    
+    final destination = hasEmail ? emailDisplay : 'your email';
 
-    return AuthScreenScaffold(
-      showAppBar: true,
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AuthHeader(
-              title: 'Verify Email',
-              subtitle: email == null || email.isEmpty
-                  ? 'Paste the verification token from your email'
-                  : 'We sent a verification token to $email',
-            ),
-            if (_errorMessage != null) ...[
-              const SizedBox(height: AppSpacing.sm),
+    return Scaffold(
+      backgroundColor: colorScheme.surface,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0, // No horizontal dividing line when scrolled
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: colorScheme.onSurface, size: 22),
+          onPressed: () => Navigator.pop(context),
+        ),
+        centerTitle: true,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+          physics: const ClampingScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Branding: Logo at the top
+              const AppLogo(size: 56),
+              const SizedBox(height: 32),
+              
+              // Typography: Heading
+              Text(
+                'Verify your account',
+                style: AppTypography.subHeading(
+                  context,
+                  colorScheme,
+                  color: colorScheme.onSurface.withValues(alpha: 0.9),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              
+              // Typography: Instruction Text
+              Text(
+                'Enter the 6-digit code sent to',
+                style: AppTypography.body(
+                  context,
+                  colorScheme,
+                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+
+              // Read-only confirmed data for email
               Container(
-                padding: const EdgeInsets.all(AppSpacing.sm),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(12),
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      color: Theme.of(context).colorScheme.onErrorContainer,
-                      size: 20,
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Expanded(
-                      child: Text(
-                        _errorMessage!,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onErrorContainer,
-                            ),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  destination,
+                  style: AppTypography.body(
+                    context,
+                    colorScheme,
+                  ).copyWith(fontWeight: AppFontWeights.semiBold),
+                  textAlign: TextAlign.center,
                 ),
+              ),
+
+              const SizedBox(height: 48),
+              
+              // OTP Inputs Area
+              Center(
+                child: OtpPinInput(
+                  controller: _otpController,
+                  enabled: !_isLoading,
+                ),
+              ),
+              
+              const SizedBox(height: 56),
+              
+              // Call to Action: Large, pill-shaped primary button
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: colorScheme.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30), // Pill-shaped
+                    ),
+                    elevation: 0,
+                  ),
+                  onPressed: _isLoading ? null : () => _verify(userId),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          'Verify',
+                          style: AppTypography.button(
+                            context,
+                            colorScheme,
+                          ),
+                        ),
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Secondary Action: Clean text-only link
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: colorScheme.onSurfaceVariant,
+                  textStyle: AppTypography.textTheme(colorScheme).bodySmall?.copyWith(
+                    fontWeight: AppFontWeights.semiBold,
+                  ),
+                ),
+                onPressed: _isLoading ? null : () => _resend(userId),
+                child: const Text('Resend Code'),
               ),
             ],
-            const SizedBox(height: AppSpacing.md),
-            AppInputField(
-              label: 'Verification Token',
-              hint: 'Paste the token from your email',
-              prefixIcon: Icons.verified_user_outlined,
-              maxLength: 256,
-              showCounter: false,
-              controller: _tokenController,
-              validator: _validateToken,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            AppButton(
-              label: 'Verify',
-              isLoading: _isLoading,
-              onPressed: _handleVerifyEmail,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Center(
-              child: TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Back to Login'),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

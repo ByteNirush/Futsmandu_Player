@@ -1,22 +1,23 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import 'data/services/player_booking_service.dart';
+import 'presentation/providers/booking_repository_provider.dart';
 
-class SlotHoldScreen extends StatefulWidget {
+class SlotHoldScreen extends ConsumerStatefulWidget {
   const SlotHoldScreen({super.key});
 
   @override
-  State<SlotHoldScreen> createState() => _SlotHoldScreenState();
+  ConsumerState<SlotHoldScreen> createState() => _SlotHoldScreenState();
 }
 
-class _SlotHoldScreenState extends State<SlotHoldScreen>
+class _SlotHoldScreenState extends ConsumerState<SlotHoldScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
-  final PlayerBookingService _bookingService = PlayerBookingService.instance;
   bool _isHolding = true;
   String? _errorMessage;
 
@@ -40,6 +41,8 @@ class _SlotHoldScreenState extends State<SlotHoldScreen>
     final courtId = (args?['courtId'] as String?) ?? '';
     final bookingDate = (args?['bookingDate'] as String?) ?? '';
     final startTime = (args?['startTime'] as String?) ?? '';
+    final bookingMode = (args?['bookingMode'] as String?) ?? 'solo';
+    final bookingType = bookingMode == 'full' ? 'FULL' : 'FLEX';
 
     if (courtId.isEmpty || bookingDate.isEmpty || startTime.isEmpty) {
       if (!mounted) return;
@@ -57,11 +60,12 @@ class _SlotHoldScreenState extends State<SlotHoldScreen>
     });
 
     try {
-      final heldBooking = await _bookingService.holdSlot(
-        courtId: courtId,
-        date: bookingDate,
-        startTime: startTime,
-      );
+      final heldBooking = await ref.read(bookingRepositoryProvider).holdSlot(
+            courtId: courtId,
+            date: bookingDate,
+            startTime: startTime,
+            bookingType: bookingType,
+          );
 
       if (!mounted) return;
       Navigator.pushReplacementNamed(
@@ -69,7 +73,7 @@ class _SlotHoldScreenState extends State<SlotHoldScreen>
         '/payment',
         arguments: {
           ...?args,
-          'heldBooking': heldBooking,
+          'heldBooking': heldBooking.toMap(),
         },
       );
     } on BookingApiException catch (e) {

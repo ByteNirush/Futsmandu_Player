@@ -1,18 +1,20 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart'
+    show ProfileSectionHeader;
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/design_system/app_radius.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/services/player_auth_storage_service.dart';
+import 'data/models/player_profile_models.dart';
 import 'data/services/player_profile_service.dart';
 import '../auth/presentation/providers/auth_controller.dart';
-import '../../shared/widgets/futs_card.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -48,13 +50,23 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
   bool _notificationsEnabled = true;
   bool _isLoading = true;
-  bool _isSavingProfile = false;
   bool _isUploadingAvatar = false;
+  bool _isSavingProfile = false;
   String? _errorMessage;
   Map<String, dynamic> _user = _fallbackUser;
-
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
+
+  static String _themeModeLabel(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.system:
+        return 'System';
+      case ThemeMode.light:
+        return 'Light';
+      case ThemeMode.dark:
+        return 'Dark';
+    }
+  }
 
   @override
   void initState() {
@@ -93,6 +105,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final int draw = user['draw'] as int;
     final double winRate = matchesPlayed == 0 ? 0 : won / matchesPlayed;
     final double bottomPad = MediaQuery.of(context).padding.bottom;
+    final colorScheme = Theme.of(context).colorScheme;
 
     if (_isLoading) {
       return Scaffold(
@@ -157,7 +170,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 titleSpacing: 16,
                 title: Text(
                   'Profile',
-                  style: AppText.h3.copyWith(fontSize: 18),
+                  style: AppTypography.subHeading(
+                    context,
+                    colorScheme,
+                  ).copyWith(fontSize: 18),
                 ),
                 actions: [
                   _AppBarAction(
@@ -182,280 +198,300 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               // ── Content ──────────────────────────────────────────────────
               SliverPadding(
                 padding: EdgeInsets.fromLTRB(
-                  16,
-                  20,
-                  16,
-                  bottomPad + kNavBarHeight + 16,
+                  AppSpacing.sm2,
+                  AppSpacing.md,
+                  AppSpacing.sm2,
+                  bottomPad + kNavBarHeight + AppSpacing.md,
                 ),
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
                     // Performance Section
                     const _SectionLabel(label: 'Performance'),
-                    const SizedBox(height: 12),
-                    FutsCard(
-                      padding: const EdgeInsets.all(AppSpacing.sm),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Top row: matches + win rate
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _MetricCard(
-                                  icon: Icons.sports_score_outlined,
-                                  label: 'Matches',
-                                  value: '$matchesPlayed',
-                                  color: AppColors.blue,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: _MetricCard(
-                                  icon: Icons.emoji_events_outlined,
-                                  label: 'Win Rate',
-                                  value: '${(winRate * 100).round()}%',
-                                  color: AppColors.green,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          // Bottom row: won / lost / draw
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _MetricCard(
-                                  icon: Icons.check_circle_outline,
-                                  label: 'Won',
-                                  value: '$won',
-                                  color: AppColors.green,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _MetricCard(
-                                  icon: Icons.cancel_outlined,
-                                  label: 'Lost',
-                                  value: '$lost',
-                                  color: AppColors.red,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _MetricCard(
-                                  icon: Icons.remove_circle_outline,
-                                  label: 'Draw',
-                                  value: '$draw',
-                                  color: AppColors.amber,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Win Progress', style: AppText.label),
-                              Text(
-                                '${(winRate * 100).round()}%',
-                                style: AppText.label.copyWith(
-                                  color: AppColors.green,
-                                  fontWeight: AppTextStyles.semiBold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(999),
-                            child: LinearProgressIndicator(
-                              value: winRate,
-                              minHeight: 7,
-                              backgroundColor: AppColors.bgElevated,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.green,
+                    const SizedBox(height: AppSpacing.sm),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            _PerformanceStat(
+                              icon: Icons.sports_score_outlined,
+                              label: 'Matches',
+                              value: '$matchesPlayed',
+                              color: AppColors.blue,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            _PerformanceStat(
+                              icon: Icons.emoji_events_outlined,
+                              label: 'Win Rate',
+                              value: '${(winRate * 100).round()}%',
+                              color: AppColors.green,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        Row(
+                          children: [
+                            _StatPill(
+                              label: 'Won',
+                              value: '$won',
+                              color: AppColors.green,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            _StatPill(
+                              label: 'Lost',
+                              value: '$lost',
+                              color: AppColors.red,
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            _StatPill(
+                              label: 'Draw',
+                              value: '$draw',
+                              color: AppColors.amber,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Win Progress',
+                              style: AppText.label.copyWith(
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
+                            Text(
+                              '${(winRate * 100).round()}%',
+                              style: AppText.label.copyWith(
+                                color: AppColors.green,
+                                fontWeight: AppTextStyles.semiBold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                          child: LinearProgressIndicator(
+                            value: winRate,
+                            minHeight: 7,
+                            backgroundColor:
+                                AppColors.green.withValues(alpha: 0.12),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.green,
+                            ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.md),
 
                     // Reliability Section
                     const _SectionLabel(label: 'Reliability Score'),
-                    const SizedBox(height: 12),
-                    FutsCard(
-                      padding: const EdgeInsets.all(AppSpacing.sm),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 88,
-                            height: 88,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                CustomPaint(
-                                  size: const Size.square(88),
-                                  painter:
-                                      ReliabilityRingPainter(score, scoreColor),
-                                ),
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      '$score',
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 24,
-                                        fontWeight: AppTextStyles.semiBold,
-                                        color: scoreColor,
-                                        height: 1,
-                                      ),
-                                    ),
-                                    Text(
-                                      '/100',
-                                      style: AppText.label.copyWith(
-                                        fontSize: 11,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 8,
-                                      height: 8,
-                                      decoration: BoxDecoration(
-                                        color: scoreColor,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      scoreLabel,
-                                      style: AppText.h3.copyWith(
-                                        fontSize: 17,
-                                        color: scoreColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  score >= 70
-                                      ? 'Excellent attendance and booking behavior.'
-                                      : score >= 40
-                                          ? 'Improve attendance to avoid account limits.'
-                                          : 'Current score may impact booking eligibility.',
-                                  style: AppText.bodySm.copyWith(
-                                    color: AppColors.txtDisabled,
-                                    fontSize: 13,
+                    const SizedBox(height: AppSpacing.sm),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 88,
+                          height: 88,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              CustomPaint(
+                                size: const Size.square(88),
+                                painter:
+                                    ReliabilityRingPainter(score, scoreColor),
+                              ),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '$score',
+                                    style: AppTypography.textTheme(colorScheme)
+                                        .headlineSmall
+                                        ?.copyWith(
+                                          color: scoreColor,
+                                          fontWeight: AppFontWeights.semiBold,
+                                        ),
                                   ),
-                                ),
-                                const SizedBox(height: 10),
-                                Row(
-                                  children: [
-                                    _InfoChip(
-                                      label: 'No-shows',
-                                      value: '${user['noShows']}',
-                                      color: AppColors.red,
+                                  Text(
+                                    '/100',
+                                    style: AppTypography.caption(
+                                      context,
+                                      colorScheme,
                                     ),
-                                    const SizedBox(width: 8),
-                                    _InfoChip(
-                                      label: 'Late cancels',
-                                      value: '${user['lateCancels']}',
-                                      color: AppColors.amber,
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: scoreColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    scoreLabel,
+                                    style: AppText.h3.copyWith(
+                                      fontSize: 17,
+                                      color: scoreColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                score >= 70
+                                    ? 'Excellent attendance and booking behavior.'
+                                    : score >= 40
+                                        ? 'Improve attendance to avoid account limits.'
+                                        : 'Current score may impact booking eligibility.',
+                                style: AppText.bodySm.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.xs2),
+                              Wrap(
+                                spacing: AppSpacing.xs,
+                                runSpacing: AppSpacing.xs,
+                                children: [
+                                  _InfoChip(
+                                    label: 'No-shows',
+                                    value: '${user['noShows']}',
+                                    color: AppColors.red,
+                                  ),
+                                  _InfoChip(
+                                    label: 'Late cancels',
+                                    value: '${user['lateCancels']}',
+                                    color: AppColors.amber,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.md),
 
                     // Quick Actions Section
                     const _SectionLabel(label: 'Quick Actions'),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AppSpacing.sm),
                     _QuickActionsGrid(
                       context: context,
                       onEditProfile: _openEditProfileSheet,
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: AppSpacing.md),
 
                     // Preferences Section
-                    const _SectionLabel(label: 'Preferences'),
-                    const SizedBox(height: 12),
-                    FutsCard(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xxs,
-                        vertical: AppSpacing.xxs,
-                      ),
-                      child: Column(
-                        children: [
-                          _SettingsTile(
-                            icon: Icons.notifications_outlined,
-                            title: 'Notifications',
-                            subtitle: _notificationsEnabled ? 'On' : 'Off',
-                            trailing: Switch.adaptive(
-                              value: _notificationsEnabled,
-                              activeThumbColor: AppColors.green,
-                              onChanged: (value) {
-                                setState(() => _notificationsEnabled = value);
-                              },
+                    const ProfileSectionHeader(
+                      title: 'Preferences',
+                      subtitle: 'Tune how the player workspace behaves.',
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    AnimatedBuilder(
+                      animation: ThemeProvider.instance,
+                      builder: (context, _) {
+                        final themeMode = ThemeProvider.instance.themeMode;
+                        return Column(
+                          children: [
+                            _PreferenceTile(
+                              icon: Icons.notifications_outlined,
+                              title: 'Notifications',
+                              subtitle: 'Booking alerts and account updates',
+                              trailing: Switch.adaptive(
+                                value: _notificationsEnabled,
+                                onChanged: (value) {
+                                  setState(
+                                    () => _notificationsEnabled = value,
+                                  );
+                                },
+                              ),
                             ),
-                            onTap: () {
-                              setState(
-                                () => _notificationsEnabled =
-                                    !_notificationsEnabled,
-                              );
-                            },
+                            const SizedBox(height: AppSpacing.xs2),
+                            _PreferenceTile(
+                              icon: Icons.brightness_6_outlined,
+                              title: 'Theme',
+                              subtitle: _themeModeLabel(themeMode),
+                              trailing: ToggleButtons(
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.md,
+                                ),
+                                constraints: const BoxConstraints(
+                                  minHeight: 36,
+                                  minWidth: 44,
+                                ),
+                                isSelected: [
+                                  themeMode == ThemeMode.light,
+                                  themeMode == ThemeMode.dark,
+                                ],
+                                onPressed: (index) {
+                                  ThemeProvider.instance.setThemeMode(
+                                    index == 0
+                                        ? ThemeMode.light
+                                        : ThemeMode.dark,
+                                  );
+                                },
+                                children: const [
+                                  Icon(Icons.light_mode_outlined, size: 18),
+                                  Icon(Icons.dark_mode_outlined, size: 18),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xs2),
+                            _PreferenceTile(
+                              icon: Icons.help_outline_rounded,
+                              title: 'Help & Support',
+                              subtitle: 'See FAQs or contact the support team',
+                              trailing: Icon(
+                                Icons.chevron_right_rounded,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              onTap: () => _showSupportSheet(context),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: AppSpacing.md),
+
+                    // Account Section
+                    const ProfileSectionHeader(
+                      title: 'Account',
+                      subtitle: 'Manage access to this player workspace.',
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () => _showLogoutConfirm(context),
+                        icon: const Icon(Icons.logout_rounded),
+                        label: const Text('Logout'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: colorScheme.errorContainer,
+                          foregroundColor: colorScheme.onErrorContainer,
+                          minimumSize: const Size.fromHeight(
+                            AppSpacing.buttonHeight,
                           ),
-                          const _SettingsTile(
-                            icon: Icons.dark_mode_outlined,
-                            title: 'Theme',
-                            subtitle: 'Appearance',
-                            trailing: _ThemeModeMenu(),
-                          ),
-                          _SettingsTile(
-                            icon: Icons.shield_outlined,
-                            title: 'Account Security',
-                            subtitle: 'Password & 2FA',
-                            onTap: () =>
-                                _showComingSoon(context, 'Account Security'),
-                          ),
-                          _SettingsTile(
-                            icon: Icons.help_outline_rounded,
-                            title: 'Help & Support',
-                            subtitle: 'FAQs & contact',
-                            onTap: () =>
-                                _showComingSoon(context, 'Help & Support'),
-                          ),
-                          _SettingsTile(
-                            icon: Icons.logout_rounded,
-                            title: 'Log Out',
-                            iconColor: AppColors.red,
-                            textColor: AppColors.red,
-                            showDivider: false,
-                            onTap: () {
-                              _showLogoutConfirm(context);
-                            },
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ]),
@@ -468,54 +504,59 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     );
   }
 
-  void _showComingSoon(BuildContext context, String featureName) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$featureName coming soon'),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.fromLTRB(
-            AppSpacing.sm, 0, AppSpacing.sm, AppSpacing.sm),
-      ),
+  void _showSupportSheet(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              0,
+              AppSpacing.md,
+              AppSpacing.md,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.email_outlined,
+                    color: colorScheme.primary,
+                  ),
+                  title: const Text('Email support'),
+                  subtitle: const Text('support@futsmandu.com'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Support email copied')),
+                    );
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.phone_outlined,
+                    color: colorScheme.primary,
+                  ),
+                  title: const Text('Call support'),
+                  subtitle: const Text('+977 98XXXXXXXX'),
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Support call requested')),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
-  }
-
-  Future<void> _loadProfile() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final raw = await _profileService.getOwnProfile();
-      final mapped = _mapProfile(raw);
-      if (!mounted) return;
-      setState(() {
-        _user = mapped;
-      });
-      await PlayerAuthStorageService.instance.saveUser({
-        'id': mapped['id'],
-        'name': mapped['name'],
-        'email': mapped['email'],
-        'phone': mapped['phone'],
-        'profile_image_url': mapped['avatarUrl'],
-      });
-    } on ProfileApiException catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = e.message;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _errorMessage = 'Failed to load profile';
-      });
-    } finally {
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
-    }
   }
 
   Future<void> _openEditProfileSheet() async {
@@ -537,6 +578,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+
         return StatefulBuilder(
           builder: (ctx, setLocalState) {
             return Padding(
@@ -550,7 +593,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Edit Profile', style: AppText.h3),
+                  Text(
+                    'Edit Profile',
+                    style: AppText.h3.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: nameController,
@@ -559,7 +607,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: selectedSkill,
+                    initialValue: selectedSkill,
                     items: const [
                       DropdownMenuItem(
                           value: 'beginner', child: Text('Beginner')),
@@ -575,7 +623,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     },
                   ),
                   const SizedBox(height: 12),
-                  Text('Preferred Roles', style: AppText.bodySm),
+                  Text(
+                    'Preferred Roles',
+                    style: AppText.bodySm.copyWith(
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -648,10 +701,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     setState(() => _isSavingProfile = true);
     try {
       await _profileService.updateOwnProfile(
-        name: trimmedName,
-        skillLevel: selectedSkill,
-        preferredRoles: selectedRoles.toList(growable: false),
-        showMatchHistory: showMatchHistory,
+        UpdateProfileRequest(
+          name: trimmedName,
+          skillLevel: selectedSkill,
+          preferredRoles: selectedRoles.toList(growable: false),
+          showMatchHistory: showMatchHistory,
+        ),
       );
       await _loadProfile();
       if (!mounted) return;
@@ -669,8 +724,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         const SnackBar(content: Text('Failed to update profile')),
       );
     } finally {
-      if (!mounted) return;
-      setState(() => _isSavingProfile = false);
+      if (mounted) {
+        setState(() => _isSavingProfile = false);
+      }
     }
   }
 
@@ -704,70 +760,86 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         const SnackBar(content: Text('Failed to upload avatar')),
       );
     } finally {
-      if (!mounted) return;
-      setState(() => _isUploadingAvatar = false);
+      if (mounted) {
+        setState(() => _isUploadingAvatar = false);
+      }
     }
   }
 
-  Map<String, dynamic> _mapProfile(Map<String, dynamic> raw) {
+  Future<void> _loadProfile() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final raw = await _profileService.getOwnProfile();
+      final mapped = _mapProfile(raw);
+      if (!mounted) return;
+      setState(() {
+        _user = mapped;
+      });
+      await PlayerAuthStorageService.instance.saveUser({
+        'id': mapped['id'],
+        'name': mapped['name'],
+        'email': mapped['email'],
+        'phone': mapped['phone'],
+        'profile_image_url': mapped['avatarUrl'],
+      });
+    } on ProfileApiException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = e.message;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Failed to load profile';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Map<String, dynamic> _mapProfile(PlayerProfile raw) {
     final mapped = Map<String, dynamic>.from(_fallbackUser);
-    final email = _string(raw['email']);
-    final name = _string(raw['name']).isEmpty
-        ? mapped['name'] as String
-        : _string(raw['name']);
+    final email = raw.email;
+    final name = raw.name.isEmpty ? mapped['name'] as String : raw.name;
 
     mapped.addAll({
-      'id': _string(raw['id']),
+      'id': raw.id,
       'name': name,
       'email': email,
-      'phone': _string(raw['phone']),
+      'phone': raw.phone,
       'handle': _buildHandle(name: name, email: email),
-      'avatarUrl': _string(raw['profile_image_url']).isEmpty
+      'avatarUrl': raw.profileImageUrl.isEmpty
           ? mapped['avatarUrl']
-          : _string(raw['profile_image_url']),
-      'isVerified': raw['is_verified'] == true,
-      'skillLevelRaw': _string(raw['skill_level']).isEmpty
-          ? 'beginner'
-          : _string(raw['skill_level']),
-      'skillLevel': _displaySkill(_string(raw['skill_level'])),
-      'eloRating': _toInt(raw['elo_rating']),
-      'reliabilityScore': _toInt(raw['reliability_score']),
-      'matchesPlayed': _toInt(raw['matches_played']),
-      'won': _toInt(raw['matches_won']),
-      'lost': _toInt(raw['matches_lost']),
-      'draw': _toInt(raw['matches_draw']),
-      'noShows': _toInt(raw['total_no_shows']),
-      'lateCancels': _toInt(raw['total_late_cancels']),
-      'showMatchHistory': raw['show_match_history'] != false,
-      'preferredRoles': _extractPreferredRoles(raw['preferred_roles']),
+          : raw.profileImageUrl,
+      'isVerified': raw.isVerified,
+      'skillLevelRaw': raw.skillLevel.isEmpty ? 'beginner' : raw.skillLevel,
+      'skillLevel': _displaySkill(raw.skillLevel),
+      'eloRating': raw.eloRating,
+      'reliabilityScore': raw.reliabilityScore,
+      'matchesPlayed': raw.matchesPlayed,
+      'won': raw.matchesWon,
+      'lost': raw.matchesLost,
+      'draw': raw.matchesDraw,
+      'noShows': raw.totalNoShows,
+      'lateCancels': raw.totalLateCancels,
+      'showMatchHistory': raw.showMatchHistory,
+      'preferredRoles': raw.preferredRoles,
     });
 
     return mapped;
   }
 
-  List<String> _extractPreferredRoles(dynamic value) {
-    if (value is! List) return const <String>[];
-    return value
-        .map((item) {
-          if (item is Map<String, dynamic>) return _string(item['role']);
-          if (item is Map) return _string(item['role']);
-          if (item is String) return item;
-          return '';
-        })
-        .where((role) => role.isNotEmpty)
-        .toList(growable: false);
-  }
-
   List<String> _asStringList(dynamic value) {
     if (value is! List) return const <String>[];
     return value.whereType<String>().toList(growable: false);
-  }
-
-  int _toInt(dynamic value) {
-    if (value is int) return value;
-    if (value is num) return value.toInt();
-    if (value is String) return int.tryParse(value) ?? 0;
-    return 0;
   }
 
   String _string(dynamic value) {
@@ -798,17 +870,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.bgElevated,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Log Out', style: AppText.h3.copyWith(fontSize: 18)),
+        title: Text(
+          'Log Out',
+          style: AppText.h3.copyWith(
+            fontSize: 18,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
         content: Text(
           'Are you sure you want to log out?',
-          style: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+          style: AppText.bodySm.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               'Cancel',
-              style: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+              style: AppText.bodySm.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           TextButton(
@@ -816,7 +898,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               Navigator.pop(ctx);
               await ref.read(authSessionProvider.notifier).logout();
               if (!context.mounted) return;
-              Navigator.pushReplacementNamed(context, '/login');
+              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
             },
             child: Text(
               'Log Out',
@@ -855,6 +937,8 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -905,9 +989,13 @@ class _ProfileHeader extends StatelessWidget {
             AppSpacing.sm,
             AppSpacing.sm,
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
+          child: SingleChildScrollView(
+            reverse: true,
+            physics: const ClampingScrollPhysics(),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
               // Avatar
               Stack(
                 clipBehavior: Clip.none,
@@ -945,8 +1033,6 @@ class _ProfileHeader extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: AppColors.green,
                           shape: BoxShape.circle,
-                          border:
-                              Border.all(color: AppColors.bgPrimary, width: 2),
                         ),
                         child: Icon(
                           isAvatarUploading
@@ -964,7 +1050,10 @@ class _ProfileHeader extends StatelessWidget {
               // Name
               Text(
                 user['name'] as String,
-                style: AppText.h2.copyWith(fontSize: 22),
+                style: AppText.h2.copyWith(
+                  fontSize: 22,
+                  color: colorScheme.onSurface,
+                ),
               ),
               const SizedBox(height: 2),
               Row(
@@ -973,7 +1062,7 @@ class _ProfileHeader extends StatelessWidget {
                   Text(
                     user['handle'] as String,
                     style: AppText.bodySm.copyWith(
-                      color: AppColors.txtDisabled,
+                      color: colorScheme.onSurfaceVariant,
                       fontSize: 13,
                     ),
                   ),
@@ -1002,15 +1091,12 @@ class _ProfileHeader extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.green.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(999),
-                        border: Border.all(
-                          color: AppColors.green.withValues(alpha: 0.35),
-                        ),
                       ),
                       child: Text(
                         'Edit',
                         style: AppText.label.copyWith(
                           color: AppColors.green,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: AppFontWeights.semiBold,
                           fontSize: 12,
                         ),
                       ),
@@ -1032,6 +1118,7 @@ class _ProfileHeader extends StatelessWidget {
               ),
             ],
           ),
+          ),
         ),
       ],
     );
@@ -1048,19 +1135,13 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 3,
-          height: 18,
-          decoration: BoxDecoration(
-            color: AppColors.green,
-            borderRadius: BorderRadius.circular(999),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Text(label, style: AppText.h3.copyWith(fontSize: 16)),
-      ],
+    final colorScheme = Theme.of(context).colorScheme;
+    return Text(
+      label,
+      style: AppTypography.subHeading(
+        context,
+        colorScheme,
+      ).copyWith(fontSize: 17),
     );
   }
 }
@@ -1079,12 +1160,11 @@ class _AppBarAction extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 36,
-        height: 36,
+        width: 38,
+        height: 38,
         decoration: BoxDecoration(
-          color: AppColors.bgElevated,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.borderClr),
+          color: AppColors.bgElevated.withValues(alpha: 0.7),
+          shape: BoxShape.circle,
         ),
         child: Icon(icon, size: 18, color: AppColors.txtPrimary),
       ),
@@ -1152,13 +1232,12 @@ class _Badge extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.13),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Text(
         text,
         style: AppText.label.copyWith(
           color: color,
-          fontWeight: FontWeight.w600,
+          fontWeight: AppFontWeights.semiBold,
           fontSize: 12,
         ),
       ),
@@ -1166,17 +1245,13 @@ class _Badge extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Metric card (inside performance section)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _MetricCard extends StatelessWidget {
+class _PerformanceStat extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
   final Color color;
 
-  const _MetricCard({
+  const _PerformanceStat({
     required this.icon,
     required this.label,
     required this.value,
@@ -1185,41 +1260,89 @@ class _MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs2,
-        vertical: AppSpacing.xs2,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.bgElevated,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderClr),
-      ),
+    return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 28,
-            height: 28,
+            width: 30,
+            height: 30,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+              color: color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(9),
             ),
-            child: Icon(icon, size: 15, color: color),
+            child: Icon(icon, size: 16, color: color),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             value,
-            style: GoogleFonts.poppins(
-              fontSize: 22,
-              fontWeight: AppTextStyles.semiBold,
+            style: AppTypography.textTheme(
+              Theme.of(context).colorScheme,
+            ).headlineSmall?.copyWith(
               color: AppColors.txtPrimary,
-              height: 1,
+              fontWeight: AppFontWeights.semiBold,
             ),
           ),
-          const SizedBox(height: 2),
-          Text(label, style: AppText.label),
+          const SizedBox(height: 3),
+          Text(
+            label,
+            style: AppText.label.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _StatPill extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+
+  const _StatPill({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xs3,
+          vertical: AppSpacing.xxs,
+        ),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              value,
+              style: AppText.bodySm.copyWith(
+                fontWeight: AppTextStyles.semiBold,
+                color: color,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(width: 5),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: AppText.label.copyWith(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1249,8 +1372,7 @@ class _InfoChip extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1266,7 +1388,10 @@ class _InfoChip extends StatelessWidget {
           const SizedBox(width: 5),
           Text(
             label,
-            style: AppText.label.copyWith(fontSize: 11),
+            style: AppText.label.copyWith(
+              fontSize: 11,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
         ],
       ),
@@ -1292,7 +1417,7 @@ class _QuickActionsGrid extends StatelessWidget {
     const actions = [
       (Icons.edit_outlined, 'Edit Profile', null),
       (Icons.calendar_month_rounded, 'My Bookings', '/bookings'),
-      (Icons.history_rounded, 'Match History', null),
+      (Icons.receipt_long_rounded, 'Payment History', '/payment-history'),
       (Icons.group_outlined, 'Friends', '/friends'),
       (Icons.privacy_tip_outlined, 'Privacy', null),
       (Icons.star_border_rounded, 'Reviews', null),
@@ -1357,7 +1482,7 @@ class _QuickActionTile extends StatelessWidget {
     return SizedBox(
       width: width,
       child: Material(
-        color: AppColors.bgSurface,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
@@ -1369,7 +1494,7 @@ class _QuickActionTile extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.borderClr),
+              color: AppColors.bgElevated.withValues(alpha: 0.55),
             ),
             child: Row(
               children: [
@@ -1387,7 +1512,8 @@ class _QuickActionTile extends StatelessWidget {
                   child: Text(
                     label,
                     style: AppText.bodySm.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: AppFontWeights.semiBold,
+                      color: Theme.of(context).colorScheme.onSurface,
                       fontSize: 13,
                     ),
                     maxLines: 2,
@@ -1403,126 +1529,75 @@ class _QuickActionTile extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Settings tile
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _SettingsTile extends StatelessWidget {
+class _PreferenceTile extends StatelessWidget {
   final IconData icon;
   final String title;
-  final String? subtitle;
-  final Widget? trailing;
+  final String subtitle;
+  final Widget trailing;
   final VoidCallback? onTap;
-  final Color? iconColor;
-  final Color? textColor;
-  final bool showDivider;
 
-  const _SettingsTile({
+  const _PreferenceTile({
     required this.icon,
     required this.title,
-    this.subtitle,
-    this.trailing,
+    required this.subtitle,
+    required this.trailing,
     this.onTap,
-    this.iconColor,
-    this.textColor,
-    this.showDivider = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ListTile(
-          minVerticalPadding: 10,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: AppSpacing.xs3),
-          leading: Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: AppColors.bgElevated,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.borderClr),
-            ),
-            child: Icon(
-              icon,
-              size: 18,
-              color: iconColor ?? AppColors.txtDisabled,
-            ),
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xs2,
           ),
-          title: Text(
-            title,
-            style: AppText.body.copyWith(
-              color: textColor ?? AppColors.txtPrimary,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
+          decoration: BoxDecoration(
+            color: AppColors.bgElevated.withValues(alpha: 0.48),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
           ),
-          subtitle: subtitle != null
-              ? Text(
-                  subtitle!,
-                  style: AppText.label.copyWith(fontSize: 12),
-                )
-              : null,
-          trailing: trailing ??
-              Icon(
-                Icons.chevron_right_rounded,
-                size: 20,
-                color: AppColors.txtDisabled,
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: AppColors.green.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(icon, size: 18, color: AppColors.green),
               ),
-          onTap: onTap,
-        ),
-        if (showDivider)
-          Divider(
-            height: 1,
-            thickness: 1,
-            color: AppColors.borderClr,
-            indent: 48,
-            endIndent: 10,
+              const SizedBox(width: AppSpacing.xs2),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppText.bodySm.copyWith(
+                        color: Theme.of(context).colorScheme.onSurface,
+                        fontWeight: AppTextStyles.semiBold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: AppText.label.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs2),
+              trailing,
+            ],
           ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Theme mode selector
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _ThemeModeMenu extends StatelessWidget {
-  const _ThemeModeMenu();
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = ThemeProvider.instance;
-    return AnimatedBuilder(
-      animation: provider,
-      builder: (_, __) => PopupMenuButton<ThemeMode>(
-        initialValue: provider.themeMode,
-        onSelected: provider.setThemeMode,
-        itemBuilder: (context) => const [
-          PopupMenuItem(value: ThemeMode.system, child: Text('System')),
-          PopupMenuItem(value: ThemeMode.light, child: Text('Light')),
-          PopupMenuItem(value: ThemeMode.dark, child: Text('Dark')),
-        ],
-        color: Theme.of(context).colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              switch (provider.themeMode) {
-                ThemeMode.system => 'System',
-                ThemeMode.light => 'Light',
-                ThemeMode.dark => 'Dark',
-              },
-              style: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
-            ),
-            const SizedBox(width: 2),
-            Icon(Icons.expand_more_rounded,
-                color: AppColors.txtDisabled, size: 18),
-          ],
         ),
       ),
     );

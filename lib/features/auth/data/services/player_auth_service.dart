@@ -1,7 +1,8 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/config/api_config.dart';
-import '../../../../core/network/player_dio_client.dart';
+import '../../../../core/network/api_client.dart';
+import '../../../../core/network/error_handler.dart';
 import '../models/player_auth_models.dart';
 
 class AuthException implements Exception {
@@ -19,9 +20,9 @@ class PlayerAuthService {
 
   static final PlayerAuthService instance = PlayerAuthService._internal();
 
-  final Dio _client = createPlayerDioClient();
+  final ApiClient _client = ApiClient.instance;
 
-  Future<PlayerAuthProfile> register({
+  Future<Player> register({
     required String name,
     required String email,
     required String phone,
@@ -37,7 +38,7 @@ class PlayerAuthService {
       },
     );
 
-    return PlayerAuthProfile.fromJson(_asMap(_unwrap(response.data)));
+    return Player.fromJson(_asMap(_unwrap(response.data)));
   }
 
   Future<PlayerAuthLoginResult> login({
@@ -52,17 +53,40 @@ class PlayerAuthService {
       },
     );
 
-    final data = _asMap(_unwrap(response.data));
-    return PlayerAuthLoginResult(
-      accessToken: _requireString(data['accessToken'], 'accessToken'),
-      user: PlayerAuthProfile.fromJson(_asMap(data['user'])),
-    );
+    final authResponse =
+        AuthResponse.fromLoginJson(_asMap(_unwrap(response.data)));
+    return PlayerAuthLoginResult.fromAuthResponse(authResponse);
   }
 
   Future<String> refresh() async {
     final response = await _postJson(ApiConfig.refreshEndpoint);
-    final data = _asMap(_unwrap(response.data));
-    return _requireString(data['accessToken'], 'accessToken');
+    final authResponse =
+        AuthResponse.fromRefreshJson(_asMap(_unwrap(response.data)));
+    return authResponse.token.accessToken;
+  }
+
+  Future<OtpVerificationResult> verifyOtp({
+    required String userId,
+    required String otp,
+  }) async {
+    final response = await _postJson(
+      ApiConfig.verifyOtpEndpoint,
+      data: {
+        'userId': userId.trim(),
+        'otp': otp.trim(),
+      },
+    );
+
+    return OtpVerificationResult.fromJson(_asMap(_unwrap(response.data)));
+  }
+
+  Future<OtpVerificationResult> resendOtp({required String userId}) async {
+    final response = await _postJson(
+      ApiConfig.resendOtpEndpoint,
+      data: {'userId': userId.trim()},
+    );
+
+    return OtpVerificationResult.fromJson(_asMap(_unwrap(response.data)));
   }
 
   Future<String> logout() async {
@@ -117,7 +141,7 @@ class PlayerAuthService {
     Map<String, dynamic>? data,
   }) async {
     try {
-      return await _client.post<dynamic>(endpoint, data: data);
+      return await _client.post(endpoint, data: data);
     } on DioException catch (error) {
       throw _toAuthException(error);
     }
@@ -149,31 +173,8 @@ class PlayerAuthService {
 
   AuthException _toAuthException(DioException error) {
     final statusCode = error.response?.statusCode ?? 500;
-    final data = _unwrap(error.response?.data);
-
-    if (data is Map) {
-      final message = data['message'] ?? data['error'] ?? data['detail'];
-      if (message is String && message.isNotEmpty) {
-        return AuthException(message: message, statusCode: statusCode);
-      }
-
-      final validation = data['message'];
-      if (validation is List && validation.isNotEmpty) {
-        final combined = validation.whereType<String>().join('\n');
-        if (combined.isNotEmpty) {
-          return AuthException(message: combined, statusCode: statusCode);
-        }
-      }
-    } else if (data is String && data.isNotEmpty) {
-      return AuthException(message: data, statusCode: statusCode);
-    }
-
-    if (error.message != null && error.message!.isNotEmpty) {
-      return AuthException(message: error.message!, statusCode: statusCode);
-    }
-
     return AuthException(
-      message: 'Request failed with status $statusCode',
+      message: ErrorHandler.messageFor(error),
       statusCode: statusCode,
     );
   }

@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-import '../../core/mock/mock_data.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
@@ -20,6 +19,19 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen>
     with SingleTickerProviderStateMixin {
   bool _show = false;
   late AnimationController _confettiController;
+
+  String _formattedAmountLabel(String amount) {
+    final normalized = amount.trim();
+    if (normalized.isEmpty) return 'NPR 0';
+
+    final upper = normalized.toUpperCase();
+    if (upper.startsWith('NPR ')) return normalized;
+    if (upper.startsWith('RS ')) {
+      return 'NPR ${normalized.substring(3).trim()}';
+    }
+
+    return 'NPR $normalized';
+  }
 
   @override
   void initState() {
@@ -59,9 +71,27 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen>
     final bookingDate = args?['bookingDate']?.toString() ?? '-';
     final startTime = args?['startTime']?.toString() ?? '-';
     final endTime = args?['endTime']?.toString() ?? '-';
-    final totalAmount = heldBooking['total_amount']?.toString() ??
-        args?['slot']?['price']?.toString() ??
-        '1800';
+    final totalAmount =
+        heldBooking['displayAmount']?.toString().isNotEmpty == true
+            ? heldBooking['displayAmount'].toString()
+            : heldBooking['total_amount']?.toString() ??
+                args?['slot']?['price']?.toString() ??
+                '1800';
+    final verification = args?['verification'] is Map
+        ? (args?['verification'] as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    final confirmed = verification['confirmed'] is Map
+        ? (verification['confirmed'] as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    final matchGroup = verification['matchGroup'] is Map
+        ? (verification['matchGroup'] as Map).cast<String, dynamic>()
+        : const <String, dynamic>{};
+    final matchGroupId = matchGroup['id']?.toString() ?? '';
+    final gateway = args?['paymentGateway']?.toString() ?? '';
+    final amountLabel = _formattedAmountLabel(totalAmount);
+    final paymentLabel = gateway.isNotEmpty
+        ? '${gateway.toUpperCase()} paid $amountLabel'
+        : 'Paid $amountLabel';
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -132,51 +162,104 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen>
                             _ConfirmRow('Date', bookingDate),
                             _ConfirmRow('Time', '$startTime - $endTime'),
                             const Divider(),
-                            Row(
-                              children: [
-                                Column(
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final compact = constraints.maxWidth < 380;
+
+                                final matchGroupInfo = Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text('Match Group', style: AppText.bodySm),
                                     Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(Icons.group_outlined,
                                             size: 15, color: AppColors.blue),
                                         const SizedBox(width: 4),
-                                        Text('Created — invite friends',
+                                        Flexible(
+                                          child: Text(
+                                            matchGroupId.isNotEmpty
+                                                ? 'Created and ready to join'
+                                                : 'Preparing match group',
                                             style: AppText.bodySm.copyWith(
-                                                color: AppColors.blue)),
+                                                color: AppColors.blue),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
                                       ],
                                     ),
                                   ],
-                                ),
-                                const Spacer(),
-                                Row(
+                                );
+
+                                final paymentInfo = Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(Icons.check_circle_rounded,
                                         size: 15, color: AppColors.green),
                                     const SizedBox(width: 4),
-                                    Text(
-                                      'Paid NPR $totalAmount',
-                                      style: AppText.mono.copyWith(
+                                    Flexible(
+                                      child: Text(
+                                        paymentLabel,
+                                        style: AppText.mono.copyWith(
                                           fontSize: 14,
                                           color: AppColors.green,
-                                          fontWeight: FontWeight.w600),
+                                          fontWeight: AppTextStyles.semiBold,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: compact
+                                            ? TextAlign.left
+                                            : TextAlign.right,
+                                      ),
                                     ),
                                   ],
-                                ),
-                              ],
+                                );
+
+                                if (compact) {
+                                  return Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      matchGroupInfo,
+                                      const SizedBox(height: 8),
+                                      paymentInfo,
+                                    ],
+                                  );
+                                }
+
+                                return Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(child: matchGroupInfo),
+                                    const SizedBox(width: 12),
+                                    Flexible(child: paymentInfo),
+                                  ],
+                                );
+                              },
                             ),
+                            if (confirmed['id'] != null) ...[
+                              const SizedBox(height: 8),
+                              _ConfirmRow(
+                                'Booking ID',
+                                confirmed['id']?.toString() ?? '-',
+                              ),
+                            ],
                           ],
                         ),
                       ),
                       const SizedBox(height: 24),
                       FutsButton(
                         label: 'View Match Group',
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/match-detail',
-                              arguments: MockData.matches[0]);
-                        },
+                        onPressed: matchGroupId.isEmpty
+                            ? null
+                            : () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/match-detail',
+                                  arguments: {'id': matchGroupId},
+                                );
+                              },
                       ),
                       const SizedBox(height: 12),
                       FutsButton(
@@ -229,8 +312,15 @@ class _ConfirmRow extends StatelessWidget {
         children: [
           Text(label, style: AppText.bodySm),
           const Spacer(),
-          Text(value,
-              style: AppText.bodySm.copyWith(color: AppColors.txtPrimary)),
+          Flexible(
+            child: Text(
+              value,
+              style: AppText.bodySm.copyWith(color: AppColors.txtPrimary),
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
         ],
       ),
     );

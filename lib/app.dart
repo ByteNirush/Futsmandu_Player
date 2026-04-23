@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:futsmandu_design_system/futsmandu_design_system.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import 'dart:async';
 
 import 'core/design_system/app_spacing.dart';
@@ -17,14 +17,18 @@ import 'features/auth/presentation/screens/reset_password_screen.dart';
 import 'features/home/home_shell.dart';
 import 'features/venues/venue_list_screen.dart';
 import 'features/venues/venue_detail_screen.dart';
+import 'features/booking/book_court_screen.dart';
 import 'features/booking/slot_hold_screen.dart';
 import 'features/booking/payment_screen.dart';
+import 'features/booking/payment_history_screen.dart';
 import 'features/booking/booking_confirm_screen.dart';
 import 'features/booking/booking_history_screen.dart';
 import 'features/booking/hold_expired_screen.dart';
 import 'features/matches/match_detail_screen.dart';
 import 'features/profile/profile_screen.dart';
-import 'features/notifications/notifications_screen.dart';
+import 'features/profile/presentation/screens/edit_profile_screen.dart';
+import 'features/profile/presentation/screens/public_profile_screen.dart';
+import 'features/notifications/presentation/screens/notifications_screen.dart';
 import 'features/friends/friends_screen.dart';
 import 'features/invite/invite_preview_screen.dart';
 import 'features/discovery/discovery_screen.dart';
@@ -78,19 +82,8 @@ class _FutsmanduAppState extends ConsumerState<FutsmanduApp> {
     _navigatorKey.currentState?.pushNamed('/home');
   }
 
-  Widget _themeAware(Widget Function() builder) {
-    // Force the active route subtree to rebuild on theme changes.
-    // This is necessary because many widgets use `AppColors` (not `Theme.of(context)`)
-    // and would otherwise stay visually "stuck" after switching modes.
-    return AnimatedBuilder(
-      animation: _themeProvider,
-      builder: (_, __) => builder(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authSessionProvider);
     final mediaQuery = MediaQueryData.fromView(View.of(context));
     final adaptiveScale = AppTypographyScale.fromWidth(mediaQuery.size.width);
 
@@ -115,48 +108,57 @@ class _FutsmanduAppState extends ConsumerState<FutsmanduApp> {
             child: child,
           );
         },
-        home: authState.when(
-          loading: () => const _AuthLoadingScreen(),
-          error: (_, __) => _themeAware(() => const LoginScreen()),
-          data: (session) {
-            if (session != null) {
-              return _themeAware(() => const HomeShell());
-            }
-            return _themeAware(() => const LoginScreen());
-          },
-        ),
+        home: const _AuthGate(),
         routes: {
-          '/login': (_) => _themeAware(() => const LoginScreen()),
-          '/register': (_) => _themeAware(() => const RegisterScreen()),
-          '/forgot-password': (_) =>
-              _themeAware(() => const ForgotPasswordScreen()),
-          '/verify-email': (_) =>
-              _themeAware(() => const OtpVerificationScreen()),
-          '/otp-verification': (_) =>
-              _themeAware(() => const OtpVerificationScreen()),
-          '/reset-password': (_) =>
-              _themeAware(() => const ResetPasswordScreen()),
-          '/home': (_) => _themeAware(() => const HomeShell()),
-          '/shell': (_) => _themeAware(() => const HomeShell()),
-          '/venues': (_) => _themeAware(() => const VenueListScreen()),
-          '/venue-detail': (_) => _themeAware(() => const VenueDetailScreen()),
-          '/booking-hold': (_) => _themeAware(() => const SlotHoldScreen()),
-          '/payment': (_) => _themeAware(() => const PaymentScreen()),
-          '/booking-confirm': (_) =>
-              _themeAware(() => const BookingConfirmScreen()),
-          '/bookings': (_) => _themeAware(() => const BookingHistoryScreen()),
-          '/hold-expired': (_) => _themeAware(() => const HoldExpiredScreen()),
-          '/match-detail': (_) => _themeAware(() => const MatchDetailScreen()),
-          '/profile': (_) => _themeAware(() => const ProfileScreen()),
-          '/notifications': (_) =>
-              _themeAware(() => const NotificationsScreen()),
-          '/friends': (_) => _themeAware(() => const FriendsScreen()),
-          '/invite-preview': (_) =>
-              _themeAware(() => const InvitePreviewScreen()),
-          '/discovery': (_) => _themeAware(() => const DiscoveryScreen()),
-          '/maps': (_) => _themeAware(() => const MapsPage()),
+          '/login': (_) => const LoginScreen(),
+          '/register': (_) => const RegisterScreen(),
+          '/forgot-password': (_) => const ForgotPasswordScreen(),
+          '/verify-email': (_) => const OtpVerificationScreen(),
+          '/otp-verification': (_) => const OtpVerificationScreen(),
+          '/reset-password': (_) => const ResetPasswordScreen(),
+          '/home': (_) => const HomeShell(),
+          '/shell': (_) => const HomeShell(),
+          '/venues': (_) => const VenueListScreen(),
+          '/venue-detail': (_) => const VenueDetailScreen(),
+          '/book-court': (_) => const BookCourtScreen(),
+          '/booking-hold': (_) => const SlotHoldScreen(),
+          '/payment': (_) => const PaymentScreen(),
+          '/payment-history': (_) => const PaymentHistoryScreen(),
+          '/booking-confirm': (_) => const BookingConfirmScreen(),
+          '/bookings': (_) => const BookingHistoryScreen(),
+          '/hold-expired': (_) => const HoldExpiredScreen(),
+          '/match-detail': (_) => const MatchDetailScreen(),
+          '/profile': (_) => const ProfileScreen(),
+          '/profile/edit': (_) => const EditProfileScreen(),
+          '/profile/user': (_) => const PublicProfileScreen(),
+          '/notifications': (_) => const NotificationsScreen(),
+          '/friends': (_) => const FriendsScreen(),
+          '/invite-preview': (_) => const InvitePreviewScreen(),
+          '/discovery': (_) => const DiscoveryScreen(),
+          '/maps': (_) => const MapsPage(),
         },
       ),
+    );
+  }
+}
+
+/// Separate widget to isolate Riverpod auth state changes from AnimatedBuilder
+class _AuthGate extends ConsumerWidget {
+  const _AuthGate();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authSessionProvider);
+
+    return authState.when(
+      loading: () => const _AuthLoadingScreen(),
+      error: (_, __) => const LoginScreen(),
+      data: (session) {
+        if (session != null) {
+          return const HomeShell();
+        }
+        return const LoginScreen();
+      },
     );
   }
 }
