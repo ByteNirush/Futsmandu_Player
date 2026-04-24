@@ -7,15 +7,10 @@ import '../../shared/widgets/futs_button.dart';
 import 'data/services/player_venues_service.dart';
 
 class _VenueDetailSpacing {
-  // Keep these aligned with the screen's local `_space*` scale.
-  static const EdgeInsets pillPadding = EdgeInsets.symmetric(
-    horizontal: AppSpacing.xs2,
-    vertical: AppSpacing.xs,
-  );
-  static const double sectionHeaderGap = AppSpacing.xs2; // 12
-  static const double sectionGap = AppSpacing.lg; // 16
-  static const double smallGap = AppSpacing.xxs; // 4
-  static const EdgeInsets reviewCardPadding = EdgeInsets.all(AppSpacing.xs2);
+  static const double sectionGap = 20;
+  static const double subSectionGap = 16;
+  static const double elementGap = 10;
+  static const double smallGap = 6;
 }
 
 class VenueDetailScreen extends StatefulWidget {
@@ -30,11 +25,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   final ScrollController _detailScrollController = ScrollController();
   late final PageController _pageController;
 
-  static const double _spaceSm = 8;
   static const double _spaceMd = 12;
-  static const double _spaceLg = 16;
-  static const double _spaceXl = 20;
-  static const double _space2xl = 24;
 
   String? _venueId;
   Map<String, dynamic>? _venue;
@@ -44,34 +35,6 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   int _courtIdx = 0;
   bool _showCollapsedTitle = false;
   int _currentImagePage = 0;
-
-  final Map<String, IconData> _amenityIcons = {
-    'Parking': Icons.local_parking_rounded,
-    'Changing Room': Icons.checkroom_outlined,
-    'Floodlights': Icons.highlight_outlined,
-    'Cafeteria': Icons.restaurant_outlined,
-    'Wifi': Icons.wifi_rounded,
-    'Restroom': Icons.wc_outlined,
-    'Shower': Icons.shower_outlined,
-    'Seating': Icons.chair_rounded,
-    'Lights': Icons.light_rounded,
-    'Equipment': Icons.sports_rounded,
-    'Water': Icons.water_drop_outlined,
-  };
-
-  IconData _getAmenityIcon(String amenity) {
-    final lower = amenity.toLowerCase();
-    if (lower.contains('park')) return Icons.local_parking_rounded;
-    if (lower.contains('wifi') || lower.contains('internet')) return Icons.wifi_rounded;
-    if (lower.contains('food') || lower.contains('cafe') || lower.contains('restaurant')) return Icons.restaurant_rounded;
-    if (lower.contains('seating') || lower.contains('lounge')) return Icons.chair_rounded;
-    if (lower.contains('light') || lower.contains('flood')) return Icons.light_rounded;
-    if (lower.contains('shoe') || lower.contains('equipment')) return Icons.sports_rounded;
-    if (lower.contains('water') || lower.contains('drink')) return Icons.water_drop_outlined;
-    if (lower.contains('restroom') || lower.contains('toilet') || lower.contains('changing')) return Icons.wc_outlined;
-    if (lower.contains('shower')) return Icons.shower_outlined;
-    return _amenityIcons[amenity] ?? Icons.check_circle_rounded;
-  }
 
   @override
   void initState() {
@@ -198,10 +161,10 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
           builder: (context, setSheetState) {
             return Padding(
               padding: EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.md,
-                AppSpacing.md,
-                MediaQuery.of(context).viewInsets.bottom + AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.sm,
+                AppSpacing.sm,
+                MediaQuery.of(context).viewInsets.bottom + AppSpacing.sm,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -219,7 +182,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                       hintText: 'Enter completed booking ID',
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: AppSpacing.xs),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -227,7 +190,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         'Your rating',
                         style: AppTypography.caption(context, sheetColorScheme),
                       ),
-                      const SizedBox(width: AppSpacing.xs),
+                      const SizedBox(width: AppSpacing.xxs),
                       Text(
                         '$rating/5 - ${ratingLabels[rating - 1]}',
                         style: AppTypography.caption(context, sheetColorScheme)
@@ -364,7 +327,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
         ),
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -380,7 +343,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: AppSpacing.sm),
                 ElevatedButton(
                   onPressed: _loadVenueDetail,
                   child: const Text('Retry'),
@@ -420,7 +383,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
             builder: (context, constraints) {
               return Container(
                 padding: const EdgeInsets.fromLTRB(
-                    _spaceLg, _spaceMd, _spaceLg, _spaceMd),
+                    AppSpacing.md, _spaceMd, AppSpacing.md, _spaceMd),
                 decoration: BoxDecoration(
                   color: colorScheme.surface,
                   boxShadow: [
@@ -490,232 +453,224 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.pagePadding,
-                _spaceLg,
-                AppSpacing.pagePadding,
-                _space2xl,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.pagePadding,
+                vertical: AppSpacing.sm,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Venue Name & Rating Row ───────────────────────────────
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
-                        child: Text(
-                          venue['name'] ?? '',
-                          style: textTheme.headlineSmall,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              venue['name'] ?? '',
+                              style: textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: _VenueDetailSpacing.smallGap),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.star_rounded,
+                                  size: 16,
+                                  color: AppColors.warning,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${venue['rating']}',
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  ' · ${venue['reviewCount']} reviews',
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                                if (isVerified) ...[
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.primaryContainer,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.verified_rounded,
+                                          size: 12,
+                                          color: colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          'Verified',
+                                          style: textTheme.labelSmall?.copyWith(
+                                            color: colorScheme.primary,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      if (isVerified)
-                        Icon(
-                          Icons.verified_rounded,
-                          color: colorScheme.primary,
-                          size: 20,
-                        ),
                     ],
                   ),
-                  const SizedBox(height: _spaceMd),
+
+                  const SizedBox(height: _VenueDetailSpacing.elementGap),
+
+                  // ── Meta Info Chips ────────────────────────────────────────
                   Wrap(
-                    spacing: _spaceSm,
-                    runSpacing: _spaceSm,
+                    spacing: _VenueDetailSpacing.smallGap,
+                    runSpacing: _VenueDetailSpacing.smallGap,
                     children: [
-                      _MetaPill(
-                        icon: isVerified
-                            ? Icons.verified_rounded
-                            : Icons.info_outline_rounded,
-                        label: isVerified ? 'Verified Venue' : 'Standard Venue',
-                      ),
-                      _MetaPill(
-                        icon: Icons.star_rounded,
-                        label: '${venue['rating']} (${venue['reviewCount']})',
-                      ),
-                      _MetaPill(
+                      _MetaChip(
                         icon: Icons.sports_soccer_rounded,
                         label: '${courts.length} Courts',
                       ),
                       if (venue['distance'] != null)
-                        _MetaPill(
+                        _MetaChip(
                           icon: Icons.near_me_rounded,
                           label: venue['distance'],
                         ),
                     ],
                   ),
-                  const SizedBox(height: _spaceXl),
 
-                  if ((venue['description'] as String?)?.isNotEmpty == true)
-                    _SectionCard(
-                      title: 'About',
-                      child: Text(
-                        venue['description'] as String,
-                        style: textTheme.bodyMedium?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                          height: 1.5,
-                        ),
+                  const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+
+                  // ── About Section ──────────────────────────────────────────
+                  if ((venue['description'] as String?)?.isNotEmpty == true) ...[
+                    _SectionHeader(title: 'About'),
+                    const SizedBox(height: _VenueDetailSpacing.smallGap),
+                    Text(
+                      venue['description'] as String,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        height: 1.6,
                       ),
                     ),
+                    const SizedBox(height: _VenueDetailSpacing.sectionGap),
+                  ],
 
-                  _SectionCard(
-                    title: 'Location',
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                  // ── Location Section ───────────────────────────────────────
+                  _SectionHeader(title: 'Location'),
+                  const SizedBox(height: _VenueDetailSpacing.smallGap),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 20,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: _VenueDetailSpacing.smallGap),
+                      Expanded(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: colorScheme.primaryContainer,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                Icons.location_on_rounded,
-                                size: 24,
-                                color: colorScheme.primary,
+                            Text(
+                              venue['address'] ?? '',
+                              style: textTheme.bodyMedium?.copyWith(
+                                height: 1.5,
                               ),
                             ),
-                            const SizedBox(width: _spaceMd),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    venue['address'] ?? '',
-                                    style: textTheme.bodyMedium?.copyWith(
-                                      color: colorScheme.onSurface,
-                                    ),
-                                  ),
-                                  if ((venue['addressCity'] ?? '').isNotEmpty ||
-                                      (venue['addressDistrict'] ?? '').isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${venue['addressCity'] ?? ''}, ${venue['addressDistrict'] ?? ''}',
-                                      style: textTheme.bodySmall?.copyWith(
-                                        color: colorScheme.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ],
-                                ],
+                            if ((venue['addressCity'] ?? '').isNotEmpty ||
+                                (venue['addressDistrict'] ?? '').isNotEmpty)
+                              Text(
+                                '${venue['addressCity'] ?? ''}${(venue['addressCity'] ?? '').isNotEmpty && (venue['addressDistrict'] ?? '').isNotEmpty ? ', ' : ''}${venue['addressDistrict'] ?? ''}',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
                           ],
                         ),
-                        if (venue['latitude'] != null &&
-                            venue['longitude'] != null) ...[
-                          const SizedBox(height: _spaceMd),
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.my_location_outlined,
-                                size: 16,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(width: _spaceSm),
-                              Text(
-                                'Lat: ${(venue['latitude'] as num).toStringAsFixed(6)}',
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(width: _spaceLg),
-                              Icon(
-                                Icons.my_location_outlined,
-                                size: 16,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                              const SizedBox(width: _spaceSm),
-                              Text(
-                                'Lng: ${(venue['longitude'] as num).toStringAsFixed(6)}',
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-
-                  _SectionCard(
-                    title: 'Contact',
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if ((venue['ownerPhone'] as String?)?.isNotEmpty == true)
-                          _ContactRow(
-                            icon: Icons.phone_outlined,
-                            value: venue['ownerPhone'] as String,
-                          )
-                        else
-                          Text(
-                            'Contact details not available.',
-                            style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant),
-                          ),
-                      ],
-                    ),
-                  ),
-
-                  _SectionCard(
-                    title: 'Amenities',
-                    child: Wrap(
-                      spacing: _spaceSm,
-                      runSpacing: _spaceSm,
-                      children: (venue['amenities'] as List).map((a) {
-                        final amenity = a.toString();
-                        return Container(
-                          padding: _VenueDetailSpacing.pillPadding,
-                          decoration: BoxDecoration(
-                            color: colorScheme.primary.withValues(alpha: 0.12),
-                            borderRadius:
-                                BorderRadius.circular(AppTheme.radiusM),
-                            border: Border.all(
-                              color: colorScheme.primary.withValues(alpha: 0.18),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                _getAmenityIcon(amenity),
-                                size: 15,
-                                color: colorScheme.primary,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                amenity,
-                                style: textTheme.labelMedium?.copyWith(
-                                  color: colorScheme.onSurface,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  // Reviews
-                  const SizedBox(height: _spaceXl),
-                  _SectionCard(
-                    title: 'Reviews',
-                    trailing: TextButton(
-                      onPressed: _showWriteReviewSheet,
-                      style: TextButton.styleFrom(
-                        foregroundColor: colorScheme.primary,
-                        padding: _VenueDetailSpacing.pillPadding,
-                        backgroundColor:
-                            colorScheme.primary.withValues(alpha: 0.12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                        ),
-                        textStyle: textTheme.labelSmall,
                       ),
-                      child: const Text('Write review'),
-                    ),
-                    child: _buildReviews(venue),
+                    ],
                   ),
+                  const SizedBox(height: _VenueDetailSpacing.sectionGap),
+
+                  // ── Contact Section ────────────────────────────────────────
+                  _SectionHeader(title: 'Contact'),
+                  const SizedBox(height: _VenueDetailSpacing.smallGap),
+                  if ((venue['ownerPhone'] as String?)?.isNotEmpty == true)
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.phone_outlined,
+                          size: 20,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: _VenueDetailSpacing.elementGap),
+                        Text(
+                          venue['ownerPhone'] as String,
+                          style: textTheme.bodyMedium,
+                        ),
+                      ],
+                    )
+                  else
+                    Text(
+                      'Contact details not available.',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  const SizedBox(height: _VenueDetailSpacing.sectionGap),
+
+                  // ── Amenities Section ──────────────────────────────────────
+                  _SectionHeader(title: 'Amenities'),
+                  const SizedBox(height: _VenueDetailSpacing.smallGap),
+                  Wrap(
+                    spacing: _VenueDetailSpacing.elementGap,
+                    runSpacing: _VenueDetailSpacing.smallGap,
+                    children: (venue['amenities'] as List).map((a) {
+                      final amenity = a.toString();
+                      return _AmenityChip(label: amenity);
+                    }).toList(),
+                  ),
+                  const SizedBox(height: _VenueDetailSpacing.sectionGap),
+
+                  // ── Reviews Section ──────────────────────────────────────────
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _SectionHeader(title: 'Reviews'),
+                      TextButton.icon(
+                        onPressed: _showWriteReviewSheet,
+                        icon: Icon(Icons.edit_outlined, size: 16),
+                        label: const Text('Write a Review'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: colorScheme.primary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          textStyle: textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: _VenueDetailSpacing.smallGap),
+                  _buildReviews(venue),
+                  const SizedBox(height: _VenueDetailSpacing.elementGap),
                 ],
               ),
             ),
@@ -732,21 +687,11 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
         const <Map<String, dynamic>>[];
 
     if (reviews.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHigh,
-          borderRadius: BorderRadius.circular(AppTheme.radiusM),
-        ),
-        child: Text(
-          'No reviews yet. Be the first to review this venue.',
-          style: textTheme.bodySmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
+      return Text(
+        'No reviews yet. Be the first to review this venue.',
+        style: textTheme.bodyMedium?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+          fontStyle: FontStyle.italic,
         ),
       );
     }
@@ -756,7 +701,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
         (entry) {
           return Padding(
             padding: EdgeInsets.only(
-              bottom: entry.key == reviews.take(3).length - 1 ? 0 : _spaceMd,
+              bottom: entry.key == reviews.take(3).length - 1
+                  ? 0
+                  : _VenueDetailSpacing.elementGap,
             ),
             child: _ReviewCard(entry.value),
           );
@@ -766,100 +713,86 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   }
 }
 
-class _MetaPill extends StatelessWidget {
+class _MetaChip extends StatelessWidget {
   final IconData icon;
   final String label;
 
-  const _MetaPill({required this.icon, required this.label});
+  const _MetaChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    final colorScheme = theme.colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: colorScheme.onSurfaceVariant),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AmenityChip extends StatelessWidget {
+  final String label;
+
+  const _AmenityChip({required this.label});
 
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
     final colorScheme = theme.colorScheme;
     return Container(
-      padding: _VenueDetailSpacing.pillPadding,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: colorScheme.primary.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppTheme.radiusM),
+        color: colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: colorScheme.primary),
-          const SizedBox(width: _VenueDetailSpacing.smallGap),
-          Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: colorScheme.onSurface,
-            ),
-          ),
-        ],
+      child: Text(
+        label,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: colorScheme.onSurface,
+        ),
       ),
     );
   }
 }
 
-class _SectionCard extends StatelessWidget {
+class _SectionHeader extends StatelessWidget {
   final String title;
-  final Widget child;
-  final Widget? trailing;
 
-  const _SectionCard({
-    required this.title,
-    required this.child,
-    this.trailing,
-  });
+  const _SectionHeader({required this.title});
 
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: theme.textTheme.titleLarge,
-              ),
-            ),
-            if (trailing != null) trailing!,
-          ],
-        ),
-        const SizedBox(height: _VenueDetailSpacing.sectionHeaderGap),
-        child,
-        const SizedBox(height: _VenueDetailSpacing.sectionGap),
-      ],
+    return Text(
+      title,
+      style: theme.textTheme.titleMedium?.copyWith(
+        fontWeight: FontWeight.w600,
+      ),
     );
   }
 }
 
-class _ContactRow extends StatelessWidget {
-  final IconData icon;
-  final String value;
-
-  const _ContactRow({required this.icon, required this.value});
-
+class _SectionDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: colorScheme.primary),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            value,
-            style: textTheme.bodyMedium
-                ?.copyWith(color: colorScheme.onSurfaceVariant),
-          ),
-        ),
-      ],
+    return Divider(
+      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+      height: 1,
     );
   }
 }
+
+
 
 class _ReviewCard extends StatelessWidget {
   final Map<String, dynamic> r;
@@ -870,95 +803,98 @@ class _ReviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.appTheme;
     final colorScheme = theme.colorScheme;
+    final textTheme = theme.textTheme;
     final rating = (r['rating'] as num?)?.toDouble() ?? 0;
     final String author = (r['author'] as String?) ?? '';
-    final String authorInitial = author.isNotEmpty ? author[0] : '?';
+    final String authorInitial = author.isNotEmpty ? author[0].toUpperCase() : '?';
 
-    return Container(
-      padding: _VenueDetailSpacing.reviewCardPadding,
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHigh.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(AppTheme.radiusM),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Avatar
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: colorScheme.primaryContainer,
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            authorInitial,
+            style: textTheme.bodyMedium?.copyWith(
+              color: colorScheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Content
+        Expanded(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  authorInitial,
-                  style: theme.textTheme.bodyMedium,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
+              // Name and Date row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
                       author,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium,
+                      style: textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        ...List.generate(
-                          5,
-                          (idx) => Padding(
-                            padding: const EdgeInsets.only(
-                                right: AppSpacing.xxs / 2),
-                            child: Icon(
-                              idx < rating.round()
-                                  ? Icons.star_rounded
-                                  : Icons.star_border_rounded,
-                              size: 14,
-                              color: colorScheme.primary,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          rating.toStringAsFixed(1),
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                      ],
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    r['date'] ?? '',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xs,
-                  vertical: AppSpacing.xxs,
+              const SizedBox(height: 4),
+              // Stars and Rating
+              Row(
+                children: [
+                  ...List.generate(
+                    5,
+                    (idx) => Icon(
+                      idx < rating.round()
+                          ? Icons.star_rounded
+                          : Icons.star_border_rounded,
+                      size: 14,
+                      color: idx < rating.round()
+                          ? AppColors.warning
+                          : colorScheme.outlineVariant,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    rating.toStringAsFixed(1),
+                    style: textTheme.labelMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Review Text
+              Text(
+                r['text'] ?? '',
+                style: textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.5,
                 ),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                ),
-                child: Text(r['date'], style: theme.textTheme.labelMedium),
               ),
             ],
           ),
-          const SizedBox(height: _VenueDetailSpacing.sectionHeaderGap),
-          Text(
-            r['text'],
-            style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
