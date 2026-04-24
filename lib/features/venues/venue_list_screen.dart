@@ -1,15 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
+
+import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_text.dart';
+import '../../core/design_system/app_shadows.dart';
+import '../../core/design_system/app_radius.dart';
 import '../../core/design_system/app_spacing.dart';
-import '../../core/theme/app_theme.dart';
-import '../../shared/widgets/filter_chip_row.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 import 'presentation/providers/venues_controller.dart';
 import 'venues_map_view.dart';
 
-enum _VenueViewMode { list, map }
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum _ViewMode { list, map }
+
+const _kFilters = [
+  'All',
+  'Near me',
+  'Verified',
+  'Turf',
+  'Indoor',
+  '5v5',
+  '7v7'
+];
+
+const _kSortOptions = [
+  (label: 'Recommended', icon: Icons.stars_rounded),
+  (label: 'Rating', icon: Icons.star_border_rounded),
+  (label: 'Price: Low to High', icon: Icons.arrow_downward_rounded),
+  (label: 'Price: High to Low', icon: Icons.arrow_upward_rounded),
+  (label: 'Distance', icon: Icons.near_me_rounded),
+];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Screen
+// ─────────────────────────────────────────────────────────────────────────────
 
 class VenueListScreen extends ConsumerStatefulWidget {
   const VenueListScreen({super.key});
@@ -22,7 +50,10 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
   final ScrollController _scrollController = ScrollController();
 
   String _activeFilter = 'All';
-  _VenueViewMode _viewMode = _VenueViewMode.list;
+  String _activeSort = 'Recommended';
+  _ViewMode _viewMode = _ViewMode.list;
+
+  // ── Lifecycle ──────────────────────────────────────────────────────────────
 
   @override
   void initState() {
@@ -36,592 +67,801 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
     super.dispose();
   }
 
+  // ── Unchanged business logic ───────────────────────────────────────────────
+
   void _onScroll() {
     if (!_scrollController.hasClients) return;
-    final position = _scrollController.position;
-    if (position.pixels >= position.maxScrollExtent - 320) {
+    final pos = _scrollController.position;
+    if (pos.pixels >= pos.maxScrollExtent - 320) {
       ref.read(venueDiscoveryControllerProvider.notifier).loadMore();
     }
   }
 
-  List<Map<String, dynamic>> _filteredFrom(List<Map<String, dynamic>> venues) {
+  List<Map<String, dynamic>> _applyFilter(List<Map<String, dynamic>> venues) {
     return venues.where((v) {
-      if (_activeFilter == 'All') return true;
-      if (_activeFilter == 'Near Me') return true;
-      if (_activeFilter == 'Verified') return v['isVerified'] == true;
-
-      if (['5v5', '7v7', 'Turf', 'Indoor'].contains(_activeFilter)) {
-        return (v['courts'] as List).any(
-            (c) => c['type'] == _activeFilter || c['surface'] == _activeFilter);
+      switch (_activeFilter) {
+        case 'All':
+          return true;
+        case 'Near Me':
+          return true;
+        case 'Verified':
+          return v['isVerified'] == true;
+        default:
+          if (['5v5', '7v7', 'Turf', 'Indoor'].contains(_activeFilter)) {
+            return (v['courts'] as List? ?? []).any(
+              (c) =>
+                  c['type'] == _activeFilter || c['surface'] == _activeFilter,
+            );
+          }
+          return true;
       }
-
-      return true;
     }).toList();
   }
 
+  // ── Bottom sheet ───────────────────────────────────────────────────────────
+
+  void _openFilterSheet() {
+    final colorScheme = Theme.of(context).colorScheme;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: colorScheme.surface,
+      builder: (_) => _FilterSheet(
+        activeFilter: _activeFilter,
+        activeSort: _activeSort,
+        onApply: (filter, sort) => setState(() {
+          _activeFilter = filter;
+          _activeSort = sort;
+        }),
+      ),
+    );
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    final venuesState = ref.watch(venueDiscoveryControllerProvider);
-    final theme = context.appTheme;
-    final colorScheme = theme.colorScheme;
+    final venuesAsync = ref.watch(venueDiscoveryControllerProvider);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
 
-    if (venuesState.isLoading) {
-      return Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: const Center(child: CircularProgressIndicator()),
+    if (venuesAsync.isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator.adaptive()),
       );
     }
 
-    if (venuesState.hasError) {
-      return Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.wifi_off_rounded,
-                  size: 48,
-                  color: colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  venuesState.error.toString(),
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-                ElevatedButton(
-                  onPressed: () => ref
-                      .read(venueDiscoveryControllerProvider.notifier)
-                      .refresh(),
-                  child: const Text('Retry'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
-    final discovery = venuesState.value ?? VenueDiscoveryState.initial();
-    final filtered = _filteredFrom(discovery.items);
+    final discovery = venuesAsync.value ?? VenueDiscoveryState.initial();
+    final filtered = _applyFilter(discovery.items);
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text('Find a Court', style: theme.textTheme.headlineSmall),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.sm),
-            child: SegmentedButton<_VenueViewMode>(
-              showSelectedIcon: false,
-              style: SegmentedButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-              ),
-              segments: const [
-                ButtonSegment(
-                  value: _VenueViewMode.list,
-                  icon: Icon(Icons.view_list_rounded, size: 18),
-                  label: Text('List'),
-                ),
-                ButtonSegment(
-                  value: _VenueViewMode.map,
-                  icon: Icon(Icons.map_rounded, size: 18),
-                  label: Text('Map'),
-                ),
-              ],
-              selected: {_viewMode},
-              onSelectionChanged: (Set<_VenueViewMode> next) {
-                setState(() => _viewMode = next.first);
-              },
+      backgroundColor: colorScheme.surfaceContainerLowest,
+      appBar: _buildAppBar(colorScheme, textTheme),
+      body: Column(
+        children: [
+          _FilterBar(
+            activeFilter: _activeFilter,
+            onFilterTap: (f) => setState(() => _activeFilter = f),
+            onFiltersBtnTap: _openFilterSheet,
+          ),
+          Expanded(
+            child: _viewMode == _ViewMode.list
+                ? _buildList(context, filtered, colorScheme, textTheme)
+                : VenuesMapView(
+                    venues: filtered,
+                    mediaPaddingBottom: MediaQuery.of(context).padding.bottom,
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(
+    ColorScheme colorScheme,
+    TextTheme textTheme,
+  ) {
+    return AppBar(
+      titleSpacing: AppSpacing.pagePadding,
+      toolbarHeight: 60,
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Find a court',
+            style: textTheme.titleLarge?.copyWith(
+              fontWeight: AppTextStyles.bold,
+              letterSpacing: -0.4,
+            ),
+          ),
+          Text(
+            'Kathmandu',
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
             ),
           ),
         ],
       ),
-      body: _viewMode == _VenueViewMode.list
-          ? _buildListBody(context, filtered)
-          : _buildMapBody(context, filtered),
+      actions: [
+        _ViewToggle(
+          current: _viewMode,
+          onChanged: (m) => setState(() => _viewMode = m),
+        ),
+        const SizedBox(width: AppSpacing.pagePadding),
+      ],
     );
   }
 
-  Widget _buildMapBody(
-      BuildContext context, List<Map<String, dynamic>> filtered) {
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-    final theme = context.appTheme;
-    final colorScheme = theme.colorScheme;
-
-    return Stack(
-        clipBehavior: Clip.none,
-        fit: StackFit.expand,
-        children: [
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
-            child: VenuesMapView(
-              venues: filtered,
-              mediaPaddingBottom: bottomInset,
-            ),
-          ),
-          Positioned(
-            top: AppSpacing.md,
-            left: AppSpacing.pagePadding,
-            right: AppSpacing.pagePadding,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: theme.scaffoldBackgroundColor.withValues(alpha: 0.95),
-                borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                boxShadow: [
-                  BoxShadow(
-                    color: colorScheme.shadow.withValues(alpha: 0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                child: FilterChipRow(
-                  options: const [
-                    'All',
-                    'Near Me',
-                    'Turf',
-                    'Indoor',
-                    '5v5',
-                    '7v7',
-                    'Verified'
-                  ],
-                  selected: _activeFilter,
-                  onSelected: (v) => setState(() => _activeFilter = v),
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-  }
-
-  Widget _buildListBody(
+  Widget _buildList(
     BuildContext context,
     List<Map<String, dynamic>> filtered,
+    ColorScheme colorScheme,
+    TextTheme textTheme,
   ) {
-    final theme = context.appTheme;
-    final colorScheme = theme.colorScheme;
-
     return CustomScrollView(
       controller: _scrollController,
       physics: const BouncingScrollPhysics(),
       slivers: [
+        // Results count + sort label
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.pagePadding,
               AppSpacing.md,
               AppSpacing.pagePadding,
-              AppSpacing.md,
-            ),
-            child: FilterChipRow(
-              options: const [
-                'All',
-                'Near Me',
-                'Turf',
-                'Indoor',
-                '5v5',
-                '7v7',
-                'Verified'
-              ],
-              selected: _activeFilter,
-              onSelected: (v) => setState(() => _activeFilter = v),
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.pagePadding,
-              0,
-              AppSpacing.pagePadding,
-              AppSpacing.sm,
+              AppSpacing.xs,
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  '${filtered.length} court${filtered.length == 1 ? '' : 's'}',
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  '${filtered.length} courts found',
+                  style: textTheme.bodySmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                FilledButton.tonalIcon(
-                  onPressed: () {},
-                  icon: Icon(Icons.sort_rounded,
-                      size: 18, color: colorScheme.primary),
-                  label: const Text('Sort'),
-                  style: FilledButton.styleFrom(
-                    visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusM),
-                    ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: _openFilterSheet,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.swap_vert_rounded,
+                        size: 15,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: AppSpacing.xxs),
+                      Text(
+                        _activeSort,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurface,
+                          fontWeight: AppFontWeights.semiBold,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
         ),
+
+        // List or empty
         if (filtered.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Center(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppSpacing.pagePadding),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(AppSpacing.lg),
-                      decoration: BoxDecoration(
-                        color: colorScheme.onSurface.withValues(alpha: 0.05),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.sports_soccer_rounded,
-                        size: 44,
-                        color: colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      'No courts available',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: AppFontWeights.semiBold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      'We couldn\'t find any venues matching your current filters. Try adjusting your search.',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          )
+          _EmptySliver(textTheme: textTheme, colorScheme: colorScheme)
         else
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(
+            padding: const EdgeInsets.fromLTRB(
               AppSpacing.pagePadding,
-              AppSpacing.sm,
+              AppSpacing.xs,
               AppSpacing.pagePadding,
-              MediaQuery.of(context).padding.bottom +
-                  kNavBarHeight +
-                  AppSpacing.pagePadding,
+              kNavBarHeight + AppSpacing.xl,
             ),
-            sliver: SliverList.builder(
+            sliver: SliverList.separated(
               itemCount: filtered.length,
-              itemBuilder: (ctx, i) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                child: _VenueCard(venue: filtered[i]),
-              ),
+              separatorBuilder: (_, __) =>
+                  const SizedBox(height: AppSpacing.md),
+              itemBuilder: (ctx, i) => VenueCard(venue: filtered[i]),
             ),
           ),
-        SliverToBoxAdapter(
-          child: Consumer(
-            builder: (context, ref, _) {
-              final state = ref.watch(venueDiscoveryControllerProvider).value;
-              if (state == null || !state.isLoadingMore) {
-                return const SizedBox.shrink();
-              }
-              return const Padding(
-                padding: EdgeInsets.only(bottom: AppSpacing.lg),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            },
-          ),
-        ),
       ],
     );
   }
 }
 
-class _VenueCard extends StatelessWidget {
-  final Map<String, dynamic> venue;
+// ─────────────────────────────────────────────────────────────────────────────
+// Empty state
+// ─────────────────────────────────────────────────────────────────────────────
 
-  const _VenueCard({required this.venue});
+class _EmptySliver extends StatelessWidget {
+  const _EmptySliver({
+    required this.textTheme,
+    required this.colorScheme,
+  });
 
-  int get _lowestPrice {
-    final courts = (venue['courts'] as List?) ?? [];
-    int? minimum;
-    for (final court in courts) {
-      final slots = ((court as Map<String, dynamic>)['slots'] as List?) ?? [];
-      for (final slot in slots) {
-        final price = (slot as Map<String, dynamic>)['price'];
-        if (price is int) {
-          minimum =
-              minimum == null ? price : (price < minimum ? price : minimum);
-        }
-      }
-    }
-    return minimum ?? 0;
+  final TextTheme textTheme;
+  final ColorScheme colorScheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off_rounded,
+            size: AppSpacing.xl,
+            color: colorScheme.outline,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text('No courts found', style: textTheme.titleSmall),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            'Try adjusting your filters',
+            style: textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
   }
+}
 
-  int get _availableSlots {
-    final courts = (venue['courts'] as List?) ?? [];
-    var count = 0;
-    for (final court in courts) {
-      final slots = ((court as Map<String, dynamic>)['slots'] as List?) ?? [];
-      count += slots
-          .where(
-              (slot) => (slot as Map<String, dynamic>)['status'] == 'AVAILABLE')
-          .length;
-    }
-    return count;
+// ─────────────────────────────────────────────────────────────────────────────
+// View-mode toggle
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ViewToggle extends StatelessWidget {
+  const _ViewToggle({required this.current, required this.onChanged});
+
+  final _ViewMode current;
+  final ValueChanged<_ViewMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+          width: 0.5,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ToggleBtn(
+            icon: Icons.format_list_bulleted_rounded,
+            selected: current == _ViewMode.list,
+            onTap: () => onChanged(_ViewMode.list),
+          ),
+          _ToggleBtn(
+            icon: Icons.map_outlined,
+            selected: current == _ViewMode.map,
+            onTap: () => onChanged(_ViewMode.map),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleBtn extends StatelessWidget {
+  const _ToggleBtn({
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
+        decoration: BoxDecoration(
+          color: selected ? colorScheme.onSurface : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.sm - 1),
+        ),
+        child: Icon(
+          icon,
+          size: 17,
+          color: selected ? colorScheme.surface : colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Filter bar
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FilterBar extends StatelessWidget {
+  const _FilterBar({
+    required this.activeFilter,
+    required this.onFilterTap,
+    required this.onFiltersBtnTap,
+  });
+
+  final String activeFilter;
+  final ValueChanged<String> onFilterTap;
+  final VoidCallback onFiltersBtnTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return ColoredBox(
+      color: colorScheme.surface,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Divider(
+            height: 0.5,
+            thickness: 0.5,
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+          SizedBox(
+            height: 56,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.pagePadding,
+                vertical: (56 - _kChipHeight) / 2,
+              ),
+              children: [
+                _FilterChip(
+                  label: 'Filters',
+                  icon: Icons.tune_rounded,
+                  selected: false,
+                  onTap: onFiltersBtnTap,
+                ),
+                ...List.generate(_kFilters.length, (i) {
+                  final f = _kFilters[i];
+                  return Padding(
+                    padding: const EdgeInsets.only(left: AppSpacing.xs),
+                    child: _FilterChip(
+                      label: f,
+                      selected: activeFilter == f,
+                      onTap: () => onFilterTap(f),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+const double _kChipHeight = 32;
+
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.icon,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final IconData? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        height: _kChipHeight,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: selected ? colorScheme.onSurface : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(
+            color: selected
+                ? colorScheme.onSurface
+                : colorScheme.outlineVariant.withValues(alpha: 0.5),
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 13,
+                color: selected
+                    ? colorScheme.surface
+                    : colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: AppSpacing.xxs),
+            ],
+            Text(
+              label,
+              style: textTheme.labelMedium?.copyWith(
+                color: selected
+                    ? colorScheme.surface
+                    : colorScheme.onSurfaceVariant,
+                fontWeight: selected ? AppTextStyles.semiBold : AppTextStyles.medium,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Filter / sort bottom sheet
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FilterSheet extends StatefulWidget {
+  const _FilterSheet({
+    required this.activeFilter,
+    required this.activeSort,
+    required this.onApply,
+  });
+
+  final String activeFilter;
+  final String activeSort;
+  final void Function(String filter, String sort) onApply;
+
+  @override
+  State<_FilterSheet> createState() => _FilterSheetState();
+}
+
+class _FilterSheetState extends State<_FilterSheet> {
+  late String _filter;
+  late String _sort;
+
+  @override
+  void initState() {
+    super.initState();
+    _filter = widget.activeFilter;
+    _sort = widget.activeSort;
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
-    final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
-    final radius = BorderRadius.circular(AppTheme.radiusM);
-    final rating = (venue['rating'] as num?)?.toDouble() ?? 0.0;
-    final amenities =
-        (venue['amenities'] as List?)?.cast<String>() ?? const <String>[];
-    final hasPrice = _lowestPrice > 0;
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final bottomInset = MediaQuery.of(context).padding.bottom;
 
-    return DecoratedBox(
-      decoration: isDark
-          ? AppTheme.cardDecorationDark(colorScheme)
-          : BoxDecoration(
-              color: colorScheme.surface,
-              borderRadius: radius,
-              border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
-              boxShadow: [
-                BoxShadow(
-                  color: colorScheme.shadow.withValues(alpha: 0.04),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
+    return DraggableScrollableSheet(
+      initialChildSize: 0.72,
+      minChildSize: 0.5,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (_, scrollCtrl) => Column(
+        children: [
+          // Handle
+          Center(
+            child: Container(
+              margin: const EdgeInsets.symmetric(
+                vertical: AppSpacing.sm,
+              ),
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+              ),
+            ),
+          ),
+          // Header row
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.pagePadding,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Sort & filter',
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: AppTextStyles.bold,
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => setState(() {
+                    _filter = 'All';
+                    _sort = 'Recommended';
+                  }),
+                  child: const Text('Clear all'),
                 ),
               ],
             ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: radius,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () =>
-              Navigator.pushNamed(context, '/venue-detail', arguments: venue),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          ),
+          Divider(
+            height: 1,
+            thickness: 0.5,
+            color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+          // Scrollable body
+          Expanded(
+            child: ListView(
+              controller: scrollCtrl,
+              padding: const EdgeInsets.all(AppSpacing.md),
+              children: [
+                const _SheetSectionLabel(title: 'Sort by'),
+                const SizedBox(height: AppSpacing.sm),
+                ..._kSortOptions.map((opt) => _SortTile(
+                      icon: opt.icon,
+                      label: opt.label,
+                      selected: _sort == opt.label,
+                      onTap: () => setState(() => _sort = opt.label),
+                    )),
+                const SizedBox(height: AppSpacing.xl),
+                const _SheetSectionLabel(title: 'Court type'),
+                const SizedBox(height: AppSpacing.sm),
+                _OptionChipGroup(
+                  options: const ['Turf', 'Indoor'],
+                  active: _filter,
+                  onSelect: (v) => setState(() => _filter = v),
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                const _SheetSectionLabel(title: 'Court size'),
+                const SizedBox(height: AppSpacing.sm),
+                _OptionChipGroup(
+                  options: const ['5v5', '7v7'],
+                  active: _filter,
+                  onSelect: (v) => setState(() => _filter = v),
+                ),
+              ],
+            ),
+          ),
+          // Apply button
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppSpacing.pagePadding,
+              AppSpacing.sm,
+              AppSpacing.pagePadding,
+              bottomInset + AppSpacing.lg,
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              height: AppSpacing.buttonHeight,
+              child: FilledButton(
+                onPressed: () {
+                  widget.onApply(_filter, _sort);
+                  Navigator.pop(context);
+                },
+                child: const Text('Show results'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SheetSectionLabel extends StatelessWidget {
+  const _SheetSectionLabel({required this.title});
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            fontWeight: AppTextStyles.bold,
+            letterSpacing: 0.1,
+          ),
+    );
+  }
+}
+
+class _SortTile extends StatelessWidget {
+  const _SortTile({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: selected
+                  ? colorScheme.onSurface
+                  : colorScheme.outlineVariant.withValues(alpha: 0.5),
+              width: selected ? 1.5 : 1,
+            ),
+            color: selected
+                ? colorScheme.onSurface.withValues(alpha: 0.04)
+                : Colors.transparent,
+          ),
+          child: Row(
             children: [
-              SizedBox(
-                height: 152,
-                child: CachedNetworkImage(
-                  imageUrl: venue['coverUrl'] ?? '',
-                  fit: BoxFit.cover,
-                  placeholder: (_, __) => Container(color: colorScheme.surface),
-                  errorWidget: (_, __, ___) => Container(color: colorScheme.surface),
+              Icon(
+                icon,
+                size: 18,
+                color: selected
+                    ? colorScheme.onSurface
+                    : colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  label,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: selected ? AppTextStyles.semiBold : AppTextStyles.regular,
+                    color: selected
+                        ? colorScheme.onSurface
+                        : colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  venue['name'] ?? '',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.titleMedium,
-                                ),
-                              ),
-                              if (venue['isVerified'] == true) ...[
-                                const SizedBox(width: AppSpacing.xs),
-                                Icon(
-                                  Icons.verified_rounded,
-                                  size: 18,
-                                  color: colorScheme.primary,
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm,
-                            vertical: AppSpacing.xxs,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius:
-                                BorderRadius.circular(AppTheme.radiusM),
-                            color: colorScheme.primary.withValues(alpha: 0.14),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.star_rounded,
-                                size: 14,
-                                color: colorScheme.primary,
-                              ),
-                              const SizedBox(width: AppSpacing.xxs),
-                              Text(
-                                rating.toStringAsFixed(1),
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  color: colorScheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.location_on_rounded,
-                          size: 16,
-                          color: colorScheme.primary,
-                        ),
-                        const SizedBox(width: AppSpacing.xs),
-                        Expanded(
-                          child: Text(
-                            venue['address'] ?? '',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                        if (venue['distance'] != null) ...[
-                          const SizedBox(width: AppSpacing.sm),
-                          Icon(
-                            Icons.directions_walk_rounded,
-                            size: 14,
-                            color: colorScheme.primary,
-                          ),
-                          const SizedBox(width: AppSpacing.xxs),
-                          Text(
-                            venue['distance'] ?? '',
-                            style: theme.textTheme.labelMedium?.copyWith(
-                              color: colorScheme.primary,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    if (amenities.isNotEmpty) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      Wrap(
-                        spacing: AppSpacing.xs,
-                        runSpacing: AppSpacing.xs,
-                        children: amenities.take(3).map((a) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.sm,
-                              vertical: AppSpacing.xxs,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius:
-                                  BorderRadius.circular(AppTheme.radiusM),
-                              border:
-                                  Border.all(color: colorScheme.outlineVariant),
-                              color: colorScheme.surfaceContainerHighest
-                                  .withValues(alpha: 0.35),
-                            ),
-                            child: Text(
-                              a,
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                                fontWeight: AppFontWeights.semiBold,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                    const SizedBox(height: AppSpacing.sm),
-                    Divider(
-                      height: 1,
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Available Slots',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: AppSpacing.xxs),
-                              Text(
-                                '$_availableSlots',
-                                style: theme.textTheme.headlineSmall?.copyWith(
-                                  fontWeight: AppFontWeights.extraBold,
-                                  color: colorScheme.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          width: 1,
-                          height: 34,
-                          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                'Starts at',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                              const SizedBox(height: AppSpacing.xxs),
-                              Text(
-                                hasPrice
-                                    ? 'NPR $_lowestPrice/hr'
-                                    : 'Not Available',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  color: hasPrice
-                                      ? colorScheme.onSurface
-                                      : colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+              if (selected)
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: colorScheme.onSurface,
+                  ),
+                  child: Icon(
+                    Icons.check_rounded,
+                    size: 12,
+                    color: colorScheme.surface,
+                  ),
                 ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OptionChipGroup extends StatelessWidget {
+  const _OptionChipGroup({
+    required this.options,
+    required this.active,
+    required this.onSelect,
+  });
+
+  final List<String> options;
+  final String active;
+  final ValueChanged<String> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Wrap(
+      spacing: AppSpacing.xs,
+      runSpacing: AppSpacing.xs,
+      children: options.map((opt) {
+        final selected = active == opt;
+        return GestureDetector(
+          onTap: () => onSelect(opt),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(
+                color: selected
+                    ? colorScheme.onSurface
+                    : colorScheme.outlineVariant.withValues(alpha: 0.5),
+                width: selected ? 1.5 : 1,
+              ),
+              color: selected ? colorScheme.onSurface : Colors.transparent,
+            ),
+            child: Text(
+              opt,
+              style: textTheme.labelMedium?.copyWith(
+                color: selected
+                    ? colorScheme.surface
+                    : colorScheme.onSurfaceVariant,
+                fontWeight: selected ? AppTextStyles.semiBold : AppTextStyles.medium,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Venue card (public — reusable elsewhere)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class VenueCard extends StatelessWidget {
+  const VenueCard({super.key, required this.venue});
+
+  final Map<String, dynamic> venue;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final rating = (venue['rating'] as num?)?.toDouble() ?? 0.0;
+    final courts = (venue['courts'] as List? ?? []);
+    final verified = venue['isVerified'] == true;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+          width: 0.5,
+        ),
+        boxShadow: AppShadows.card(colorScheme),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: InkWell(
+          onTap: () => Navigator.pushNamed(
+            context,
+            '/venue-detail',
+            arguments: venue,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _VenueCardImage(
+                imageUrl: venue['coverUrl'] as String? ?? '',
+                rating: rating,
+                verified: verified,
+              ),
+              _VenueCardBody(
+                venue: venue,
+                courts: courts,
               ),
             ],
           ),
@@ -631,3 +871,236 @@ class _VenueCard extends StatelessWidget {
   }
 }
 
+// ── Image ─────────────────────────────────────────────────────────────────────
+
+class _VenueCardImage extends StatelessWidget {
+  const _VenueCardImage({
+    required this.imageUrl,
+    required this.rating,
+    required this.verified,
+  });
+
+  final String imageUrl;
+  final double rating;
+  final bool verified;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return SizedBox(
+      height: 172,
+      width: double.infinity,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Cover photo
+          CachedNetworkImage(
+            imageUrl: imageUrl,
+            fit: BoxFit.cover,
+            placeholder: (_, __) => ColoredBox(
+              color: colorScheme.surfaceContainerHighest,
+              child: Center(
+                child: Icon(
+                  Icons.sports_soccer_rounded,
+                  size: AppSpacing.lg,
+                  color: colorScheme.outlineVariant,
+                ),
+              ),
+            ),
+            errorWidget: (_, __, ___) => ColoredBox(
+              color: colorScheme.surfaceContainerHighest,
+              child: Center(
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  size: AppSpacing.lg,
+                  color: colorScheme.outlineVariant,
+                ),
+              ),
+            ),
+          ),
+
+          // Top gradient for badge contrast
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.center,
+                colors: [
+                  colorScheme.scrim.withValues(alpha: 0.25),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+          ),
+
+          // Rating pill — top right
+          Positioned(
+            top: AppSpacing.sm,
+            right: AppSpacing.sm,
+            child: _BadgePill(
+              color: colorScheme.scrim,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.star_rounded,
+                    color: AppColors.ratingStar,
+                    size: 13,
+                  ),
+                  const SizedBox(width: AppSpacing.xxs),
+                  Text(
+                    rating.toStringAsFixed(1),
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onPrimary,
+                      fontWeight: AppTextStyles.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Verified pill — top left
+          if (verified)
+            Positioned(
+              top: AppSpacing.sm,
+              left: AppSpacing.sm,
+              child: _BadgePill(
+                color: AppColors.primary,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.verified_rounded,
+                      size: 12,
+                      color: colorScheme.onPrimary,
+                    ),
+                    const SizedBox(width: AppSpacing.xxs),
+                    Text(
+                      'Verified',
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onPrimary,
+                        fontWeight: AppTextStyles.semiBold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BadgePill extends StatelessWidget {
+  const _BadgePill({required this.color, required this.child});
+
+  final Color color;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xs,
+        vertical: AppSpacing.xxs + 1,
+      ),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: child,
+    );
+  }
+}
+
+// ── Body ──────────────────────────────────────────────────────────────────────
+
+class _VenueCardBody extends StatelessWidget {
+  const _VenueCardBody({
+    required this.venue,
+    required this.courts,
+  });
+
+  final Map<String, dynamic> venue;
+  final List courts;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Name
+          Text(
+            venue['name'] as String? ?? '',
+            style: textTheme.titleMedium?.copyWith(
+              fontWeight: AppTextStyles.bold,
+              letterSpacing: -0.2,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+
+          const SizedBox(height: AppSpacing.xxs + 1),
+
+          // Address
+          Row(
+            children: [
+              Icon(
+                Icons.location_on_outlined,
+                size: 13,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: AppSpacing.xxs),
+              Expanded(
+                child: Text(
+                  venue['address'] as String? ?? '',
+                  style: textTheme.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+
+          // Court type tags — only if present
+          if (courts.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Wrap(
+              spacing: AppSpacing.xxs + 2,
+              runSpacing: AppSpacing.xxs + 2,
+              children: courts.take(3).map<Widget>((c) {
+                final label = (c['type'] ?? c['surface'] ?? '') as String;
+                return Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xs,
+                    vertical: AppSpacing.xxs,
+                  ),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer.withValues(alpha: 0.55),
+                    borderRadius: BorderRadius.circular(AppRadius.sm - 2),
+                  ),
+                  child: Text(
+                    label,
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onPrimaryContainer,
+                      fontWeight: AppTextStyles.semiBold,
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
