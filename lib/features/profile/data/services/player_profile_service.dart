@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -58,45 +59,143 @@ class PlayerProfileService {
     }
   }
 
-  Future<AvatarUploadUrlResponse> requestAvatarUploadUrl() async {
+  Future<AvatarUploadUrlResponse> requestAvatarUploadUrl({
+    String? contentType = 'image/jpeg',
+  }) async {
     try {
-      final response =
-          await _apiClient.post(ApiConfig.profileAvatarUploadUrlEndpoint);
+      final requestBody = AvatarUploadUrlRequest(
+        contentType: contentType,
+      ).toJson();
+
+      developer.log(
+        '[AvatarUpload] Requesting upload URL',
+        name: 'PlayerProfileService',
+        error: {
+          'endpoint': ApiConfig.profileAvatarUploadUrlEndpoint,
+          'requestBody': requestBody,
+        },
+      );
+
+      final response = await _apiClient.post(
+        ApiConfig.profileAvatarUploadUrlEndpoint,
+        data: requestBody,
+      );
+
+      developer.log(
+        '[AvatarUpload] Upload URL received',
+        name: 'PlayerProfileService',
+        error: {
+          'statusCode': response.statusCode,
+          'responseData': response.data,
+        },
+      );
+
       final upload = AvatarUploadUrlResponse.fromJson(
         _asMap(_unwrap(response.data)),
       );
-      if (upload.uploadUrl.isEmpty || upload.key.isEmpty) {
+      if (upload.uploadUrl.isEmpty || upload.key.isEmpty || upload.assetId.isEmpty) {
         throw const ProfileApiException(
-          message: 'Avatar upload response is invalid',
+          message: 'Avatar upload response is invalid (missing url, key, or assetId)',
           statusCode: 500,
         );
       }
       return upload;
     } on DioException catch (error) {
+      developer.log(
+        '[AvatarUpload] Failed to get upload URL',
+        name: 'PlayerProfileService',
+        error: {
+          'statusCode': error.response?.statusCode,
+          'responseData': error.response?.data,
+          'errorMessage': error.message,
+          'errorType': error.type.toString(),
+        },
+      );
       throw _toProfileApiException(error);
     }
   }
 
-  Future<void> confirmAvatarUpload({required String key}) async {
+  Future<void> confirmAvatarUpload({
+    required String assetId,
+    required String key,
+  }) async {
     try {
+      developer.log(
+        '[AvatarUpload] Confirming avatar upload',
+        name: 'PlayerProfileService',
+        error: {
+          'assetId': assetId,
+          'key': key,
+        },
+      );
+
       await _apiClient.post(
         ApiConfig.profileAvatarConfirmEndpoint,
-        data: <String, dynamic>{'key': key},
+        data: <String, dynamic>{
+          'assetId': assetId,
+          'key': key,
+        },
+      );
+
+      developer.log(
+        '[AvatarUpload] Avatar upload confirmed successfully',
+        name: 'PlayerProfileService',
       );
     } on DioException catch (error) {
+      developer.log(
+        '[AvatarUpload] Failed to confirm avatar upload',
+        name: 'PlayerProfileService',
+        error: {
+          'statusCode': error.response?.statusCode,
+          'responseData': error.response?.data,
+          'errorMessage': error.message,
+        },
+      );
       throw _toProfileApiException(error);
     }
   }
 
-  Future<void> uploadAvatarBytes(Uint8List bytes) async {
-    final uploadPayload = await requestAvatarUploadUrl();
+  Future<void> uploadAvatarBytes(
+    Uint8List bytes, {
+    String contentType = 'image/jpeg',
+  }) async {
+    developer.log(
+      '[AvatarUpload] Starting avatar upload',
+      name: 'PlayerProfileService',
+      error: {
+        'bytesLength': bytes.length,
+        'contentType': contentType,
+      },
+    );
+
+    final uploadPayload = await requestAvatarUploadUrl(
+      contentType: contentType,
+    );
+
+    developer.log(
+      '[AvatarUpload] Uploading to presigned URL',
+      name: 'PlayerProfileService',
+      error: {
+        'uploadUrl': uploadPayload.uploadUrl.substring(0, 50) + '...',
+        'key': uploadPayload.key,
+        'assetId': uploadPayload.assetId,
+      },
+    );
 
     final uploadResponse = await _client.put(
       Uri.parse(uploadPayload.uploadUrl),
-      headers: const <String, String>{
-        'Content-Type': 'image/jpeg',
+      headers: <String, String>{
+        'Content-Type': contentType,
       },
       body: bytes,
+    );
+
+    developer.log(
+      '[AvatarUpload] Presigned URL upload response',
+      name: 'PlayerProfileService',
+      error: {
+        'statusCode': uploadResponse.statusCode,
+      },
     );
 
     if (uploadResponse.statusCode < 200 || uploadResponse.statusCode >= 300) {
@@ -106,7 +205,15 @@ class PlayerProfileService {
       );
     }
 
-    await confirmAvatarUpload(key: uploadPayload.key);
+    await confirmAvatarUpload(
+      assetId: uploadPayload.assetId,
+      key: uploadPayload.key,
+    );
+
+    developer.log(
+      '[AvatarUpload] Avatar upload completed successfully',
+      name: 'PlayerProfileService',
+    );
   }
 
   dynamic _unwrap(dynamic body) {
