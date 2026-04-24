@@ -192,16 +192,36 @@ class UpdateProfileRequest {
   }
 }
 
+class AvatarUploadUrlRequest {
+  const AvatarUploadUrlRequest({this.contentType});
+
+  final String? contentType;
+
+  Map<String, dynamic> toJson() => <String, dynamic>{
+        if (contentType != null) 'contentType': contentType,
+      };
+}
+
 class AvatarUploadUrlResponse {
-  const AvatarUploadUrlResponse({required this.uploadUrl, required this.key});
+  const AvatarUploadUrlResponse({
+    required this.uploadUrl,
+    required this.key,
+    required this.assetId,
+  });
 
   final String uploadUrl;
   final String key;
+  final String assetId;
 
   factory AvatarUploadUrlResponse.fromJson(Map<String, dynamic> json) {
     final uploadUrl = (json['uploadUrl'] ?? json['url'] ?? '').toString();
     final key = (json['key'] ?? '').toString();
+    final assetId = (json['assetId'] ?? json['asset_id'] ?? '').toString();
 
-    return AvatarUploadUrlResponse(uploadUrl: uploadUrl, key: key);
+    return AvatarUploadUrlResponse(
+      uploadUrl: uploadUrl,
+      key: key,
+      assetId: assetId,
+    );
   }
 }
