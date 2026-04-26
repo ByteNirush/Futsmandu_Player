@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:futsmandu_design_system/core/theme/app_radius.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
+
 import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
 import '../../core/design_system/app_spacing.dart';
 
 class FilterChipRow extends StatefulWidget {
@@ -42,16 +44,16 @@ class _FilterChipRowState extends State<FilterChipRow> {
                 ),
                 decoration: BoxDecoration(
                   color: isSelected ? AppColors.green : AppColors.bgElevated,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: AppRadius.large,
                   border: Border.all(
                     color: isSelected ? AppColors.green : AppColors.borderClr,
                   ),
                 ),
                 child: Text(
                   option,
-                  style: AppText.bodySm.copyWith(
+                  style: AppTypography.body(context, Theme.of(context).colorScheme).copyWith(
                     color: isSelected ? AppColors.bgPrimary : AppColors.txtPrimary,
-                    fontWeight: isSelected ? AppTextStyles.semiBold : AppTextStyles.regular,
+                    fontWeight: isSelected ? AppFontWeights.semiBold : AppFontWeights.regular,
                   ),
                 ),
               ),
