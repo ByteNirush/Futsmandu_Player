@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:futsmandu_design_system/core/theme/app_radius.dart';
 import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 
 import '../../core/design_system/app_spacing.dart';
@@ -22,7 +23,7 @@ class StatusBadge extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: AppRadius.extraLarge,
         border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Text(
