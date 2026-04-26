@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:futsmandu_design_system/core/theme/app_radius.dart';
 
 import '../../core/design_system/app_spacing.dart';
 import '../../core/painters/field_painter.dart';
@@ -311,7 +312,7 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                             ),
                             const SizedBox(width: 12),
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: AppRadius.small,
                               child: (invite['venueImage']
                                           ?.toString()
                                           .isNotEmpty ==
@@ -370,7 +371,7 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                     padding: const EdgeInsets.all(AppSpacing.sm),
                     decoration: BoxDecoration(
                       color: AppColors.bgElevated,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.medium,
                       border: Border.all(color: AppColors.borderClr),
                     ),
                     child: Row(
