@@ -144,12 +144,11 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen>
                   child: Column(
                     children: [
                       Text('Booking Confirmed!',
-                          style: AppText.h1, textAlign: TextAlign.center),
+                          style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontWeight: AppFontWeights.extraBold), textAlign: TextAlign.center),
                       const SizedBox(height: 8),
                       Text(
                         'Your slot is locked in. See you on the pitch!',
-                        style:
-                            AppText.body.copyWith(color: AppColors.txtDisabled),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.txtDisabled),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 28),
@@ -169,7 +168,7 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen>
                                 final matchGroupInfo = Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Match Group', style: AppText.bodySm),
+                                    Text('Match Group', style: Theme.of(context).textTheme.bodyMedium),
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
@@ -181,8 +180,7 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen>
                                             matchGroupId.isNotEmpty
                                                 ? 'Created and ready to join'
                                                 : 'Preparing match group',
-                                            style: AppText.bodySm.copyWith(
-                                                color: AppColors.blue),
+                                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.info),
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
                                           ),
@@ -201,10 +199,9 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen>
                                     Flexible(
                                       child: Text(
                                         paymentLabel,
-                                        style: AppText.mono.copyWith(
-                                          fontSize: 14,
+                                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                           color: AppColors.green,
-                                          fontWeight: AppTextStyles.semiBold,
+                                          fontWeight: AppFontWeights.semiBold,
                                         ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
@@ -275,7 +272,7 @@ class _BookingConfirmScreenState extends State<BookingConfirmScreen>
                         child: TextButton.icon(
                           icon: Icon(Icons.calendar_today_outlined,
                               size: 16, color: AppColors.txtDisabled),
-                          label: Text('Add to Calendar', style: AppText.bodySm),
+                          label: Text('Add to Calendar', style: Theme.of(context).textTheme.bodyMedium),
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
@@ -310,12 +307,12 @@ class _ConfirmRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Row(
         children: [
-          Text(label, style: AppText.bodySm),
+          Text(label, style: Theme.of(context).textTheme.bodyMedium),
           const Spacer(),
           Flexible(
             child: Text(
               value,
-              style: AppText.bodySm.copyWith(color: AppColors.txtPrimary),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.txtPrimary),
               textAlign: TextAlign.right,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
