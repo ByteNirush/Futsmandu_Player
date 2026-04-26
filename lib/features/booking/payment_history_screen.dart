@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
-import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/enhanced_empty_state.dart';
 import '../../shared/widgets/futs_card.dart';
 import '../../shared/widgets/status_badge.dart';
 import 'data/models/payment_models.dart';
@@ -84,7 +84,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
-        title: Text('Payment History', style: AppText.h2),
+        title: Text('Payment History', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
         elevation: 0,
         backgroundColor: AppColors.bgPrimary,
         scrolledUnderElevation: 0,
@@ -121,11 +121,8 @@ class PaymentHistoryScreen extends ConsumerWidget {
         data: (payments) {
           if (payments.isEmpty) {
             return const Center(
-              child: EmptyState(
-                icon: Icons.wallet_outlined,
-                title: 'No Payments Yet',
-                subtitle:
-                    'Book a court to make your first payment here will appear',
+              child: EmptyStateWidget(
+                type: EmptyStateType.emptyCart,
               ),
             );
           }
