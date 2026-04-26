@@ -9,7 +9,7 @@ class AuthScreenScaffold extends StatelessWidget {
     required this.child,
     this.showAppBar = false,
     this.logoTopSpacing = AppSpacing.lg,
-    this.logoSize = 72,
+    this.logoSize = 100,
   });
 
   final Widget child;
