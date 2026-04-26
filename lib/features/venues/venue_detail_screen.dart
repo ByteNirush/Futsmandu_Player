@@ -471,13 +471,13 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             Text(
                               venue['name'] ?? '',
                               style: textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
+                                fontWeight: AppFontWeights.semiBold,
                               ),
                             ),
                             const SizedBox(height: _VenueDetailSpacing.smallGap),
                             Row(
                               children: [
-                                Icon(
+                                const Icon(
                                   Icons.star_rounded,
                                   size: 16,
                                   color: AppColors.warning,
@@ -486,7 +486,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                 Text(
                                   '${venue['rating']}',
                                   style: textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: AppFontWeights.semiBold,
                                   ),
                                 ),
                                 Text(
@@ -519,7 +519,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                           'Verified',
                                           style: textTheme.labelSmall?.copyWith(
                                             color: colorScheme.primary,
-                                            fontWeight: FontWeight.w600,
+                                            fontWeight: AppFontWeights.semiBold,
                                           ),
                                         ),
                                       ],
@@ -557,7 +557,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
 
                   // ── About Section ──────────────────────────────────────────
                   if ((venue['description'] as String?)?.isNotEmpty == true) ...[
-                    _SectionHeader(title: 'About'),
+                    const _SectionHeader(title: 'About'),
                     const SizedBox(height: _VenueDetailSpacing.smallGap),
                     Text(
                       venue['description'] as String,
@@ -570,7 +570,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   ],
 
                   // ── Location Section ───────────────────────────────────────
-                  _SectionHeader(title: 'Location'),
+                  const _SectionHeader(title: 'Location'),
                   const SizedBox(height: _VenueDetailSpacing.smallGap),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -607,7 +607,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   const SizedBox(height: _VenueDetailSpacing.sectionGap),
 
                   // ── Contact Section ────────────────────────────────────────
-                  _SectionHeader(title: 'Contact'),
+                  const _SectionHeader(title: 'Contact'),
                   const SizedBox(height: _VenueDetailSpacing.smallGap),
                   if ((venue['ownerPhone'] as String?)?.isNotEmpty == true)
                     Row(
@@ -634,7 +634,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   const SizedBox(height: _VenueDetailSpacing.sectionGap),
 
                   // ── Amenities Section ──────────────────────────────────────
-                  _SectionHeader(title: 'Amenities'),
+                  const _SectionHeader(title: 'Amenities'),
                   const SizedBox(height: _VenueDetailSpacing.smallGap),
                   Wrap(
                     spacing: _VenueDetailSpacing.elementGap,
@@ -650,10 +650,10 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _SectionHeader(title: 'Reviews'),
+                      const _SectionHeader(title: 'Reviews'),
                       TextButton.icon(
                         onPressed: _showWriteReviewSheet,
-                        icon: Icon(Icons.edit_outlined, size: 16),
+                        icon: const Icon(Icons.edit_outlined, size: 16),
                         label: const Text('Write a Review'),
                         style: TextButton.styleFrom(
                           foregroundColor: colorScheme.primary,
@@ -662,7 +662,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             vertical: 4,
                           ),
                           textStyle: textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: AppFontWeights.semiBold,
                           ),
                         ),
                       ),
@@ -775,22 +775,14 @@ class _SectionHeader extends StatelessWidget {
     return Text(
       title,
       style: theme.textTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.w600,
+        fontWeight: AppFontWeights.semiBold,
       ),
     );
   }
 }
 
-class _SectionDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Divider(
-      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-      height: 1,
-    );
-  }
-}
+
+
 
 
 
@@ -824,7 +816,7 @@ class _ReviewCard extends StatelessWidget {
             authorInitial,
             style: textTheme.bodyMedium?.copyWith(
               color: colorScheme.primary,
-              fontWeight: FontWeight.w600,
+              fontWeight: AppFontWeights.semiBold,
             ),
           ),
         ),
@@ -843,7 +835,7 @@ class _ReviewCard extends StatelessWidget {
                       author,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                        fontWeight: AppFontWeights.semiBold,
                       ),
                     ),
                   ),
@@ -877,7 +869,7 @@ class _ReviewCard extends StatelessWidget {
                     rating.toStringAsFixed(1),
                     style: textTheme.labelMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: AppFontWeights.semiBold,
                     ),
                   ),
                 ],
@@ -1033,7 +1025,7 @@ class _VenueCoverCarousel extends StatelessWidget {
                     '${currentPage + 1} / ${imageUrls.length}',
                     style: textTheme.labelSmall?.copyWith(
                       color: Colors.white.withValues(alpha: 0.9),
-                      fontWeight: FontWeight.w600,
+                      fontWeight: AppFontWeights.semiBold,
                     ),
                   ),
                 ],
