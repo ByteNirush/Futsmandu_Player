@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 
 import '../../core/design_system/app_radius.dart';
 import '../../core/design_system/app_spacing.dart';
@@ -229,9 +230,9 @@ class _MatchMiniCard extends StatelessWidget {
 
                 // Info overlay
                 Positioned(
-                  bottom: AppSpacing.xs3,
-                  left: AppSpacing.xs3,
-                  right: AppSpacing.xs3,
+                  bottom: AppSpacing.xs,
+                  left: AppSpacing.xs,
+                  right: AppSpacing.xs,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -492,9 +493,9 @@ class _TopFutsalCard extends StatelessWidget {
 
                 // Info overlay
                 Positioned(
-                  left: AppSpacing.xs3,
-                  right: AppSpacing.xs3,
-                  bottom: AppSpacing.xs3,
+                  left: AppSpacing.xs,
+                  right: AppSpacing.xs,
+                  bottom: AppSpacing.xs,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1239,7 +1240,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     title: Text(
                                       venue['name']?.toString() ?? 'Unknown',
                                       style: textTheme.bodyMedium?.copyWith(
-                                        fontWeight: FontWeight.w500,
+                                        fontWeight: AppFontWeights.medium,
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
