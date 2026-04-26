@@ -176,7 +176,7 @@ class PlayerProfileService {
       '[AvatarUpload] Uploading to presigned URL',
       name: 'PlayerProfileService',
       error: {
-        'uploadUrl': uploadPayload.uploadUrl.substring(0, 50) + '...',
+        'uploadUrl': '${uploadPayload.uploadUrl.substring(0, 50)}...',
         'key': uploadPayload.key,
         'assetId': uploadPayload.assetId,
       },
