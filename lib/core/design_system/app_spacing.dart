@@ -8,7 +8,6 @@ import 'package:futsmandu_design_system/futsmandu_design_system.dart' as ds;
 ///   xxs  → ds.AppSpacing.xs          → 4
 ///   xs   → ds.AppSpacing.sm          → 8
 ///   xs2  → ds.AppSpacing.md          → 12
-///   xs3  → (non-standard)            → 10
 ///   sm   → ds.AppSpacing.lg          → 16
 ///   sm2  → ds.AppSpacing.pageHoriz   → 20
 ///   md   → ds.AppSpacing.xl          → 24
@@ -20,13 +19,11 @@ class AppSpacing {
   static const double xxs = ds.AppSpacing.xs;          // 4
   static const double xs  = ds.AppSpacing.sm;          // 8
   static const double xs2 = ds.AppSpacing.md;          // 12
-  static const double xs3 = 10.0;                      // non-standard legacy
   static const double sm  = ds.AppSpacing.lg;          // 16
   static const double sm2 = ds.AppSpacing.pageHorizontal; // 20
   static const double md  = ds.AppSpacing.xl;          // 24
   static const double lg  = ds.AppSpacing.xxl;         // 32
   static const double xl  = ds.AppSpacing.xxxl;        // 40
-  static const double xxl = 64.0;                      // legacy outlier
 
   static const double cardPadding   = ds.AppSpacing.cardPadding;      // 16
   static const double screenPadding = ds.AppSpacing.pageHorizontal;   // 20
