@@ -332,8 +332,8 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                                 ? colorScheme.onSurface
                                 : colorScheme.onSurfaceVariant,
                             fontWeight: isActive
-                                ? FontWeight.w600
-                                : FontWeight.w500,
+                                ? AppFontWeights.semiBold
+                                : AppFontWeights.medium,
                           ),
                         ),
                       ),
@@ -481,7 +481,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                         Text(
                           name,
                           style: textTheme.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w600),
+                              ?.copyWith(fontWeight: AppFontWeights.semiBold),
                         ),
                         if (subtitle.isNotEmpty) ...[
                           const SizedBox(height: AppSpacing.xxs),
@@ -503,7 +503,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                           'Rs. $price',
                           style: textTheme.titleSmall?.copyWith(
                             color: colorScheme.primary,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppFontWeights.bold,
                           ),
                         ),
                         Text(
@@ -630,7 +630,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
             child: Text(
               DateFormat('EEE, MMM d, y').format(_selectedDate!),
               style: textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
+                fontWeight: AppFontWeights.semiBold,
                 color: colorScheme.onSurface,
               ),
             ),
@@ -849,7 +849,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                     children: [
                       Text('Maximum players',
                           style: textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: AppFontWeights.semiBold,
                           )),
                       const SizedBox(height: AppSpacing.xxs),
                       Text(
@@ -869,7 +869,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                     keyboardType: TextInputType.number,
                     textAlign: TextAlign.center,
                     style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+                      fontWeight: AppFontWeights.semiBold,
                     ),
                     decoration: InputDecoration(
                       filled: true,
@@ -1122,7 +1122,7 @@ class _BookingTypeCard extends StatelessWidget {
                   Text(
                     title,
                     style: textTheme.titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w600),
+                        ?.copyWith(fontWeight: AppFontWeights.semiBold),
                   ),
                   const SizedBox(height: AppSpacing.xxs),
                   Text(
@@ -1183,14 +1183,14 @@ class _ReviewRow extends StatelessWidget {
                 label,
                 style: textTheme.bodySmall?.copyWith(
                   color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w500,
+                  fontWeight: AppFontWeights.medium,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
                 style: textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+                  fontWeight: AppFontWeights.semiBold,
                   color: colorScheme.onSurface,
                 ),
               ),
