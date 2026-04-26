@@ -7,6 +7,7 @@ import '../../core/theme/app_text.dart';
 import '../../core/design_system/app_shadows.dart';
 import '../../core/design_system/app_radius.dart';
 import '../../core/design_system/app_spacing.dart';
+import '../../shared/widgets/enhanced_empty_state.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 import 'presentation/providers/venues_controller.dart';
 import 'venues_map_view.dart';
@@ -287,22 +288,10 @@ class _EmptySliver extends StatelessWidget {
   Widget build(BuildContext context) {
     return SliverFillRemaining(
       hasScrollBody: false,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.search_off_rounded,
-            size: AppSpacing.xl,
-            color: colorScheme.outline,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Text('No courts found', style: textTheme.titleSmall),
-          const SizedBox(height: AppSpacing.xxs),
-          Text(
-            'Try adjusting your filters',
-            style: textTheme.bodySmall,
-          ),
-        ],
+      child: const Center(
+        child: EmptyStateWidget(
+          type: EmptyStateType.noSearchResults,
+        ),
       ),
     );
   }
@@ -944,7 +933,7 @@ class _VenueCardImage extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.star_rounded,
                     color: AppColors.ratingStar,
                     size: 13,
