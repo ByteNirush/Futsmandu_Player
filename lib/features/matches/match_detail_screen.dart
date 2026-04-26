@@ -458,7 +458,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                 Text(
                   _errorMessage ?? 'Could not load match details.',
                   textAlign: TextAlign.center,
-                  style: AppText.body.copyWith(color: AppColors.txtDisabled),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.txtDisabled),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 ElevatedButton(
@@ -515,7 +515,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                 bottom: 14,
                 end: 16,
               ),
-              title: Text(venueName, style: AppText.h3.copyWith(fontSize: 18)),
+              title: Text(venueName, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: AppFontWeights.bold)),
               background: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -547,14 +547,14 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('Match Group', style: AppText.bodySm),
+                        Text('Match Group', style: Theme.of(context).textTheme.bodyMedium),
                         const SizedBox(height: 6),
                         Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.sm),
                           child: Text(
                             venueName,
-                            style: AppText.h1,
+                            style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontWeight: AppFontWeights.extraBold),
                             textAlign: TextAlign.center,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -563,7 +563,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                         const SizedBox(height: 4),
                         Text(
                           '$dateLabel · $timeLabel',
-                          style: AppText.bodySm,
+                          style: Theme.of(context).textTheme.bodyMedium,
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -618,7 +618,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                             Expanded(
                               child: Text(
                                 venueAddress,
-                                style: AppText.bodySm,
+                                style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
                             StatusBadge(
@@ -637,10 +637,10 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      Text('Teams', style: AppText.h3),
+                      Text('Teams', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
                       const Spacer(),
                       Text('$confirmedCount/$maxPlayers players',
-                          style: AppText.bodySm),
+                          style: Theme.of(context).textTheme.bodyMedium),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -659,7 +659,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  Text('Invite Friends', style: AppText.h3),
+                  Text('Invite Friends', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
                   const SizedBox(height: 12),
                   FutsCard(
                     child: Row(
@@ -670,15 +670,14 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                             children: [
                               Text(
                                 'Generate share link',
-                                style: AppText.body
-                                    .copyWith(fontWeight: AppTextStyles.semiBold),
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: AppFontWeights.semiBold),
                               ),
                               Text(
                                 match['inviteToken']?.toString().isNotEmpty ==
                                         true
                                     ? 'Invite link is already active'
                                     : 'Create a new invite link for friends',
-                                style: AppText.bodySm,
+                                style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ],
                           ),
@@ -860,7 +859,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.sm,
-          AppSpacing.xs3,
+          AppSpacing.xs,
           AppSpacing.sm,
           AppSpacing.md,
         ),
@@ -1058,7 +1057,7 @@ class _TeamColumn extends StatelessWidget {
               child: Center(
                 child: Text(
                   'Empty slot',
-                  style: AppText.label.copyWith(color: AppColors.txtDisabled),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.txtDisabled),
                 ),
               ),
             );
@@ -1098,11 +1097,11 @@ class _MemberRow extends StatelessWidget {
           Expanded(
             child: Text(
               m['name'].toString().split(' ').first,
-              style: AppText.bodySm.copyWith(color: AppColors.txtPrimary),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.txtPrimary),
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Text(m['position']?.toString() ?? '—', style: AppText.label),
+          Text(m['position']?.toString() ?? '—', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: AppFontWeights.semiBold)),
         ],
       ),
     );
