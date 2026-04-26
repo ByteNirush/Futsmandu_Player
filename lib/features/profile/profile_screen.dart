@@ -184,13 +184,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               const SizedBox(height: AppSpacing.md),
 
               // ── Performance Section ────────────────────────────────────
-              ProfileSectionHeader(
+              const ProfileSectionHeader(
                 title: 'Performance',
                 subtitle: 'Your match statistics and win rate.',
               ),
               const SizedBox(height: AppSpacing.sm),
               AppCard(
-                padding: EdgeInsets.all(AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -272,13 +272,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               const SizedBox(height: AppSpacing.md),
 
               // ── Reliability Section ────────────────────────────────────
-              ProfileSectionHeader(
+              const ProfileSectionHeader(
                 title: 'Reliability Score',
                 subtitle: 'Your attendance and booking behavior.',
               ),
               const SizedBox(height: AppSpacing.sm),
               AppCard(
-                padding: EdgeInsets.all(AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -381,7 +381,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               const SizedBox(height: AppSpacing.md),
 
               // ── Quick Actions Section ─────────────────────────────────
-              ProfileSectionHeader(
+              const ProfileSectionHeader(
                 title: 'Quick Actions',
                 subtitle: 'Access your bookings and account features.',
               ),
@@ -986,7 +986,7 @@ class _PlayerProfileHeader extends StatelessWidget {
         _initials,
         style: TextStyle(
           fontSize: size * 0.35,
-          fontWeight: FontWeight.w700,
+          fontWeight: AppFontWeights.bold,
           color: cs.onPrimaryContainer,
         ),
       ),
@@ -1074,7 +1074,7 @@ class _PlayerProfileHeader extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: tt.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w700,
+                              fontWeight: AppFontWeights.bold,
                               color: cs.onSurface,
                             ),
                           ),
@@ -1180,7 +1180,7 @@ class _PlayerChip extends StatelessWidget {
             label,
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: foreground,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: AppFontWeights.semiBold,
                 ),
           ),
         ],
@@ -1296,7 +1296,7 @@ class _StatPill extends StatelessWidget {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xs3,
+          horizontal: AppSpacing.xs,
           vertical: AppSpacing.xxs,
         ),
         decoration: BoxDecoration(
@@ -1351,7 +1351,7 @@ class _InfoChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs3,
+        horizontal: AppSpacing.xs,
         vertical: AppSpacing.xxs,
       ),
       decoration: BoxDecoration(
@@ -1548,7 +1548,7 @@ class _AvatarSourceSheet extends StatelessWidget {
           Text(
             'Update Profile Photo',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w700,
+              fontWeight: AppFontWeights.bold,
             ),
           ),
           const SizedBox(height: AppSpacing.xs2),
@@ -1601,7 +1601,7 @@ class _SourceTile extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w500,
+                  fontWeight: AppFontWeights.medium,
                 ),
               ),
             ],
