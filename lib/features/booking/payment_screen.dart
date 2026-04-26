@@ -445,7 +445,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
-        title: Text('Complete Payment', style: AppText.h3),
+        title: Text('Complete Payment', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
         backgroundColor: AppColors.bgPrimary,
         elevation: 0,
         leading: const BackButton(),
@@ -478,7 +478,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Booking Summary', style: AppText.h3),
+                  Text('Booking Summary', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
                   const SizedBox(height: 10),
                   Divider(height: 20, color: AppColors.borderClr),
                   _SumRow(
@@ -491,8 +491,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                   Row(
                     children: [
                       Text('Total Amount',
-                          style: AppText.body
-                              .copyWith(fontWeight: AppTextStyles.semiBold)),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: AppFontWeights.semiBold)),
                       const Spacer(),
                       Text(
                         amountLabel,
@@ -510,14 +509,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                     children: [
                       const Spacer(),
                       Text('Hold fee NPR 20 (non-refundable)',
-                          style: AppText.label),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: AppFontWeights.semiBold)),
                     ],
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 22),
-            Text('Choose Payment Method', style: AppText.h3),
+            Text('Choose Payment Method', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -565,7 +564,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                           : _isAwaitingKhaltiCallback
                               ? 'Waiting for Khalti callback. We will verify automatically when you return.'
                               : 'You will be redirected to the payment page. Return to auto-verify and confirm your booking.',
-                      style: AppText.bodySm.copyWith(color: AppColors.blue),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.info),
                     ),
                   ),
                 ],
@@ -640,10 +639,10 @@ class _SumRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Row(
         children: [
-          Text(label, style: AppText.bodySm),
+          Text(label, style: Theme.of(context).textTheme.bodyMedium),
           const Spacer(),
           Text(value,
-              style: AppText.bodySm.copyWith(color: AppColors.txtPrimary)),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.txtPrimary)),
         ],
       ),
     );
@@ -674,7 +673,7 @@ class _PaymentCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         height: 88,
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xs3,
+          horizontal: AppSpacing.xs,
           vertical: AppSpacing.xs,
         ),
         decoration: BoxDecoration(
@@ -713,7 +712,7 @@ class _PaymentCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(name, style: AppText.label),
+                  Text(name, style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: AppFontWeights.semiBold)),
                 ],
               ),
             ),
