@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:futsmandu_design_system/core/theme/app_radius.dart' as ds_radius;
 import 'package:futsmandu_design_system/core/theme/app_theme.dart' as ds;
 
 class AppTheme {
-  static const double radiusM = 12.0;
+  static const double radiusM = ds_radius.AppRadius.md;
 
   static ThemeData get light => ds.AppTheme.light();
   static ThemeData get dark => ds.AppTheme.dark();
