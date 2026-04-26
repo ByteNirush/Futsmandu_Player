@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
-import '../../shared/widgets/empty_state.dart';
+import '../../shared/widgets/enhanced_empty_state.dart';
 import '../../shared/widgets/filter_chip_row.dart';
 import '../../shared/widgets/futs_card.dart';
 import '../../shared/widgets/status_badge.dart';
@@ -93,21 +93,21 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  Text('Cancel Booking?', style: AppText.h2),
+                  Text('Cancel Booking?', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: AppFontWeights.bold)),
                   const SizedBox(height: AppSpacing.xs),
-                  Text(booking.venueName, style: AppText.bodySm),
+                  Text(booking.venueName, style: Theme.of(context).textTheme.bodyMedium),
                   const SizedBox(height: AppSpacing.md),
                   TextFormField(
                     controller: reasonController,
                     maxLines: 3,
-                    style: AppText.body.copyWith(color: AppColors.txtPrimary),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.txtPrimary),
                     decoration: InputDecoration(
                       labelText: 'Reason (optional)',
                       hintText: 'Let the venue know why you are cancelling...',
                       alignLabelWithHint: true,
-                      labelStyle: AppText.label,
+                      labelStyle: Theme.of(context).textTheme.labelMedium?.copyWith(fontWeight: AppFontWeights.semiBold),
                       hintStyle:
-                          AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+                          Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.txtDisabled),
                       filled: true,
                       fillColor: AppColors.bgElevated,
                       border: OutlineInputBorder(
@@ -264,7 +264,7 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(AppSpacing.md),
                     child: Text(message,
-                        style: AppText.bodySm, textAlign: TextAlign.center),
+                        style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center),
                   ),
                 ),
               );
@@ -301,7 +301,7 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.md),
-                    Text('Booking Detail', style: AppText.h2),
+                    Text('Booking Detail', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: AppFontWeights.bold)),
                     const SizedBox(height: AppSpacing.sm),
                     _DetailRow('Booking ID', booking['id']?.toString() ?? '-'),
                     _DetailRow('Status', booking['status']?.toString() ?? '-'),
@@ -381,7 +381,7 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
-        title: Text('My Bookings', style: AppText.h2),
+        title: Text('My Bookings', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
         backgroundColor: AppColors.bgPrimary,
         elevation: 0,
       ),
@@ -390,7 +390,7 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(
               _contentHorizontalPadding,
-              AppSpacing.xs3,
+              AppSpacing.xs,
               _contentHorizontalPadding,
               AppSpacing.xs,
             ),
@@ -434,7 +434,7 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
           Column(
             children: [
               Text(stateAsync.error.toString(),
-                  style: AppText.body, textAlign: TextAlign.center),
+                  style: Theme.of(context).textTheme.bodyMedium, textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.sm),
               ElevatedButton(
                 onPressed: () =>
@@ -459,10 +459,8 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
           AppSpacing.xl,
         ),
         children: const [
-          EmptyState(
-            icon: Icons.calendar_today_outlined,
-            title: 'No bookings',
-            subtitle: 'Your booking history will appear here',
+          EmptyStateWidget(
+            type: EmptyStateType.noBookings,
           ),
         ],
       );
@@ -557,7 +555,7 @@ class _BookingCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(booking['courtName']?.toString() ?? '-',
-                          style: AppText.bodySm),
+                          style: Theme.of(context).textTheme.bodyMedium),
                     ],
                   ),
                 ),
@@ -701,7 +699,7 @@ class _Meta extends StatelessWidget {
       children: [
         Icon(icon, size: 13, color: AppColors.txtDisabled),
         const SizedBox(width: 4),
-        Text(text, style: AppText.label.copyWith(color: AppColors.txtPrimary)),
+        Text(text, style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: AppFontWeights.semiBold, color: AppColors.txtPrimary)),
       ],
     );
   }
@@ -723,9 +721,9 @@ class _DetailRow extends StatelessWidget {
           SizedBox(
             width: 110,
             child: Text(label,
-                style: AppText.bodySm.copyWith(color: AppColors.txtDisabled)),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.txtDisabled)),
           ),
-          Expanded(child: Text(value, style: AppText.bodySm)),
+          Expanded(child: Text(value, style: Theme.of(context).textTheme.bodyMedium)),
         ],
       ),
     );
