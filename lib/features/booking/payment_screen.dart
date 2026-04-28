@@ -9,7 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/esewa_payment_config.dart';
 import '../../core/design_system/app_spacing.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';
@@ -31,9 +31,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
   final AppLinks _appLinks = AppLinks();
 
   String? _gateway;
-  int _seconds = 420;
-  Timer? _timer;
-  bool _timerInitialized = false;
   StreamSubscription<Uri>? _khaltiLinkSubscription;
 
   String? _pendingKhaltiPidx;
@@ -54,45 +51,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_timerInitialized) return;
-    _timerInitialized = true;
-
-    final rawArgs = ModalRoute.of(context)?.settings.arguments;
-    final args = rawArgs is Map ? rawArgs.cast<String, dynamic>() : null;
-    final heldBooking = args?['heldBooking'] is Map
-        ? (args?['heldBooking'] as Map).cast<String, dynamic>()
-        : const <String, dynamic>{};
-
-    _seconds = _secondsUntilExpiry(heldBooking['hold_expires_at']);
-    _startTimer();
-  }
-
-  void _startTimer() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) return;
-      setState(() {
-        if (_seconds > 0) {
-          _seconds--;
-        } else {
-          _timer?.cancel();
-          Navigator.pushReplacementNamed(context, '/hold-expired');
-        }
-      });
-    });
-  }
-
-  int _secondsUntilExpiry(dynamic rawExpiry) {
-    if (rawExpiry is! String || rawExpiry.isEmpty) return 420;
-    final parsed = DateTime.tryParse(rawExpiry);
-    if (parsed == null) return 420;
-    final diff = parsed.toLocal().difference(DateTime.now()).inSeconds;
-    if (diff <= 0) return 1;
-    return diff;
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
     _khaltiLinkSubscription?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -207,12 +169,14 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
   }
 
   double _amountFromArgs(Map<String, dynamic>? args) {
-    final heldAmount = args?['heldBooking']?['total_amount'];
-    if (heldAmount is num) return heldAmount.toDouble() / 100.0;
+    final bookingRecord = args?['bookingRecord'];
+    if (bookingRecord is Map && bookingRecord['total_amount'] is num) {
+      return bookingRecord['total_amount'].toDouble() / 100.0;
+    }
 
-    final heldAmountString = args?['heldBooking']?['total_amount']?.toString();
-    if (heldAmountString != null) {
-      final parsed = double.tryParse(heldAmountString);
+    final bookingAmountString = args?['bookingRecord']?['total_amount']?.toString();
+    if (bookingAmountString != null) {
+      final parsed = double.tryParse(bookingAmountString);
       if (parsed != null) return parsed / 100.0;
     }
 
@@ -222,9 +186,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
   }
 
   String _bookingId(Map<String, dynamic>? args) {
-    final heldBooking = args?['heldBooking'];
-    if (heldBooking is Map && heldBooking['id'] is String) {
-      return heldBooking['id'] as String;
+    final bookingRecord = args?['bookingRecord'];
+    if (bookingRecord is Map && bookingRecord['id'] is String) {
+      return bookingRecord['id'] as String;
     }
     return '';
   }
@@ -257,20 +221,45 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
 
     if (bookingId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Booking hold not found. Please retry.')),
+        const SnackBar(content: Text('Booking not found. Please retry.')),
       );
       return;
     }
 
     if (_bypassGatewayPayment) {
+      Map<String, dynamic> initiation = const <String, dynamic>{};
+      try {
+        if (_gateway == 'esewa') {
+          final result = await ref
+              .read(paymentActionControllerProvider.notifier)
+              .initiateEsewa(bookingId: bookingId);
+          initiation = result.raw;
+        } else {
+          final result = await ref
+              .read(paymentActionControllerProvider.notifier)
+              .initiateKhalti(bookingId: bookingId);
+          initiation = {
+            'paymentUrl': result.paymentUrl,
+            'pidx': result.pidx,
+          };
+        }
+      } catch (_) {
+        // In bypass mode, continue even if external gateway initialization fails.
+      }
+
       _goToConfirmation(
         args,
         verification: {
           'confirmed': {
             'id': bookingId,
-            'status': 'CONFIRMED',
+            'status': 'PENDING_PAYMENT',
           },
           'matchGroup': {},
+          'payment': {
+            'status': 'INITIATED',
+            'gateway': _selectedGatewayCode(),
+            ...initiation,
+          },
           'bypassed': true,
         },
         gateway: _selectedGatewayCode(),
@@ -400,7 +389,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
       arguments: {
         'slot': args?['slot'],
         'venue': args?['venue'],
-        'heldBooking': args?['heldBooking'],
+        'bookingRecord': args?['bookingRecord'],
         'bookingDate': args?['bookingDate'],
         'startTime': args?['startTime'],
         'endTime': args?['endTime'],
@@ -412,20 +401,16 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
 
   @override
   Widget build(BuildContext context) {
-    final timerText =
-        '${(_seconds ~/ 60).toString().padLeft(2, '0')}:${(_seconds % 60).toString().padLeft(2, '0')}';
-    final isUrgent = _seconds < 60;
-
     final rawArgs = ModalRoute.of(context)?.settings.arguments;
     final args = rawArgs is Map ? rawArgs.cast<String, dynamic>() : null;
-    final heldBooking = args?['heldBooking'] is Map
-        ? (args?['heldBooking'] as Map).cast<String, dynamic>()
+    final bookingRecord = args?['bookingRecord'] is Map
+        ? (args?['bookingRecord'] as Map).cast<String, dynamic>()
         : const <String, dynamic>{};
 
     final totalAmount =
-        heldBooking['displayAmount']?.toString().isNotEmpty == true
-            ? heldBooking['displayAmount'].toString()
-            : heldBooking['total_amount']?.toString() ??
+        bookingRecord['displayAmount']?.toString().isNotEmpty == true
+            ? bookingRecord['displayAmount'].toString()
+            : bookingRecord['total_amount']?.toString() ??
                 args?['slot']?['price']?.toString() ??
                 '1800';
     final amountLabel = _formattedAmountLabel(totalAmount);
@@ -449,14 +434,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         backgroundColor: AppColors.bgPrimary,
         elevation: 0,
         leading: const BackButton(),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.xs2),
-            child: Center(
-              child: _TimerPill(text: timerText, urgent: isUrgent),
-            ),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
@@ -508,7 +485,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                   Row(
                     children: [
                       const Spacer(),
-                      Text('Hold fee NPR 20 (non-refundable)',
+                      Text('Booking fee NPR 20 (non-refundable)',
                           style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: AppFontWeights.semiBold)),
                     ],
                   ),
@@ -583,45 +560,6 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             const SizedBox(height: 12),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _TimerPill extends StatelessWidget {
-  final String text;
-  final bool urgent;
-
-  const _TimerPill({required this.text, required this.urgent});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = urgent ? AppColors.red : AppColors.amber;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs2,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.timer_outlined, size: 15, color: color),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: AppTypography.textTheme(
-              Theme.of(context).colorScheme,
-            ).titleSmall?.copyWith(
-              fontWeight: AppFontWeights.semiBold,
-              color: color,
-            ),
-          ),
-        ],
       ),
     );
   }
