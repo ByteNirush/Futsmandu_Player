@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../core/design_system/app_spacing.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart' show AppColors;
 import '../../shared/widgets/futs_button.dart';
 import 'data/services/player_venues_service.dart';
 
@@ -306,7 +305,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
+    final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
@@ -474,7 +473,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                 fontWeight: AppFontWeights.semiBold,
                               ),
                             ),
-                            const SizedBox(height: _VenueDetailSpacing.smallGap),
+                            const SizedBox(height: _VenueDetailSpacing.subSectionGap),
                             Row(
                               children: [
                                 const Icon(
@@ -534,12 +533,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                     ],
                   ),
 
-                  const SizedBox(height: _VenueDetailSpacing.elementGap),
+                  const SizedBox(height: _VenueDetailSpacing.subSectionGap),
 
                   // ── Meta Info Chips ────────────────────────────────────────
                   Wrap(
-                    spacing: _VenueDetailSpacing.smallGap,
-                    runSpacing: _VenueDetailSpacing.smallGap,
+                    spacing: _VenueDetailSpacing.subSectionGap,
+                    runSpacing: _VenueDetailSpacing.subSectionGap,
                     children: [
                       _MetaChip(
                         icon: Icons.sports_soccer_rounded,
@@ -558,7 +557,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   // ── About Section ──────────────────────────────────────────
                   if ((venue['description'] as String?)?.isNotEmpty == true) ...[
                     const _SectionHeader(title: 'About'),
-                    const SizedBox(height: _VenueDetailSpacing.smallGap),
+                    const SizedBox(height: _VenueDetailSpacing.subSectionGap),
                     Text(
                       venue['description'] as String,
                       style: textTheme.bodyMedium?.copyWith(
@@ -566,12 +565,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         height: 1.6,
                       ),
                     ),
-                    const SizedBox(height: _VenueDetailSpacing.sectionGap),
+                    const SizedBox(height: _VenueDetailSpacing.subSectionGap),
                   ],
 
                   // ── Location Section ───────────────────────────────────────
                   const _SectionHeader(title: 'Location'),
-                  const SizedBox(height: _VenueDetailSpacing.smallGap),
+                  const SizedBox(height: _VenueDetailSpacing.subSectionGap),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -580,7 +579,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         size: 20,
                         color: colorScheme.primary,
                       ),
-                      const SizedBox(width: _VenueDetailSpacing.smallGap),
+                      const SizedBox(width: _VenueDetailSpacing.subSectionGap),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -608,7 +607,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
 
                   // ── Contact Section ────────────────────────────────────────
                   const _SectionHeader(title: 'Contact'),
-                  const SizedBox(height: _VenueDetailSpacing.smallGap),
+                  const SizedBox(height: _VenueDetailSpacing.subSectionGap),
                   if ((venue['ownerPhone'] as String?)?.isNotEmpty == true)
                     Row(
                       children: [
@@ -617,7 +616,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           size: 20,
                           color: colorScheme.primary,
                         ),
-                        const SizedBox(width: _VenueDetailSpacing.elementGap),
+                        const SizedBox(width: _VenueDetailSpacing.subSectionGap),
                         Text(
                           venue['ownerPhone'] as String,
                           style: textTheme.bodyMedium,
@@ -637,8 +636,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                   const _SectionHeader(title: 'Amenities'),
                   const SizedBox(height: _VenueDetailSpacing.smallGap),
                   Wrap(
-                    spacing: _VenueDetailSpacing.elementGap,
-                    runSpacing: _VenueDetailSpacing.smallGap,
+                    spacing: _VenueDetailSpacing.subSectionGap,
+                    runSpacing: _VenueDetailSpacing.subSectionGap,
                     children: (venue['amenities'] as List).map((a) {
                       final amenity = a.toString();
                       return _AmenityChip(label: amenity);
@@ -668,9 +667,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: _VenueDetailSpacing.smallGap),
+                  const SizedBox(height: _VenueDetailSpacing.subSectionGap),
                   _buildReviews(venue),
-                  const SizedBox(height: _VenueDetailSpacing.elementGap),
+                  const SizedBox(height: _VenueDetailSpacing.subSectionGap),
                 ],
               ),
             ),
@@ -703,7 +702,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
             padding: EdgeInsets.only(
               bottom: entry.key == reviews.take(3).length - 1
                   ? 0
-                  : _VenueDetailSpacing.elementGap,
+                  : _VenueDetailSpacing.subSectionGap,
             ),
             child: _ReviewCard(entry.value),
           );
@@ -721,7 +720,7 @@ class _MetaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
+    final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -746,7 +745,7 @@ class _AmenityChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
+    final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -771,7 +770,7 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
+    final theme = Theme.of(context);
     return Text(
       title,
       style: theme.textTheme.titleMedium?.copyWith(
@@ -793,7 +792,7 @@ class _ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
+    final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     final rating = (r['rating'] as num?)?.toDouble() ?? 0;
@@ -929,11 +928,15 @@ class _VenueCoverCarousel extends StatelessWidget {
       children: [
         // ── Page view with images ─────────────────────────────────────────
         if (hasImages)
-          PageView.builder(
-            controller: pageController,
-            onPageChanged: onPageChanged,
-            itemCount: imageUrls.length,
-            itemBuilder: (context, index) {
+          ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(
+              scrollbars: false,
+            ),
+            child: PageView.builder(
+              controller: pageController,
+              onPageChanged: onPageChanged,
+              itemCount: imageUrls.length,
+              itemBuilder: (context, index) {
               final url = imageUrls[index];
               return Image.network(
                 url,
@@ -967,6 +970,7 @@ class _VenueCoverCarousel extends StatelessWidget {
                 ),
               );
             },
+            ),
           )
         else
           // No images — show placeholder

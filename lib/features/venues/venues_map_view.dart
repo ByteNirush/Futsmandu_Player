@@ -10,7 +10,7 @@ import 'package:futsmandu_design_system/core/theme/app_radius.dart';
 import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 
 import '../../core/design_system/app_spacing.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 
 /// Google Map for browsing venues: markers from `lat` / `lng` on each venue map,

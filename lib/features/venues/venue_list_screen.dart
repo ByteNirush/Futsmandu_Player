@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../../core/theme/app_colors.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/design_system/app_shadows.dart';
 import '../../core/design_system/app_radius.dart';
@@ -286,9 +286,9 @@ class _EmptySliver extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SliverFillRemaining(
+    return const SliverFillRemaining(
       hasScrollBody: false,
-      child: const Center(
+      child: Center(
         child: EmptyStateWidget(
           type: EmptyStateType.noSearchResults,
         ),
