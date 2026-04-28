@@ -5,17 +5,18 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 
+import 'package:futsmandu_design_system/components/empty_state/empty_state.dart';
+
 import '../../core/design_system/app_radius.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/mock/mock_data.dart';
 import '../../core/services/player_auth_storage_service.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import '../../features/booking/data/services/player_booking_service.dart';
 import '../../features/matches/data/services/player_match_service.dart';
 import '../../features/notifications/data/services/player_notifications_service.dart';
 import '../../features/profile/data/services/player_profile_service.dart';
 import '../../features/venues/data/services/player_venues_service.dart';
-import '../../shared/widgets/empty_state.dart';
 import '../../shared/widgets/futs_card.dart';
 import '../../shared/widgets/section_header.dart';
 import '../../shared/widgets/status_badge.dart';
@@ -167,7 +168,24 @@ class _MatchMiniCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final int spotsLeft = match['spotsLeft'] as int? ?? 0;
+    int toInt(dynamic value) {
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) return int.tryParse(value) ?? 0;
+      return 0;
+    }
+
+    final int spotsLeft = toInt(match['spotsLeft']);
+    final int maxPlayers = toInt(match['maxPlayers']);
+    final int memberCount = toInt(match['memberCount']) > 0
+        ? toInt(match['memberCount'])
+        : math.max(0, maxPlayers - spotsLeft);
+    final int playersNeeded = toInt(match['playersNeeded']) > 0
+        ? toInt(match['playersNeeded'])
+        : math.max(0, maxPlayers - memberCount);
+    final int availableSlots = toInt(match['slotsAvailable']) > 0
+        ? toInt(match['slotsAvailable'])
+        : spotsLeft;
     final Color spotsColor = spotsLeft <= 2
         ? colorScheme.error
         : spotsLeft <= 4
@@ -236,7 +254,10 @@ class _MatchMiniCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      StatusBadge(label: '$spotsLeft spots', color: spotsColor),
+                      StatusBadge(
+                        label: '$availableSlots slots',
+                        color: spotsColor,
+                      ),
                       const SizedBox(height: AppSpacing.xxs),
                       Text(
                         match['venueName'] as String? ?? '',
@@ -264,6 +285,23 @@ class _MatchMiniCard extends StatelessWidget {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        'Need $playersNeeded players',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onPrimary
+                              .withValues(alpha: 0.9),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '$availableSlots slots available',
+                        style: textTheme.labelSmall?.copyWith(
+                          color: colorScheme.onPrimary
+                              .withValues(alpha: 0.75),
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -646,10 +684,42 @@ class _HomeScreenState extends State<HomeScreen> {
       _tonightMatchesError = null;
     });
     try {
-      final matches = await PlayerMatchService.instance.getTonightMatches();
+      final today = DateTime.now().toIso8601String().split('T').first;
+      List<Map<String, dynamic>> openMatches = const [];
+      List<Map<String, dynamic>> tonightMatches = const [];
+      String? firstError;
+
+      try {
+        openMatches = await PlayerMatchService.instance.getOpenMatches(
+          date: today,
+          limit: 20,
+        );
+      } catch (e) {
+        firstError ??= e.toString();
+      }
+
+      try {
+        tonightMatches = await PlayerMatchService.instance.getTonightMatches();
+      } catch (e) {
+        firstError ??= e.toString();
+      }
+
+      final mergedById = <String, Map<String, dynamic>>{};
+
+      // Prioritize open matches so partial-team bookings stay visible.
+      for (final item in [...openMatches, ...tonightMatches]) {
+        final match = Map<String, dynamic>.from(item);
+        final id = (match['matchGroupId'] ?? match['id'] ?? '').toString();
+        if (id.isEmpty || mergedById.containsKey(id)) {
+          continue;
+        }
+        mergedById[id] = match;
+      }
+
       if (!mounted) return;
       setState(() {
-        _tonightMatches = matches;
+        _tonightMatches = mergedById.values.toList(growable: false);
+        _tonightMatchesError = _tonightMatches.isEmpty ? firstError : null;
         _isLoadingTonightMatches = false;
       });
     } catch (e) {
@@ -955,7 +1025,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       key: _searchFieldKey,
                       padding: const EdgeInsets.fromLTRB(
                         AppSpacing.sm,
-                        AppSpacing.md,
+                        AppSpacing.xs,
                         AppSpacing.sm,
                         0,
                       ),
@@ -964,35 +1034,43 @@ class _HomeScreenState extends State<HomeScreen> {
                         focusNode: _searchFocusNode,
                         onTap: _updateSearchDropdownPosition,
                         onChanged: _onSearchChanged,
+                        style: textTheme.bodySmall,
                         decoration: InputDecoration(
                           hintText: 'Search venues...',
-                          hintStyle: textTheme.bodyMedium?.copyWith(
+                          hintStyle: textTheme.bodySmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
                           prefixIcon: Icon(
                             Icons.search,
                             color: colorScheme.onSurfaceVariant,
+                            size: 18,
                           ),
                           suffixIcon: _searchController.text.isNotEmpty
                               ? IconButton(
                                   icon: Icon(
                                     Icons.clear,
                                     color: colorScheme.onSurfaceVariant,
-                                    size: 18,
+                                    size: 16,
                                   ),
                                   onPressed: _clearSearch,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 32,
+                                    minHeight: 32,
+                                  ),
                                 )
                               : null,
                           filled: true,
                           fillColor: colorScheme.surfaceContainerHighest,
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
                             borderSide: BorderSide.none,
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm,
-                            vertical: AppSpacing.xs2,
+                            vertical: AppSpacing.xs,
                           ),
+                          isDense: true,
                         ),
                       ),
                     ),
@@ -1001,7 +1079,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // ── Popular Venues section ──────────────────────────────────
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.md),
+                      padding: const EdgeInsets.only(top: AppSpacing.xs),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -1010,7 +1088,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             onAction: () =>
                                 Navigator.pushNamed(context, '/venues'),
                           ),
-                          const SizedBox(height: AppSpacing.xs2),
+                          const SizedBox(height: AppSpacing.xxs),
                           _SectionBody(
                             isLoading: _isLoadingFutsals,
                             error: _futsalsError,
@@ -1070,11 +1148,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        Icon(
-                                          Icons.sports_soccer_outlined,
-                                          size: 32,
-                                          color: colorScheme.onSurfaceVariant,
-                                        ),
                                         const SizedBox(height: AppSpacing.xs),
                                         Text(
                                           'No open matches tonight',
@@ -1138,14 +1211,13 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               child: upcomingBooking != null
                                   ? _UpcomingBookingCard(upcomingBooking)
-                                  : EmptyState(
-                                      icon: Icons.sports_soccer_outlined,
-                                      title: 'No upcoming bookings',
-                                      subtitle:
-                                          'Find a court and book your next game',
-                                      buttonLabel: 'Browse Courts',
-                                      onButton: () => Navigator.pushNamed(
-                                          context, '/venues'),
+                                  : EmptyStateWidget(
+                                      type: EmptyStateType.noBookings,
+                                      action: FilledButton(
+                                        onPressed: () => Navigator.pushNamed(
+                                            context, '/venues'),
+                                        child: const Text('Browse Courts'),
+                                      ),
                                     ),
                             ),
                           ),

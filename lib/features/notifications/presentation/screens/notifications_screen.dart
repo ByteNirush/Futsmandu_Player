@@ -4,7 +4,7 @@ import 'package:futsmandu_design_system/core/theme/app_radius.dart';
 import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 
 import '../../../../core/design_system/app_spacing.dart';
-import '../../../../core/theme/app_colors.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import '../../../../shared/widgets/enhanced_empty_state.dart';
 import '../../data/models/player_notification_models.dart';
 import '../../data/services/player_notifications_service.dart';
