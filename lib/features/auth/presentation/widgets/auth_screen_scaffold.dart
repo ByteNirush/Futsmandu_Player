@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/design_system/app_spacing.dart';
-import '../../../../shared/widgets/app_logo.dart';
+import 'package:futsmandu_design_system/components/common/app_logo.dart';
 
 class AuthScreenScaffold extends StatelessWidget {
   const AuthScreenScaffold({
