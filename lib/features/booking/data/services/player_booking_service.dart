@@ -56,11 +56,12 @@ class PlayerBookingService {
     }
   }
 
-  Future<HeldBooking> holdSlot({
+  Future<BookingRecord> createBooking({
     required String courtId,
     required String date,
     required String startTime,
     String? bookingType,
+    int? maxPlayers,
     List<String>? friendIds,
   }) async {
     try {
@@ -71,12 +72,13 @@ class PlayerBookingService {
           'date': date,
           'startTime': startTime,
           if (bookingType != null && bookingType.isNotEmpty)
-            'bookingType': bookingType,
+            'bookingType': _mapBookingTypeToBackend(bookingType),
+          if (maxPlayers != null) 'maxPlayers': maxPlayers,
           if (friendIds != null && friendIds.isNotEmpty) 'friendIds': friendIds,
         },
       );
 
-      return HeldBooking.fromJson(_asMap(_unwrap(response.data)));
+      return BookingRecord.fromJson(_asMap(_unwrap(response.data)));
     } on DioException catch (error) {
       throw _toBookingApiException(error);
     }
@@ -121,7 +123,12 @@ class PlayerBookingService {
     try {
       final response =
           await _apiClient.get(ApiConfig.bookingDetailEndpoint(bookingId));
-      return BookingDetail(_asMap(_unwrap(response.data)));
+      final data = _asMap(_unwrap(response.data));
+      // Map booking type to UI terminology
+      if (data.containsKey('booking_type')) {
+        data['booking_type'] = _mapBookingTypeToUI(_string(data['booking_type']));
+      }
+      return BookingDetail(data);
     } on DioException catch (error) {
       throw _toBookingApiException(error);
     }
@@ -159,6 +166,28 @@ class PlayerBookingService {
     } on DioException catch (error) {
       throw _toBookingApiException(error);
     }
+  }
+
+  String _mapBookingTypeToBackend(String uiType) {
+    return switch (uiType.toUpperCase()) {
+      'FULL_TEAM' => 'FULL',
+      'PARTIAL_TEAM' => 'PARTIAL',
+      'FLEX' => 'FLEX',
+      'FULL' => 'FULL',
+      'PARTIAL' => 'PARTIAL',
+      _ => uiType, // Pass through unknown types as-is
+    };
+  }
+
+  String _mapBookingTypeToUI(String backendType) {
+    return switch (backendType.toUpperCase()) {
+      'FULL' => 'FULL_TEAM',
+      'PARTIAL' => 'PARTIAL_TEAM',
+      'FLEX' => 'FLEX',
+      'FULL_TEAM' => 'FULL_TEAM',
+      'PARTIAL_TEAM' => 'PARTIAL_TEAM',
+      _ => backendType,
+    };
   }
 
   dynamic _unwrap(dynamic body) {
@@ -239,7 +268,13 @@ class PlayerBookingService {
     final court = _asOptionalMap(raw['court']);
     final venue = _asOptionalMap(court['venue']);
     final payment = _asOptionalMap(raw['payment']);
+    final matchGroup = _asOptionalMap(raw['match_group']);
     final durationMins = _toInt(raw['duration_mins']);
+
+    // Resolve match group ID — may live under different keys depending on API version
+    final matchGroupId = _string(matchGroup['id']).isNotEmpty
+        ? _string(matchGroup['id'])
+        : _string(raw['match_group_id']);
 
     return {
       'id': _string(raw['id']),
@@ -256,12 +291,15 @@ class PlayerBookingService {
       'bookingDate': _string(raw['booking_date']),
       'refundStatus': _string(raw['refund_status']),
       'refundAmount': _toInt(raw['refund_amount']),
-      'holdExpiresAt': _string(raw['hold_expires_at']),
       'paymentGateway': _string(payment['gateway']),
       'paymentStatus': _string(payment['status']),
       'venueAddress': _string(venue['address']),
       'venueId': _string(venue['id']),
       'courtId': _string(court['id']),
+      'bookingType': _mapBookingTypeToUI(_string(raw['booking_type'])),
+      'matchGroupId': matchGroupId,
+      'maxPlayers': _toInt(raw['max_players']),
+      'myPlayers': _toInt(raw['my_players']),
     };
   }
 

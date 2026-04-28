@@ -28,40 +28,49 @@ class BookingAvailabilitySlot {
   }
 }
 
-class HeldBooking {
-  const HeldBooking({
+class BookingRecord {
+  const BookingRecord({
     required this.id,
     required this.totalAmount,
     required this.displayAmount,
-    required this.holdExpiresAt,
     required this.courtId,
     required this.venueId,
     required this.startTime,
     required this.endTime,
     required this.bookingDate,
+    this.matchGroupId = '',
   });
 
   final String id;
   final int totalAmount;
   final String displayAmount;
-  final String holdExpiresAt;
   final String courtId;
   final String venueId;
   final String startTime;
   final String endTime;
   final String bookingDate;
+  final String matchGroupId;
 
-  factory HeldBooking.fromJson(Map<String, dynamic> json) {
-    return HeldBooking(
+  factory BookingRecord.fromJson(Map<String, dynamic> json) {
+    String matchGroupId = '';
+    final mg = json['match_group'];
+    if (mg is Map) {
+      matchGroupId = (mg['id'] ?? '').toString();
+    }
+    if (matchGroupId.isEmpty) {
+      matchGroupId = (json['matchGroupId'] ?? json['match_group_id'] ?? '').toString();
+    }
+
+    return BookingRecord(
       id: (json['id'] ?? '').toString(),
       totalAmount: _toInt(json['total_amount']),
       displayAmount: (json['displayAmount'] ?? '').toString(),
-      holdExpiresAt: (json['hold_expires_at'] ?? '').toString(),
       courtId: (json['court_id'] ?? '').toString(),
       venueId: (json['venue_id'] ?? '').toString(),
       startTime: (json['start_time'] ?? '').toString(),
       endTime: (json['end_time'] ?? '').toString(),
       bookingDate: (json['booking_date'] ?? '').toString(),
+      matchGroupId: matchGroupId,
     );
   }
 
@@ -70,12 +79,12 @@ class HeldBooking {
       'id': id,
       'total_amount': totalAmount,
       'displayAmount': displayAmount,
-      'hold_expires_at': holdExpiresAt,
       'court_id': courtId,
       'venue_id': venueId,
       'start_time': startTime,
       'end_time': endTime,
       'booking_date': bookingDate,
+      'matchGroupId': matchGroupId,
     };
   }
 }
@@ -96,12 +105,15 @@ class BookingHistoryItem {
     required this.bookingDate,
     required this.refundStatus,
     required this.refundAmount,
-    required this.holdExpiresAt,
     required this.paymentGateway,
     required this.paymentStatus,
     required this.venueAddress,
     required this.venueId,
     required this.courtId,
+    required this.bookingType,
+    required this.matchGroupId,
+    required this.maxPlayers,
+    required this.myPlayers,
   });
 
   final String id;
@@ -118,12 +130,22 @@ class BookingHistoryItem {
   final String bookingDate;
   final String refundStatus;
   final int refundAmount;
-  final String holdExpiresAt;
   final String paymentGateway;
   final String paymentStatus;
   final String venueAddress;
   final String venueId;
   final String courtId;
+  /// 'FULL_TEAM' or 'PARTIAL_TEAM'
+  final String bookingType;
+  /// Match group ID — non-empty only for PARTIAL_TEAM bookings
+  final String matchGroupId;
+  /// Total team size for partial bookings (maxPlayers sent to API)
+  final int maxPlayers;
+  /// Players the booker already had when creating a partial booking
+  final int myPlayers;
+
+  bool get isPartialTeam => bookingType == 'PARTIAL_TEAM';
+  int get playersNeeded => maxPlayers > myPlayers ? maxPlayers - myPlayers : 0;
 
   factory BookingHistoryItem.fromMap(Map<String, dynamic> map) {
     return BookingHistoryItem(
@@ -141,12 +163,15 @@ class BookingHistoryItem {
       bookingDate: (map['bookingDate'] ?? '').toString(),
       refundStatus: (map['refundStatus'] ?? '').toString(),
       refundAmount: _toInt(map['refundAmount']),
-      holdExpiresAt: (map['holdExpiresAt'] ?? '').toString(),
       paymentGateway: (map['paymentGateway'] ?? '').toString(),
       paymentStatus: (map['paymentStatus'] ?? '').toString(),
       venueAddress: (map['venueAddress'] ?? '').toString(),
       venueId: (map['venueId'] ?? '').toString(),
       courtId: (map['courtId'] ?? '').toString(),
+      bookingType: (map['bookingType'] ?? '').toString(),
+      matchGroupId: (map['matchGroupId'] ?? '').toString(),
+      maxPlayers: _toInt(map['maxPlayers']),
+      myPlayers: _toInt(map['myPlayers']),
     );
   }
 
@@ -166,12 +191,15 @@ class BookingHistoryItem {
       'bookingDate': bookingDate,
       'refundStatus': refundStatus,
       'refundAmount': refundAmount,
-      'holdExpiresAt': holdExpiresAt,
       'paymentGateway': paymentGateway,
       'paymentStatus': paymentStatus,
       'venueAddress': venueAddress,
       'venueId': venueId,
       'courtId': courtId,
+      'bookingType': bookingType,
+      'matchGroupId': matchGroupId,
+      'maxPlayers': maxPlayers,
+      'myPlayers': myPlayers,
     };
   }
 }

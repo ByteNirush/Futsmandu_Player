@@ -19,18 +19,20 @@ class BookingRepository {
     );
   }
 
-  Future<HeldBooking> holdSlot({
+  Future<BookingRecord> createBooking({
     required String courtId,
     required String date,
     required String startTime,
     String? bookingType,
+    int? maxPlayers,
     List<String>? friendIds,
   }) {
-    return _service.holdSlot(
+    return _service.createBooking(
       courtId: courtId,
       date: date,
       startTime: startTime,
       bookingType: bookingType,
+      maxPlayers: maxPlayers,
       friendIds: friendIds,
     );
   }
