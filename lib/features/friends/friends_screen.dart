@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/design_system/app_spacing.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/design_system/app_radius.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
-import '../../shared/widgets/filter_chip_row.dart';
 import '../../shared/widgets/futs_card.dart';
 import 'data/models/player_friends_models.dart';
 import 'data/services/player_friends_service.dart';
@@ -32,8 +32,6 @@ class _FriendsScreenState extends State<FriendsScreen> {
   List<Map<String, dynamic>> _allFriends = const <Map<String, dynamic>>[];
   List<Map<String, dynamic>> _friendRequests = const <Map<String, dynamic>>[];
   List<SearchPlayer> _searchPlayers = const <SearchPlayer>[];
-
-  final String _playerFilter = 'All';
 
   @override
   void initState() {
@@ -317,35 +315,28 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       padding: const EdgeInsets.all(AppSpacing.xs2),
                       child: TextField(
                         onChanged: (v) => setState(() => _friendSearch = v),
-                        style:
-                            AppText.body.copyWith(color: colorScheme.onSurface),
+                        style: AppText.bodySm,
                         decoration: InputDecoration(
                           hintText: 'Search friends…',
-                          prefixIcon: Icon(Icons.search,
-                              color: colorScheme.onSurfaceVariant),
-                          hintStyle: AppText.bodySm
-                              .copyWith(color: colorScheme.onSurfaceVariant),
+                          hintStyle: AppText.bodySm.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: colorScheme.onSurfaceVariant,
+                            size: 18,
+                          ),
                           filled: true,
-                          fillColor: colorScheme.surface,
+                          fillColor: colorScheme.surfaceContainerHighest,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
+                            borderSide: BorderSide.none,
+                          ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm,
-                            vertical: AppSpacing.sm,
+                            vertical: AppSpacing.xs,
                           ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide:
-                                BorderSide(color: colorScheme.outlineVariant),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide:
-                                BorderSide(color: colorScheme.outlineVariant),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                                color: colorScheme.primary, width: 1.5),
-                          ),
+                          isDense: true,
                         ),
                       ),
                     ),
@@ -458,53 +449,29 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       padding: const EdgeInsets.all(AppSpacing.xs2),
                       child: TextField(
                         onChanged: _onSearchPlayersChanged,
-                        style:
-                            AppText.body.copyWith(color: colorScheme.onSurface),
+                        style: AppText.bodySm,
                         decoration: InputDecoration(
                           hintText: 'Search by name or phone…',
-                          prefixIcon: Icon(Icons.search,
-                              color: colorScheme.onSurfaceVariant),
-                          hintStyle: AppText.bodySm
-                              .copyWith(color: colorScheme.onSurfaceVariant),
+                          hintStyle: AppText.bodySm.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search,
+                            color: colorScheme.onSurfaceVariant,
+                            size: 18,
+                          ),
                           filled: true,
-                          fillColor: colorScheme.surface,
+                          fillColor: colorScheme.surfaceContainerHighest,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
+                            borderSide: BorderSide.none,
+                          ),
                           contentPadding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm,
-                            vertical: AppSpacing.sm,
+                            vertical: AppSpacing.xs,
                           ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide:
-                                BorderSide(color: colorScheme.outlineVariant),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide:
-                                BorderSide(color: colorScheme.outlineVariant),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                                color: colorScheme.primary, width: 1.5),
-                          ),
+                          isDense: true,
                         ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        left: AppSpacing.xs2,
-                        right: AppSpacing.xs2,
-                        bottom: AppSpacing.xs,
-                      ),
-                      child: FilterChipRow(
-                        options: const [
-                          'All',
-                          'Beginner',
-                          'Intermediate',
-                          'Advanced'
-                        ],
-                        selected: _playerFilter,
-                        onSelected: (_) {}, // Simplified scaffold UI binding
                       ),
                     ),
                     Expanded(
