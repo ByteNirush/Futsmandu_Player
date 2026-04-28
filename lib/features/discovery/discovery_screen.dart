@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:futsmandu_design_system/components/empty_state/empty_state.dart';
+
 import '../../core/design_system/app_spacing.dart';
+import '../../core/design_system/app_radius.dart';
 import '../../core/theme/app_text.dart';
-import '../../shared/widgets/empty_state.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 import '../matches/data/models/player_match_models.dart';
 import '../matches/presentation/providers/matches_controller.dart';
@@ -161,45 +163,53 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               AppSpacing.sm2,
               AppSpacing.xs,
             ),
-            child: Material(
-              color: scheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(18),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value.trim();
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: 'Search venue, court, or location',
-                  hintStyle: AppText.bodySm.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.search_rounded,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                  suffixIcon: _searchQuery.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Clear search',
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {
-                              _searchQuery = '';
-                            });
-                            FocusScope.of(context).unfocus();
-                          },
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                  filled: false,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xs,
-                    vertical: AppSpacing.sm,
-                  ),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value.trim();
+                });
+              },
+              style: AppText.bodySm,
+              decoration: InputDecoration(
+                hintText: 'Search venue, court, or location',
+                hintStyle: AppText.bodySm.copyWith(
+                  color: scheme.onSurfaceVariant,
                 ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: scheme.onSurfaceVariant,
+                  size: 18,
+                ),
+                suffixIcon: _searchQuery.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Clear search',
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() {
+                            _searchQuery = '';
+                          });
+                          FocusScope.of(context).unfocus();
+                        },
+                        icon: const Icon(Icons.close_rounded, size: 16),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                      ),
+                filled: true,
+                fillColor: scheme.surfaceContainerHighest,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
+                ),
+                isDense: true,
               ),
             ),
           ),
@@ -260,14 +270,11 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 200),
               child: matches.isEmpty
-                  ? EmptyState(
+                  ? EmptyStateWidget(
                       key: ValueKey(
                         'empty_$safeTabIndex$_searchQuery',
                       ),
-                      icon: Icons.explore_off,
-                      title: 'No matches ${_tabLabels[safeTabIndex]}',
-                      subtitle:
-                          'Try changing your search or explore open matches',
+                      type: EmptyStateType.noSearchResults,
                     )
                   : ListView.separated(
                       key: ValueKey(
