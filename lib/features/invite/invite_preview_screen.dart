@@ -5,7 +5,7 @@ import 'package:futsmandu_design_system/core/theme/app_radius.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/painters/field_painter.dart';
 import '../../core/services/player_auth_storage_service.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';

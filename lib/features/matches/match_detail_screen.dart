@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/painters/field_painter.dart';
 import '../../core/services/player_auth_storage_service.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import '../../core/theme/app_text.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';
@@ -135,6 +135,26 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
         'isAdmin': member['isAdmin'] == true,
       };
     }).toList(growable: false);
+    final confirmedCount = members
+      .where((member) => member['status']?.toString() == 'confirmed')
+      .length;
+    final maxPlayers =
+      raw['maxPlayers'] is num ? (raw['maxPlayers'] as num).toInt() : 0;
+    final spotsLeft =
+      raw['spotsLeft'] is num ? (raw['spotsLeft'] as num).toInt() : 0;
+    final slotsAvailable = raw['slotsAvailable'] is num
+      ? (raw['slotsAvailable'] as num).toInt()
+      : spotsLeft;
+    final playersNeeded = raw['playersNeeded'] is num
+      ? (raw['playersNeeded'] as num).toInt()
+      : math.max(0, maxPlayers - confirmedCount);
+    final costSplitMode = raw['costSplitMode']?.toString() ?? '';
+    final description = raw['description']?.toString() ?? '';
+    final fillStatus = raw['fillStatus']?.toString() ?? '';
+    final isPartialTeamBooking =
+      raw['isPartialTeamBooking'] == true ||
+        costSplitMode.isNotEmpty ||
+        description.isNotEmpty;
 
     return {
       'id': raw['id']?.toString() ?? '',
@@ -148,11 +168,18 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       'matchDate': raw['matchDate']?.toString() ?? '',
       'time': raw['time']?.toString() ?? '',
       'endTime': raw['endTime']?.toString() ?? '',
-      'spotsLeft': raw['spotsLeft'] is num ? raw['spotsLeft'] as num : 0,
-      'maxPlayers': raw['maxPlayers'] is num ? raw['maxPlayers'] as num : 0,
+      'spotsLeft': spotsLeft,
+      'maxPlayers': maxPlayers,
+      'memberCount': confirmedCount,
+      'slotsAvailable': slotsAvailable,
+      'playersNeeded': playersNeeded,
       'skillLevel': raw['skillLevel']?.toString() ?? '',
       'skillFilter': raw['skillFilter']?.toString() ?? '',
       'distance': raw['distance']?.toString() ?? '—',
+      'fillStatus': fillStatus,
+      'costSplitMode': costSplitMode,
+      'description': description,
+      'isPartialTeamBooking': isPartialTeamBooking,
       'friendsIn': raw['friendsIn'] is num ? raw['friendsIn'] as num : 0,
       'isOpen': raw['isOpen'] == true,
       'isAdmin': raw['isAdmin'] == true,
@@ -189,6 +216,15 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     final members = _members;
     if (_currentUserId == null) return false;
     return members.any((member) => member['id']?.toString() == _currentUserId);
+  }
+
+  bool get _isJoinable {
+    final isOpen = _match?['isOpen'] == true;
+    final isPartialTeamBooking = _match?['isPartialTeamBooking'] == true;
+    final rawSlots = _match?['slotsAvailable'];
+    final slotsAvailable =
+        (rawSlots is num ? rawSlots : 0).toInt();
+    return (isOpen || isPartialTeamBooking) && slotsAvailable > 0;
   }
 
   String get _matchId => _match?['id']?.toString() ?? '';
@@ -484,6 +520,13 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
         members.where((member) => member['status'] == 'confirmed').length;
     final maxPlayers =
         (match['maxPlayers'] is num ? match['maxPlayers'] as num : 0).toInt();
+    final slotsAvailable =
+      (match['slotsAvailable'] is num ? match['slotsAvailable'] as num : 0)
+        .toInt();
+    final playersNeeded =
+      (match['playersNeeded'] is num ? match['playersNeeded'] as num : 0)
+        .toInt();
+    final isPartialTeamBooking = match['isPartialTeamBooking'] == true;
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -622,12 +665,39 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                               ),
                             ),
                             StatusBadge(
-                              label: match['isOpen'] == true
-                                  ? 'Open Match'
-                                  : 'Private',
-                              color: match['isOpen'] == true
+                              label: isPartialTeamBooking
+                                  ? 'Partial Team'
+                                  : (match['isOpen'] == true
+                                      ? 'Open Match'
+                                      : 'Private'),
+                              color: (match['isOpen'] == true ||
+                                      isPartialTeamBooking)
                                   ? AppColors.green
                                   : AppColors.txtDisabled,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Players needed: $playersNeeded',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(color: AppColors.txtDisabled),
+                              ),
+                            ),
+                            Text(
+                              'Slots available: $slotsAvailable',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: AppColors.green,
+                                    fontWeight: AppFontWeights.semiBold,
+                                  ),
                             ),
                           ],
                         ),
@@ -930,10 +1000,13 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                       ),
                       const SizedBox(height: 10),
                       FutsButton(
-                        label: 'Join Match',
+                        label: isPartialTeamBooking
+                            ? 'Join Match & Play'
+                            : 'Join Match',
                         isLoading: _isSubmitting,
-                        onPressed:
-                            _selectedPosition == null ? null : _joinMatch,
+                        onPressed: !_isJoinable || _selectedPosition == null
+                            ? null
+                            : _joinMatch,
                       ),
                     ],
                   )

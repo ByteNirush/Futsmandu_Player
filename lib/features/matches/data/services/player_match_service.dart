@@ -276,8 +276,10 @@ class PlayerMatchService {
 
   Future<MatchInviteLink> fetchInviteLink(String matchId) async {
     try {
-      final response =
-          await _client.post(ApiConfig.matchInviteLinkEndpoint(matchId));
+      final response = await _client.post(
+        ApiConfig.matchInviteLinkEndpoint(matchId),
+        data: {},
+      );
       return MatchInviteLink.fromMap(_asMap(_unwrap(response.data)));
     } on DioException catch (error) {
       throw _toMatchApiExceptionFromDio(error);
@@ -436,6 +438,17 @@ class PlayerMatchService {
     final currentUser = raw['currentUserMember'] is Map
         ? _asMap(raw['currentUserMember'])
         : null;
+    final maxPlayers = _toInt(raw['max_players']);
+    final confirmedCount = confirmedMembers.length;
+    final slotsAvailable = (maxPlayers - confirmedCount).clamp(0, maxPlayers);
+    final fillStatus = _string(raw['fill_status']).isNotEmpty
+      ? _string(raw['fill_status'])
+      : (slotsAvailable == 0 ? 'FULL' : 'OPEN');
+    final costSplitMode = _string(raw['cost_split_mode']);
+    final description = _string(raw['description']);
+    final isPartialTeamBooking =
+      costSplitMode.isNotEmpty || description.isNotEmpty || 
+      raw['booking_type'] == 'PARTIAL_TEAM' || raw['booking_type'] == 'PARTIAL';
 
     return {
       'id': _string(raw['id']),
@@ -449,13 +462,20 @@ class PlayerMatchService {
       'matchDate': _string(raw['match_date']),
       'time': _string(raw['start_time']),
       'endTime': _string(raw['end_time']),
-      'spotsLeft': _toInt(raw['max_players']) - confirmedMembers.length,
-      'maxPlayers': _toInt(raw['max_players']),
+        'spotsLeft': slotsAvailable,
+        'maxPlayers': maxPlayers,
+        'memberCount': confirmedCount,
+        'slotsAvailable': slotsAvailable,
+        'playersNeeded': slotsAvailable,
       'skillLevel': _skillLabel(raw['skill_filter']),
       'skillFilter': _string(raw['skill_filter']),
       'distance': _string(venue['distance']).isNotEmpty
           ? _string(venue['distance'])
           : '—',
+        'fillStatus': fillStatus,
+        'costSplitMode': costSplitMode,
+        'description': description,
+        'isPartialTeamBooking': isPartialTeamBooking,
       'friendsIn': _toInt(raw['friends_in']),
       'isOpen': raw['is_open'] == true,
       'isAdmin': raw['admin_id']?.toString() == currentUserId,
@@ -615,11 +635,25 @@ class PlayerMatchService {
     final maxPlayers = _toInt(raw['maxPlayers']) > 0
         ? _toInt(raw['maxPlayers'])
         : _toInt(raw['max_players']);
+    final memberCount = _toInt(raw['memberCount']) > 0
+      ? _toInt(raw['memberCount'])
+      : _toInt(raw['membersCount']);
+    final slotsAvailable = _toInt(raw['slotsAvailable']) > 0
+      ? _toInt(raw['slotsAvailable'])
+      : _toInt(raw['availableSlots']);
     final spotsLeft = _toInt(raw['spotsLeft']) > 0
         ? _toInt(raw['spotsLeft'])
-      : (_toInt(raw['slotsAvailable']) > 0
-        ? _toInt(raw['slotsAvailable'])
-        : maxPlayers - _toInt(raw['memberCount']));
+      : (slotsAvailable > 0 ? slotsAvailable : maxPlayers - memberCount);
+    final normalizedSpotsLeft = spotsLeft < 0 ? 0 : spotsLeft;
+    final fillStatus = _string(raw['fillStatus']).isNotEmpty
+      ? _string(raw['fillStatus'])
+      : (normalizedSpotsLeft == 0 ? 'FULL' : 'OPEN');
+    final costSplitMode = _string(raw['costSplitMode']);
+    final description = _string(raw['description']);
+    final isPartialTeamBooking =
+      costSplitMode.isNotEmpty || description.isNotEmpty || 
+      raw['bookingType'] == 'PARTIAL_TEAM' || raw['booking_type'] == 'PARTIAL_TEAM' ||
+      raw['bookingType'] == 'PARTIAL' || raw['booking_type'] == 'PARTIAL';
     final venueLat = _toDouble(raw['venueLat']) != 0
         ? _toDouble(raw['venueLat'])
         : _toDouble(venue['latitude']);
@@ -650,11 +684,18 @@ class PlayerMatchService {
       'matchDate': matchDate,
       'time': startTime,
       'endTime': endTime,
-      'spotsLeft': spotsLeft < 0 ? 0 : spotsLeft,
+      'spotsLeft': normalizedSpotsLeft,
       'maxPlayers': maxPlayers,
+      'memberCount': memberCount,
+      'slotsAvailable': normalizedSpotsLeft,
+      'playersNeeded': normalizedSpotsLeft,
       'skillLevel': _skillLabel(skillFilter),
       'skillFilter': skillFilter,
       'distance': distance,
+      'fillStatus': fillStatus,
+      'costSplitMode': costSplitMode,
+      'description': description,
+      'isPartialTeamBooking': isPartialTeamBooking,
       'friendsIn': 0,
       'isOpen': true,
         'isAdmin': (_string(raw['admin_id']).isNotEmpty

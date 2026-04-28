@@ -67,9 +67,16 @@ class MatchSummary {
     required this.endTime,
     required this.spotsLeft,
     required this.maxPlayers,
+    required this.memberCount,
+    required this.slotsAvailable,
+    required this.playersNeeded,
     required this.skillLevel,
     required this.skillFilter,
     required this.distance,
+    required this.fillStatus,
+    required this.costSplitMode,
+    required this.description,
+    required this.isPartialTeamBooking,
     required this.friendsIn,
     required this.isOpen,
     required this.isAdmin,
@@ -89,9 +96,16 @@ class MatchSummary {
   final String endTime;
   final int spotsLeft;
   final int maxPlayers;
+  final int memberCount;
+  final int slotsAvailable;
+  final int playersNeeded;
   final String skillLevel;
   final String skillFilter;
   final String distance;
+  final String fillStatus;
+  final String costSplitMode;
+  final String description;
+  final bool isPartialTeamBooking;
   final int friendsIn;
   final bool isOpen;
   final bool isAdmin;
@@ -112,9 +126,16 @@ class MatchSummary {
       endTime: _string(raw['endTime']),
       spotsLeft: _toInt(raw['spotsLeft']),
       maxPlayers: _toInt(raw['maxPlayers']),
+      memberCount: _toInt(raw['memberCount']),
+      slotsAvailable: _toInt(raw['slotsAvailable']),
+      playersNeeded: _toInt(raw['playersNeeded']),
       skillLevel: _string(raw['skillLevel']),
       skillFilter: _string(raw['skillFilter']),
       distance: _string(raw['distance']),
+      fillStatus: _string(raw['fillStatus']),
+      costSplitMode: _string(raw['costSplitMode']),
+      description: _string(raw['description']),
+      isPartialTeamBooking: raw['isPartialTeamBooking'] == true,
       friendsIn: _toInt(raw['friendsIn']),
       isOpen: raw['isOpen'] == true,
       isAdmin: raw['isAdmin'] == true,
@@ -137,9 +158,16 @@ class MatchSummary {
       'endTime': endTime,
       'spotsLeft': spotsLeft,
       'maxPlayers': maxPlayers,
+      'memberCount': memberCount,
+      'slotsAvailable': slotsAvailable,
+      'playersNeeded': playersNeeded,
       'skillLevel': skillLevel,
       'skillFilter': skillFilter,
       'distance': distance,
+      'fillStatus': fillStatus,
+      'costSplitMode': costSplitMode,
+      'description': description,
+      'isPartialTeamBooking': isPartialTeamBooking,
       'friendsIn': friendsIn,
       'isOpen': isOpen,
       'isAdmin': isAdmin,
