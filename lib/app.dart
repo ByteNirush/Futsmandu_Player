@@ -5,7 +5,7 @@ import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import 'dart:async';
 
 import 'core/design_system/app_spacing.dart';
-import 'core/theme/app_theme.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart' show AppTheme;
 import 'core/services/notifications/local_notification_service.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/auth/presentation/providers/auth_controller.dart';
@@ -18,12 +18,12 @@ import 'features/home/home_shell.dart';
 import 'features/venues/venue_list_screen.dart';
 import 'features/venues/venue_detail_screen.dart';
 import 'features/booking/book_court_screen.dart';
-import 'features/booking/slot_hold_screen.dart';
+import 'features/booking/booking_status_screen.dart';
 import 'features/booking/payment_screen.dart';
 import 'features/booking/payment_history_screen.dart';
 import 'features/booking/booking_confirm_screen.dart';
 import 'features/booking/booking_history_screen.dart';
-import 'features/booking/hold_expired_screen.dart';
+// Removed HoldExpiredScreen import
 import 'features/matches/match_detail_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/profile/presentation/screens/edit_profile_screen.dart';
@@ -33,7 +33,7 @@ import 'features/friends/friends_screen.dart';
 import 'features/invite/invite_preview_screen.dart';
 import 'features/discovery/discovery_screen.dart';
 import 'features/maps/maps_page.dart';
-import 'shared/widgets/app_logo.dart';
+import 'package:futsmandu_design_system/components/common/app_logo.dart';
 
 class FutsmanduApp extends ConsumerStatefulWidget {
   const FutsmanduApp({super.key});
@@ -92,8 +92,8 @@ class _FutsmanduAppState extends ConsumerState<FutsmanduApp> {
       builder: (_, __) => MaterialApp(
         navigatorKey: _navigatorKey,
         title: 'Futsmandu',
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
         themeMode: _themeProvider.themeMode,
         debugShowCheckedModeBanner: false,
         builder: (context, child) {
@@ -121,12 +121,12 @@ class _FutsmanduAppState extends ConsumerState<FutsmanduApp> {
           '/venues': (_) => const VenueListScreen(),
           '/venue-detail': (_) => const VenueDetailScreen(),
           '/book-court': (_) => const BookCourtScreen(),
-          '/booking-hold': (_) => const SlotHoldScreen(),
+          '/booking-status': (_) => const BookingStatusScreen(),
           '/payment': (_) => const PaymentScreen(),
           '/payment-history': (_) => const PaymentHistoryScreen(),
           '/booking-confirm': (_) => const BookingConfirmScreen(),
           '/bookings': (_) => const BookingHistoryScreen(),
-          '/hold-expired': (_) => const HoldExpiredScreen(),
+          // /hold-expired removed
           '/match-detail': (_) => const MatchDetailScreen(),
           '/profile': (_) => const ProfileScreen(),
           '/profile/edit': (_) => const EditProfileScreen(),

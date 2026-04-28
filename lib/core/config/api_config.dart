@@ -78,7 +78,7 @@ class ApiConfig {
   static const String tonightMatchesEndpoint = '$matchesEndpoint/tonight';
   static const String tomorrowMatchesEndpoint = '$matchesEndpoint/tomorrow';
   static const String weekendMatchesEndpoint = '$matchesEndpoint/weekend';
-    static const String openMatchesEndpoint = matchesEndpoint;
+    static const String openMatchesEndpoint = '$matchesEndpoint/open';
 
   static String invitePreviewEndpoint(String token) =>
       '$inviteEndpoint/$token/preview';
