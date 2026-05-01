@@ -11,7 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/design_system/app_radius.dart';
 import '../../core/design_system/app_spacing.dart';
 import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/services/player_auth_storage_service.dart';
 import 'data/models/player_profile_models.dart';
@@ -115,7 +115,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.error_outline_rounded,
                     color: AppColors.red,
                     size: 36,
@@ -124,7 +124,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   Text(
                     _errorMessage!,
                     textAlign: TextAlign.center,
-                    style: AppText.bodySm,
+                    style: AppTypography.caption(context, Theme.of(context).colorScheme),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   FilledButton(
@@ -1442,7 +1442,7 @@ class _PerformanceSection extends StatelessWidget {
                   value: winRate,
                   minHeight: 7,
                   backgroundColor: AppColors.green.withValues(alpha: 0.12),
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.green),
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.green),
                 ),
               ),
             ],
