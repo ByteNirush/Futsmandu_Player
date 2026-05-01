@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../core/design_system/app_shadows.dart';
 import '../../core/design_system/app_radius.dart';
 import '../../core/design_system/app_spacing.dart';
@@ -172,7 +172,7 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
           Text(
             'Find a court',
             style: textTheme.titleLarge?.copyWith(
-              fontWeight: AppTextStyles.bold,
+              fontWeight: AppFontWeights.bold,
               letterSpacing: -0.4,
             ),
           ),
@@ -495,7 +495,7 @@ class _FilterChip extends StatelessWidget {
                 color: selected
                     ? colorScheme.surface
                     : colorScheme.onSurfaceVariant,
-                fontWeight: selected ? AppTextStyles.semiBold : AppTextStyles.medium,
+                fontWeight: selected ? AppFontWeights.semiBold : AppFontWeights.medium,
               ),
             ),
           ],
@@ -573,7 +573,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                 Text(
                   'Sort & filter',
                   style: textTheme.titleLarge?.copyWith(
-                    fontWeight: AppTextStyles.bold,
+                    fontWeight: AppFontWeights.bold,
                   ),
                 ),
                 TextButton(
@@ -659,7 +659,7 @@ class _SheetSectionLabel extends StatelessWidget {
     return Text(
       title,
       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: AppTextStyles.bold,
+            fontWeight: AppFontWeights.bold,
             letterSpacing: 0.1,
           ),
     );
@@ -721,7 +721,7 @@ class _SortTile extends StatelessWidget {
                 child: Text(
                   label,
                   style: textTheme.bodyMedium?.copyWith(
-                    fontWeight: selected ? AppTextStyles.semiBold : AppTextStyles.regular,
+                    fontWeight: selected ? AppFontWeights.semiBold : AppFontWeights.regular,
                     color: selected
                         ? colorScheme.onSurface
                         : colorScheme.onSurfaceVariant,
@@ -795,7 +795,7 @@ class _OptionChipGroup extends StatelessWidget {
                 color: selected
                     ? colorScheme.surface
                     : colorScheme.onSurfaceVariant,
-                fontWeight: selected ? AppTextStyles.semiBold : AppTextStyles.medium,
+                fontWeight: selected ? AppFontWeights.semiBold : AppFontWeights.medium,
               ),
             ),
           ),
@@ -943,7 +943,7 @@ class _VenueCardImage extends StatelessWidget {
                     rating.toStringAsFixed(1),
                     style: textTheme.labelSmall?.copyWith(
                       color: colorScheme.onPrimary,
-                      fontWeight: AppTextStyles.bold,
+                      fontWeight: AppFontWeights.bold,
                     ),
                   ),
                 ],
@@ -971,7 +971,7 @@ class _VenueCardImage extends StatelessWidget {
                       'Verified',
                       style: textTheme.labelSmall?.copyWith(
                         color: colorScheme.onPrimary,
-                        fontWeight: AppTextStyles.semiBold,
+                        fontWeight: AppFontWeights.semiBold,
                       ),
                     ),
                   ],
@@ -1031,7 +1031,7 @@ class _VenueCardBody extends StatelessWidget {
           Text(
             venue['name'] as String? ?? '',
             style: textTheme.titleMedium?.copyWith(
-              fontWeight: AppTextStyles.bold,
+              fontWeight: AppFontWeights.bold,
               letterSpacing: -0.2,
             ),
             maxLines: 1,
@@ -1081,7 +1081,7 @@ class _VenueCardBody extends StatelessWidget {
                     label,
                     style: textTheme.labelSmall?.copyWith(
                       color: colorScheme.onPrimaryContainer,
-                      fontWeight: AppTextStyles.semiBold,
+                      fontWeight: AppFontWeights.semiBold,
                     ),
                   ),
                 );
