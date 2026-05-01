@@ -8,7 +8,6 @@ import 'data/services/player_venues_service.dart';
 class _VenueDetailSpacing {
   static const double sectionGap = 20;
   static const double subSectionGap = 16;
-  static const double elementGap = 10;
   static const double smallGap = 6;
 }
 
