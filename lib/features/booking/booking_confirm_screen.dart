@@ -1,11 +1,10 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/design_system/app_spacing.dart';
 import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';
 import 'presentation/providers/booking_repository_provider.dart';
@@ -23,12 +22,8 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
     with SingleTickerProviderStateMixin {
   bool _show = false;
   late AnimationController _confettiController;
-  Timer? _pollTimer;
   bool _didStartPolling = false;
   bool _isPolling = false;
-  String? _serverStatus;
-  String? _serverNotice;
-  bool _terminalStatusReached = false;
   String? _matchGroupId;
 
   String _formattedAmountLabel(String amount) {
@@ -72,15 +67,12 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
 
     if (bypassed && bookingId.isNotEmpty) {
       _didStartPolling = true;
-      _serverStatus = 'HELD';
-      _serverNotice = 'Waiting for the backend to finalize this booking.';
       _startPolling(bookingId);
     }
   }
 
   @override
   void dispose() {
-    _pollTimer?.cancel();
     _confettiController.dispose();
     super.dispose();
   }
@@ -105,71 +97,28 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
 
   void _startPolling(String bookingId) {
     _pollBookingDetail(bookingId);
-    _pollTimer = Timer.periodic(const Duration(seconds: 12), (_) {
-      _pollBookingDetail(bookingId);
-    });
   }
 
   Future<void> _pollBookingDetail(String bookingId) async {
-    if (_isPolling || _terminalStatusReached || !mounted) return;
+    if (_isPolling || !mounted) return;
 
     setState(() => _isPolling = true);
 
     try {
-      final detail =
-          await ref.read(bookingRepositoryProvider).getBookingDetail(bookingId);
+      final detail = await ref.read(bookingRepositoryProvider).getBookingDetail(bookingId);
       final booking = detail.raw;
-      final status = booking['status']?.toString().toUpperCase() ?? '';
-
-      // Extract matchGroupId from the detail response if available
       final mg = booking['match_group'];
       final newMatchGroupId = (mg is Map) ? (mg['id']?.toString() ?? '') : '';
+      
       if (newMatchGroupId.isNotEmpty && (_matchGroupId?.isEmpty ?? true)) {
         _matchGroupId = newMatchGroupId;
       }
 
       if (!mounted) return;
-
-      if (status == 'CONFIRMED') {
-        _terminalStatusReached = true;
-        _pollTimer?.cancel();
-        setState(() {
-          _serverStatus = 'CONFIRMED';
-          _serverNotice = 'The backend has confirmed your booking.';
-          _isPolling = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking confirmed by the backend.')),
-        );
-        return;
-      }
-
-      if (status == 'EXPIRED') {
-        _terminalStatusReached = true;
-        _pollTimer?.cancel();
-        setState(() {
-          _serverStatus = 'EXPIRED';
-          _serverNotice = 'The hold expired on the backend. Please book again.';
-          _isPolling = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking hold expired on the backend.')),
-        );
-        return;
-      }
-
-      setState(() {
-        _serverStatus = status.isNotEmpty ? status : 'HELD';
-        _serverNotice = 'Waiting for backend finalization.';
-        _isPolling = false;
-      });
+      setState(() => _isPolling = false);
     } catch (_) {
       if (!mounted) return;
-      setState(() {
-        _serverNotice =
-            'Unable to refresh booking status right now. Retrying...';
-        _isPolling = false;
-      });
+      setState(() => _isPolling = false);
     }
   }
 
@@ -181,31 +130,15 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
         ? (args?['bookingRecord'] as Map).cast<String, dynamic>()
         : const <String, dynamic>{};
 
-    final selectedCourtName = args?['venue']?['courts'] is List &&
-            args?['courtIdx'] is int &&
-            (args?['venue']?['courts'] as List).length >
-                (args?['courtIdx'] as int)
-        ? ((args?['venue']?['courts'] as List)[args?['courtIdx'] as int]['name']
-                ?.toString() ??
-            'Court')
-        : 'Court';
-    final bookingDate = args?['bookingDate']?.toString() ?? '-';
-    final startTime = args?['startTime']?.toString() ?? '-';
-    final endTime = args?['endTime']?.toString() ?? '-';
-    final totalAmount =
-        bookingRecord['displayAmount']?.toString().isNotEmpty == true
-            ? bookingRecord['displayAmount'].toString()
-            : bookingRecord['total_amount']?.toString() ??
-                args?['slot']?['price']?.toString() ??
-                '1800';
-    final verification = args?['verification'] is Map
-        ? (args?['verification'] as Map).cast<String, dynamic>()
-        : const <String, dynamic>{};
-    final matchGroup = verification['matchGroup'] is Map
-        ? (verification['matchGroup'] as Map).cast<String, dynamic>()
+    final selectedCourtName = args?['courtName']?.toString() ?? '';
+    final bookingDate = args?['bookingDate']?.toString() ?? '';
+    final startTime = args?['startTime']?.toString() ?? '';
+    final endTime = args?['endTime']?.toString() ?? '';
+    final totalAmount = bookingRecord['total_amount']?.toString() ?? '';
+    final matchGroup = args?['matchGroup'] is Map
+        ? (args?['matchGroup'] as Map).cast<String, dynamic>()
         : const <String, dynamic>{};
     final gateway = args?['paymentGateway']?.toString() ?? '';
-    final bypassed = verification['bypassed'] == true;
     final bookingId = _bookingIdFromArgs(args);
     final amountLabel = _formattedAmountLabel(totalAmount);
 
@@ -225,33 +158,12 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
         ? _matchGroupId!
         : (matchGroup['id']?.toString() ?? '');
 
-    final effectiveServerStatus =
-        _serverStatus ?? (bypassed ? 'HELD' : 'CONFIRMED');
-    final serverTitle = effectiveServerStatus == 'EXPIRED'
-        ? 'Booking Hold Expired'
-        : effectiveServerStatus == 'CONFIRMED'
-            ? 'Booking Confirmed by Server'
-            : bypassed
-                ? 'Booking Saved'
-                : 'Booking Confirmed!';
-    final serverSubtitle = effectiveServerStatus == 'EXPIRED'
-        ? 'The backend released this slot. Please select another one.'
-        : effectiveServerStatus == 'CONFIRMED'
-            ? 'The backend has finalized your booking.'
-            : bypassed
-                ? 'Your booking is visible now while the backend finishes syncing.'
-                : 'Your slot is locked in. See you on the pitch!';
-    final paymentLabel = bypassed
-        ? effectiveServerStatus == 'CONFIRMED'
-            ? 'Confirmed • $amountLabel'
-            : effectiveServerStatus == 'EXPIRED'
-                ? 'Hold expired • $amountLabel'
-                : 'Booked • $amountLabel'
-        : gateway.isNotEmpty
-            ? '${gateway.toUpperCase()} paid $amountLabel'
-            : 'Paid $amountLabel';
-    final showMatchGroupButton =
-        effectiveMatchGroupId.isNotEmpty && effectiveServerStatus != 'EXPIRED';
+    const serverTitle = 'Booking Confirmed!';
+    const serverSubtitle = 'Your slot is locked in. See you on the pitch!';
+    final paymentLabel = gateway.isNotEmpty
+        ? '${gateway.toUpperCase()} paid $amountLabel'
+        : 'Paid $amountLabel';
+    final showMatchGroupButton = effectiveMatchGroupId.isNotEmpty && isPartialTeam;
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -290,7 +202,7 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
                         color: AppColors.green.withValues(alpha: 0.10),
                         border: Border.all(color: AppColors.green, width: 2),
                       ),
-                      child: Center(
+                      child: const Center(
                         child: Icon(Icons.check_rounded,
                             size: 60, color: AppColors.green),
                       ),
@@ -318,70 +230,6 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
                             ?.copyWith(color: AppColors.txtDisabled),
                         textAlign: TextAlign.center,
                       ),
-                      if (bypassed) ...[
-                        const SizedBox(height: 16),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(AppSpacing.sm),
-                          decoration: BoxDecoration(
-                            color: effectiveServerStatus == 'EXPIRED'
-                                ? AppColors.red.withValues(alpha: 0.10)
-                                : effectiveServerStatus == 'CONFIRMED'
-                                    ? AppColors.green.withValues(alpha: 0.10)
-                                    : AppColors.info.withValues(alpha: 0.10),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: effectiveServerStatus == 'EXPIRED'
-                                  ? AppColors.red.withValues(alpha: 0.28)
-                                  : effectiveServerStatus == 'CONFIRMED'
-                                      ? AppColors.green.withValues(alpha: 0.28)
-                                      : AppColors.info.withValues(alpha: 0.28),
-                            ),
-                          ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(
-                                effectiveServerStatus == 'EXPIRED'
-                                    ? Icons.error_outline_rounded
-                                    : effectiveServerStatus == 'CONFIRMED'
-                                        ? Icons.verified_rounded
-                                        : Icons.info_outline_rounded,
-                                size: 18,
-                                color: effectiveServerStatus == 'EXPIRED'
-                                    ? AppColors.red
-                                    : effectiveServerStatus == 'CONFIRMED'
-                                        ? AppColors.green
-                                        : AppColors.info,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _serverNotice ??
-                                      'This booking is confirmed in the app without payment. The backend may finalize it separately.',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        color: AppColors.txtPrimary,
-                                        height: 1.35,
-                                      ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (_isPolling) ...[
-                          const SizedBox(height: 10),
-                          Text(
-                            'Syncing booking status for #$bookingId...',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: AppColors.txtDisabled),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
                       if (isPartialTeam && maxPlayers > 0) ...[
                         const SizedBox(height: 16),
                         Container(
@@ -399,7 +247,7 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.group_add_rounded,
+                                  const Icon(Icons.group_add_rounded,
                                       size: 16, color: AppColors.blue),
                                   const SizedBox(width: 6),
                                   Text(
@@ -432,13 +280,11 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
                           ),
                         ),
                       ],
-                      ],
                       const SizedBox(height: 28),
                       FutsCard(
                         child: Column(
                           children: [
-                            _ConfirmRow('Venue',
-                                args?['venue']?['name'] ?? 'Futsmandu Arena'),
+                            _ConfirmRow('Venue', args?['venueName']?.toString() ?? ''),
                             _ConfirmRow('Court', selectedCourtName),
                             _ConfirmRow('Date', bookingDate),
                             _ConfirmRow('Time', '$startTime - $endTime'),
@@ -450,96 +296,29 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
                               _ConfirmRow('Spots open',
                                   '$playersNeeded of $maxPlayers'),
                             ],
-                            if (bypassed) ...[
-                              const Divider(),
-                              _ConfirmRow(
-                                  'Server Status', effectiveServerStatus),
-                            ],
                             const Divider(),
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final compact = constraints.maxWidth < 380;
-
-                                final matchGroupInfo = Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Match Group',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(Icons.group_outlined,
-                                            size: 15, color: AppColors.blue),
-                                        const SizedBox(width: 4),
-                                        Flexible(
-                                          child: Text(
-                                            effectiveMatchGroupId.isNotEmpty
-                                                ? 'Created and ready to join'
-                                                : 'Preparing match group',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodyMedium
-                                                ?.copyWith(
-                                                    color: AppColors.info),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.check_circle_rounded,
+                                    size: 15, color: AppColors.green),
+                                const SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    paymentLabel,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.copyWith(
+                                          color: AppColors.green,
+                                          fontWeight:
+                                              AppFontWeights.semiBold,
                                         ),
-                                      ],
-                                    ),
-                                  ],
-                                );
-
-                                final paymentInfo = Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.check_circle_rounded,
-                                        size: 15, color: AppColors.green),
-                                    const SizedBox(width: 4),
-                                    Flexible(
-                                      child: Text(
-                                        paymentLabel,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.copyWith(
-                                              color: AppColors.green,
-                                              fontWeight:
-                                                  AppFontWeights.semiBold,
-                                            ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: compact
-                                            ? TextAlign.left
-                                            : TextAlign.right,
-                                      ),
-                                    ),
-                                  ],
-                                );
-
-                                if (compact) {
-                                  return Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      matchGroupInfo,
-                                      const SizedBox(height: 8),
-                                      paymentInfo,
-                                    ],
-                                  );
-                                }
-
-                                return Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(child: matchGroupInfo),
-                                    const SizedBox(width: 12),
-                                    Flexible(child: paymentInfo),
-                                  ],
-                                );
-                              },
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
                             if (bookingId.isNotEmpty) ...[
                               const SizedBox(height: 8),
@@ -566,10 +345,7 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
                       ),
                       const SizedBox(height: 12),
                       FutsButton(
-                        label: effectiveServerStatus == 'EXPIRED'
-                            ? 'Book Another Slot'
-                            : 'Back to Home',
-                        outlined: true,
+                        label: 'Done',
                         onPressed: () {
                           Navigator.pushNamedAndRemoveUntil(
                             context,
@@ -577,22 +353,6 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
                             (_) => false,
                           );
                         },
-                      ),
-                      const SizedBox(height: 16),
-                      Center(
-                        child: TextButton.icon(
-                          icon: Icon(Icons.calendar_today_outlined,
-                              size: 16, color: AppColors.txtDisabled),
-                          label: Text('Add to Calendar',
-                              style: Theme.of(context).textTheme.bodyMedium),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content:
-                                      Text('Calendar feature coming soon')),
-                            );
-                          },
-                        ),
                       ),
                       const SizedBox(height: 20),
                     ],

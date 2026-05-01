@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/design_system/app_spacing.dart';
 import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../shared/widgets/enhanced_empty_state.dart';
 import '../../shared/widgets/filter_chip_row.dart';
 import 'data/models/booking_models.dart';

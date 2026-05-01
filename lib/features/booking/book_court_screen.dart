@@ -1,21 +1,25 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 
 import '../../core/design_system/app_spacing.dart';
-import 'package:futsmandu_design_system/futsmandu_design_system.dart' show AppRadius;
-import 'package:futsmandu_design_system/core/theme/app_colors.dart' show AppColors;
+import 'package:futsmandu_design_system/futsmandu_design_system.dart'
+    show AppRadius;
+import 'package:futsmandu_design_system/core/theme/app_colors.dart'
+    show AppColors;
 import '../../shared/widgets/futs_button.dart';
 import '../venues/data/services/player_venues_service.dart';
 import '../friends/data/services/player_friends_service.dart';
+import 'utils/slot_time_filter.dart';
 
 // "Players I have" range (partial team booking)
 const int _kMinMyPlayers = 1;
 const int _kMaxMyPlayers = 9;
 const int _kDefaultMyPlayers = 5;
 // Total team size range
-const int _kMinTotalPlayers = 2;
 const int _kMaxTotalPlayers = 10;
 const int _kDefaultTotalPlayers = 10;
 
@@ -39,10 +43,12 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
   // Step 1: Date & Time
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDate;
+  List<Map<String, dynamic>> _rawAvailabilitySlots = const [];
   List<Map<String, dynamic>> _availabilitySlots = const [];
   bool _isLoadingSlots = false;
   String? _slotsError;
   List<Map<String, dynamic>> _selectedSlots = const [];
+  Timer? _slotFilterTimer;
 
   // Step 2: Booking Details
   bool _isFullBooking = true;
@@ -58,6 +64,18 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
   Map<String, dynamic>? _venue;
   List<Map<String, dynamic>> _courts = const [];
   bool _didInit = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleSlotFilterRefresh();
+  }
+
+  @override
+  void dispose() {
+    _slotFilterTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   void didChangeDependencies() {
@@ -108,6 +126,79 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
       '${date.month.toString().padLeft(2, '0')}-'
       '${date.day.toString().padLeft(2, '0')}';
 
+  void _scheduleSlotFilterRefresh() {
+    _slotFilterTimer?.cancel();
+    final now = DateTime.now();
+    final nextMinute = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      now.hour,
+      now.minute + 1,
+    );
+
+    _slotFilterTimer = Timer(nextMinute.difference(now), () {
+      if (!mounted) return;
+      _refreshVisibleSlotsForCurrentTime();
+      _scheduleSlotFilterRefresh();
+    });
+  }
+
+  void _refreshVisibleSlotsForCurrentTime() {
+    if (!mounted || _selectedDate == null || _rawAvailabilitySlots.isEmpty) {
+      return;
+    }
+
+    setState(_applySlotFilter);
+  }
+
+  void _applySlotFilter() {
+    final date = _selectedDate;
+    if (date == null) {
+      _availabilitySlots = const [];
+      _selectedSlots = const [];
+      return;
+    }
+
+    final selectedSlotCount = _selectedSlots.length;
+
+    _availabilitySlots = filterSlotsForSelectedDate(
+      _rawAvailabilitySlots,
+      selectedDate: date,
+    );
+
+    _selectedSlots = _selectedSlots
+        .where((selectedSlot) => _availabilitySlots.any(
+              (visibleSlot) => visibleSlot['time'] == selectedSlot['time'],
+            ))
+        .toList(growable: false);
+
+    if (selectedSlotCount != _selectedSlots.length && _currentStep > 1) {
+      _currentStep = 1;
+    }
+  }
+
+  bool _isSlotVisibleNow(Map<String, dynamic> slot) {
+    final date = _selectedDate;
+    if (date == null) return false;
+
+    return isSlotVisibleForSelectedDate(
+      slot,
+      selectedDate: date,
+    );
+  }
+
+  bool _allSelectedSlotsAreVisibleNow() {
+    return _selectedSlots.isNotEmpty && _selectedSlots.every(_isSlotVisibleNow);
+  }
+
+  String _formatSlotLabel(dynamic value) {
+    final date = _selectedDate;
+    if (date == null) return value?.toString() ?? '';
+
+    return formatSlotTimeLabel(value, selectedDate: date);
+  }
+
   Future<void> _loadSlots() async {
     final venue = _venue;
     final date = _selectedDate;
@@ -123,6 +214,8 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
       _isLoadingSlots = true;
       _slotsError = null;
       _selectedSlots = const [];
+      _rawAvailabilitySlots = const [];
+      _availabilitySlots = const [];
     });
 
     try {
@@ -133,12 +226,14 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
       );
       if (!mounted) return;
       setState(() {
-        _availabilitySlots = slots;
+        _rawAvailabilitySlots = slots;
+        _applySlotFilter();
         _isLoadingSlots = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
+        _rawAvailabilitySlots = const [];
         _availabilitySlots = const [];
         _slotsError = 'Could not load slots. Please try again.';
         _isLoadingSlots = false;
@@ -148,7 +243,9 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
 
   // Shared helper — avoids repeating the same map+where across 3 methods.
   List<int> _getSelectedIndices() => _selectedSlots
-      .map((s) => _availabilitySlots.indexWhere((sl) => sl['time'] == s['time']))
+      .map((s) => _availabilitySlots.indexWhere(
+            (sl) => sl['time'] == s['time'],
+          ))
       .where((i) => i != -1)
       .toList();
 
@@ -165,6 +262,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
 
   bool _canSelectSlot(Map<String, dynamic> slot, int index) {
     if (slot['status'] != 'AVAILABLE') return false;
+    if (!_isSlotVisibleNow(slot)) return false;
     if (_selectedSlots.isEmpty) return true;
     if (_isSlotSelected(slot)) return true;
     final indices = _getSelectedIndices();
@@ -174,6 +272,11 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
   }
 
   void _toggleSlot(Map<String, dynamic> slot, int index) {
+    if (!_isSlotSelected(slot) && !_canSelectSlot(slot, index)) {
+      setState(_applySlotFilter);
+      return;
+    }
+
     setState(() {
       if (_isSlotSelected(slot)) {
         final indices = _getSelectedIndices();
@@ -203,7 +306,9 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
 
   String _getTimeRange() {
     if (_selectedSlots.isEmpty) return '';
-    return '${_selectedSlots.first['time']} – ${_selectedSlots.last['endTime']}';
+    final start = _formatSlotLabel(_selectedSlots.first['time']);
+    final end = _formatSlotLabel(_selectedSlots.last['endTime']);
+    return '$start – $end';
   }
 
   bool _canAdvance() {
@@ -211,18 +316,25 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
       case 0:
         return _selectedCourtIdx != null;
       case 1:
-        return _selectedDate != null && _selectedSlots.isNotEmpty;
+        return _selectedDate != null && _allSelectedSlotsAreVisibleNow();
       case 2:
-        return _isFullBooking ||
-            (_myPlayers >= _kMinMyPlayers && _totalPlayers > _myPlayers);
+        return _allSelectedSlotsAreVisibleNow() &&
+            (_isFullBooking ||
+                (_myPlayers >= _kMinMyPlayers && _totalPlayers > _myPlayers));
       case 3:
-        return true;
+        return _selectedDate != null && _allSelectedSlotsAreVisibleNow();
       default:
         return false;
     }
   }
 
   void _advance() {
+    if (_currentStep > 0) {
+      final stepBeforeFilter = _currentStep;
+      setState(_applySlotFilter);
+      if (_currentStep != stepBeforeFilter || !_canAdvance()) return;
+    }
+
     if (_currentStep < 3) {
       setState(() => _currentStep++);
     } else {
@@ -248,7 +360,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
     if (venue == null ||
         courtIdx == null ||
         date == null ||
-        _selectedSlots.isEmpty) {
+        !_allSelectedSlotsAreVisibleNow()) {
       return;
     }
 
@@ -262,6 +374,8 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
         'venue': venue,
         'courtIdx': courtIdx,
         'courtId': court['id'],
+        'courtName': court['name']?.toString() ?? '',
+        'venueName': venue['name']?.toString() ?? '',
         'bookingDate': _formatApiDate(date),
         'startTime': _selectedSlots.first['time'],
         'endTime': _selectedSlots.last['endTime'],
@@ -432,8 +546,8 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
     if (_courts.isEmpty) {
       return Text(
         'No courts available for this venue.',
-        style: textTheme.bodySmall
-            ?.copyWith(color: colorScheme.onSurfaceVariant),
+        style:
+            textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
       );
     }
     return Column(
@@ -445,8 +559,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
         final type = (court['type'] ?? '').toString();
         final surface = (court['surface'] ?? '').toString();
         final price = court['pricePerHour'] ?? court['price_per_hour'];
-        final subtitle =
-            [type, surface].where((s) => s.isNotEmpty).join(' · ');
+        final subtitle = [type, surface].where((s) => s.isNotEmpty).join(' · ');
 
         return Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.xs),
@@ -497,8 +610,8 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                           const SizedBox(height: AppSpacing.xxs),
                           Text(
                             subtitle,
-                            style: textTheme.bodySmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant),
+                            style: textTheme.bodySmall
+                                ?.copyWith(color: colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ],
@@ -533,8 +646,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
     );
   }
 
-  Widget _buildSelectDateTime(
-      ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildSelectDateTime(ColorScheme colorScheme, TextTheme textTheme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -555,16 +667,14 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
             focusedDay: _focusedDay,
             selectedDayPredicate: (day) => isSameDay(_selectedDate, day),
             calendarFormat: CalendarFormat.month,
-            availableCalendarFormats: const {
-              CalendarFormat.month: 'Month'
-            },
+            availableCalendarFormats: const {CalendarFormat.month: 'Month'},
             daysOfWeekHeight: 22,
             rowHeight: 44,
             headerStyle: HeaderStyle(
               formatButtonVisible: false,
               titleCentered: true,
-              leftChevronIcon: Icon(Icons.chevron_left_rounded,
-                  color: AppColors.txtPrimary),
+              leftChevronIcon:
+                  Icon(Icons.chevron_left_rounded, color: AppColors.txtPrimary),
               rightChevronIcon: Icon(Icons.chevron_right_rounded,
                   color: AppColors.txtPrimary),
               titleTextStyle:
@@ -623,6 +733,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                 _selectedDate = DateUtils.dateOnly(selectedDay);
                 _focusedDay = DateUtils.dateOnly(focusedDay);
                 _selectedSlots = const [];
+                _rawAvailabilitySlots = const [];
                 _availabilitySlots = const [];
               });
               _loadSlots();
@@ -641,8 +752,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
               vertical: AppSpacing.xxs,
             ),
             decoration: BoxDecoration(
-              color:
-                  colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Text(
@@ -722,23 +832,18 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                 return SizedBox(
                   width: chipWidth,
                   child: GestureDetector(
-                    onTap: canSelect
-                        ? () => _toggleSlot(slot, index)
-                        : null,
+                    onTap: canSelect ? () => _toggleSlot(slot, index) : null,
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       height: 62,
                       decoration: BoxDecoration(
-                        borderRadius:
-                            BorderRadius.circular(AppRadius.md),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                         color: isSelected
                             ? colorScheme.primary
                             : isInRange
-                                ? colorScheme.primary
-                                    .withValues(alpha: 0.16)
+                                ? colorScheme.primary.withValues(alpha: 0.16)
                                 : isUnavailable
-                                    ? colorScheme.error
-                                        .withValues(alpha: 0.08)
+                                    ? colorScheme.error.withValues(alpha: 0.08)
                                     : colorScheme.surfaceContainerHigh,
                         boxShadow: isSelected
                             ? [
@@ -755,7 +860,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            slot['time'],
+                            _formatSlotLabel(slot['time']),
                             style: AppTypography.textTheme(colorScheme)
                                 .titleMedium
                                 ?.copyWith(
@@ -825,8 +930,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
     );
   }
 
-  Widget _buildBookingDetails(
-      ColorScheme colorScheme, TextTheme textTheme) {
+  Widget _buildBookingDetails(ColorScheme colorScheme, TextTheme textTheme) {
     return Column(
       children: [
         _BookingTypeCard(
@@ -906,7 +1010,8 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
         ),
         child: Row(
           children: [
-            Icon(Icons.people_outline, size: 18, color: colorScheme.onSurfaceVariant),
+            Icon(Icons.people_outline,
+                size: 18, color: colorScheme.onSurfaceVariant),
             const SizedBox(width: AppSpacing.xs),
             Expanded(
               child: Text(
@@ -937,55 +1042,63 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
             children: [
               Icon(Icons.people_outline, size: 18, color: colorScheme.primary),
               const SizedBox(width: AppSpacing.xs),
-              Text(
-                'Invite Friends',
-                style: textTheme.titleSmall?.copyWith(
-                  fontWeight: AppFontWeights.semiBold,
+              Expanded(
+                child: Text(
+                  'Invite Friends',
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: AppFontWeights.semiBold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
               ),
-              const Spacer(),
               if (_selectedFriendIds.isNotEmpty)
-                Text(
-                  '${_selectedFriendIds.length} selected',
-                  style: textTheme.labelMedium?.copyWith(
-                    color: colorScheme.primary,
+                Flexible(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs, vertical: AppSpacing.xxs),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Text(
+                      '${_selectedFriendIds.length}/$_playersNeeded',
+                      style: textTheme.labelSmall?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: AppFontWeights.semiBold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
                 ),
             ],
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Select friends to invite to your match group',
+            'Select friends to fill the remaining $_playersNeeded spots',
             style: textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          ..._friends.map((friend) {
-            final friendId = friend['id']?.toString() ?? '';
-            final friendName = friend['name']?.toString() ?? 'Unknown';
-            final avatarUrl = friend['avatarUrl']?.toString() ?? '';
-            final isSelected = _selectedFriendIds.contains(friendId);
+          Wrap(
+            spacing: AppSpacing.xs,
+            runSpacing: AppSpacing.xs,
+            children: _friends.map((friend) {
+              final friendId = friend['id']?.toString() ?? '';
+              final friendName = friend['name']?.toString() ?? 'Unknown';
+              final avatarUrl = friend['avatarUrl']?.toString() ?? '';
+              final skillLevel = friend['skillLevel']?.toString() ?? '';
+              final isSelected = _selectedFriendIds.contains(friendId);
+              final canSelect =
+                  _selectedFriendIds.length < _playersNeeded || isSelected;
 
-            if (friendId.isEmpty) return const SizedBox.shrink();
+              if (friendId.isEmpty) return const SizedBox.shrink();
 
-            return InkWell(
-              onTap: () {
-                setState(() {
-                  if (isSelected) {
-                    _selectedFriendIds.remove(friendId);
-                  } else {
-                    _selectedFriendIds.add(friendId);
-                  }
-                });
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
-                child: Row(
-                  children: [
-                    Checkbox(
-                      value: isSelected,
-                      onChanged: (_) {
+              return GestureDetector(
+                onTap: canSelect
+                    ? () {
                         setState(() {
                           if (isSelected) {
                             _selectedFriendIds.remove(friendId);
@@ -993,36 +1106,110 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                             _selectedFriendIds.add(friendId);
                           }
                         });
-                      },
+                      }
+                    : null,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xs, vertical: AppSpacing.xxs),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? colorScheme.primary.withValues(alpha: 0.12)
+                        : colorScheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      width: isSelected ? 1.5 : 1,
                     ),
-                    CircleAvatar(
-                      radius: 16,
-                      backgroundColor: colorScheme.surfaceContainerHigh,
-                      backgroundImage: avatarUrl.isNotEmpty
-                          ? NetworkImage(avatarUrl)
-                          : null,
-                      child: avatarUrl.isEmpty
-                          ? Text(
-                              friendName.isNotEmpty
-                                  ? friendName.substring(0, 1).toUpperCase()
-                                  : '?',
-                              style: textTheme.labelSmall,
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Expanded(
-                      child: Text(
-                        friendName,
-                        style: textTheme.bodyMedium,
-                        overflow: TextOverflow.ellipsis,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircleAvatar(
+                        radius: 14,
+                        backgroundColor:
+                            colorScheme.primary.withValues(alpha: 0.1),
+                        backgroundImage: avatarUrl.isNotEmpty
+                            ? NetworkImage(avatarUrl)
+                            : null,
+                        child: avatarUrl.isEmpty
+                            ? Text(
+                                friendName.isNotEmpty
+                                    ? friendName.substring(0, 1).toUpperCase()
+                                    : '?',
+                                style: textTheme.labelSmall?.copyWith(
+                                  fontWeight: AppFontWeights.semiBold,
+                                ),
+                              )
+                            : null,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: AppSpacing.xxs),
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              friendName,
+                              style: textTheme.labelMedium?.copyWith(
+                                fontWeight: AppFontWeights.semiBold,
+                                color: isSelected
+                                    ? colorScheme.primary
+                                    : colorScheme.onSurface,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                            if (skillLevel.isNotEmpty)
+                              Text(
+                                skillLevel,
+                                style: textTheme.labelSmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                          ],
+                        ),
+                      ),
+                      if (isSelected) ...[
+                        const SizedBox(width: AppSpacing.xxs),
+                        Icon(Icons.check_circle_rounded,
+                            color: colorScheme.primary, size: 16),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline_rounded,
+                    size: 16, color: colorScheme.primary),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: Text(
+                    '${_playersNeeded - _selectedFriendIds.length} more random players can join if available',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: colorScheme.primary,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1037,8 +1224,8 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
         _selectedSlots.isEmpty) {
       return Text(
         'Incomplete booking details.',
-        style: textTheme.bodySmall
-            ?.copyWith(color: colorScheme.onSurfaceVariant),
+        style:
+            textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
       );
     }
 
@@ -1413,73 +1600,6 @@ class _CounterRow extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xxs),
                 Text(
                   subtitle,
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: colorScheme.onSurfaceVariant),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          _PlayerCountStepper(
-            value: value,
-            min: min,
-            max: max,
-            onChanged: onChanged,
-            colorScheme: colorScheme,
-            textTheme: textTheme,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Max players picker (Step 2 — partial team)
-// ---------------------------------------------------------------------------
-
-class _MaxPlayersPicker extends StatelessWidget {
-  final int value;
-  final int min;
-  final int max;
-  final ValueChanged<int> onChanged;
-  final ColorScheme colorScheme;
-  final TextTheme textTheme;
-
-  const _MaxPlayersPicker({
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.onChanged,
-    required this.colorScheme,
-    required this.textTheme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Maximum players',
-                  style: textTheme.bodyMedium
-                      ?.copyWith(fontWeight: AppFontWeights.semiBold),
-                ),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  'How many players can join? ($min–$max)',
                   style: textTheme.bodySmall
                       ?.copyWith(color: colorScheme.onSurfaceVariant),
                 ),

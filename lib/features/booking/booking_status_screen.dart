@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/design_system/app_spacing.dart';
 import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import 'data/services/player_booking_service.dart';
 import 'presentation/providers/booking_repository_provider.dart';
 
@@ -46,6 +46,10 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen>
     final maxPlayers = rawMaxPlayers is int
       ? rawMaxPlayers
       : int.tryParse(rawMaxPlayers?.toString() ?? '');
+    final rawMyPlayers = args?['myPlayers'];
+    final myPlayers = rawMyPlayers is int
+      ? rawMyPlayers
+      : int.tryParse(rawMyPlayers?.toString() ?? '');
     final friendIds = (args?['friendIds'] as List?)?.whereType<String>().toList();
 
     if (courtId.isEmpty || bookingDate.isEmpty || startTime.isEmpty) {
@@ -64,12 +68,21 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen>
     });
 
     try {
+      final playersNeeded = (maxPlayers != null && myPlayers != null)
+          ? maxPlayers - myPlayers
+          : null;
+
+      // Backend expects: currentPlayerCount = 1 (booking admin) + auto-added friends
+      final currentPlayerCount = 1 + (friendIds?.length ?? 0);
+
       final bookingRecord = await ref.read(bookingRepositoryProvider).createBooking(
             courtId: courtId,
             date: bookingDate,
             startTime: startTime,
             bookingType: bookingType,
             maxPlayers: maxPlayers,
+            currentPlayerCount: currentPlayerCount,
+            playersNeeded: playersNeeded,
             friendIds: friendIds,
           );
 
@@ -145,7 +158,7 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen>
                             );
                           },
                         ),
-                        Center(
+                        const Center(
                           child: Icon(Icons.check_circle_outline,
                               size: 48, color: AppColors.green),
                         ),
@@ -154,11 +167,11 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen>
                   ),
                   const SizedBox(height: 32),
                   Text('Finalizing your booking...',
-                      style: AppText.h1, textAlign: TextAlign.center),
+                      style: AppTypography.heading(context, Theme.of(context).colorScheme), textAlign: TextAlign.center),
                   const SizedBox(height: 8),
                   Text(
                     'Just a moment while we process your request.',
-                    style: AppText.bodySm,
+                    style: AppTypography.caption(context, Theme.of(context).colorScheme),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
@@ -170,11 +183,11 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.error_outline, size: 48, color: AppColors.red),
+                    const Icon(Icons.error_outline, size: 48, color: AppColors.red),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
                       _errorMessage ?? 'Unable to create booking.',
-                      style: AppText.body,
+                      style: AppTypography.body(context, Theme.of(context).colorScheme),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: AppSpacing.md),
@@ -243,7 +256,7 @@ class _PulsingDotsState extends State<_PulsingDots>
             width: 8,
             height: 8,
             margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.green,
             ),
