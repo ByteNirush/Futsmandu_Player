@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/design_system/app_radius.dart';
 import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../shared/widgets/futs_card.dart';
 import 'data/models/player_friends_models.dart';
 import 'data/services/player_friends_service.dart';
@@ -212,7 +212,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
     return Scaffold(
       backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        title: Text('Friends', style: AppText.h2),
+        title: Text('Friends', style: AppTypography.subHeading(context, colorScheme)),
         backgroundColor: colorScheme.surface,
         elevation: 0,
         actions: [
@@ -244,7 +244,10 @@ class _FriendsScreenState extends State<FriendsScreen> {
               ),
               child: Text(
                 _error!,
-                style: AppText.bodySm.copyWith(color: colorScheme.error),
+                style: AppTypography.body(context, colorScheme).copyWith(
+                fontSize: 14 * AppTypographyScale.fromContext(context),
+                color: colorScheme.error,
+              ),
               ),
             ),
           // ROW TAB SELECTOR
@@ -275,7 +278,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                         children: [
                           Text(
                             label,
-                            style: AppText.h3.copyWith(
+                            style: AppTypography.textTheme(colorScheme).titleSmall?.copyWith(
                               fontSize: 14,
                               color: isSelected
                                   ? colorScheme.primary
@@ -315,10 +318,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       padding: const EdgeInsets.all(AppSpacing.xs2),
                       child: TextField(
                         onChanged: (v) => setState(() => _friendSearch = v),
-                        style: AppText.bodySm,
+                        style: AppTypography.body(context, colorScheme).copyWith(
+                          fontSize: 14 * AppTypographyScale.fromContext(context),
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Search friends…',
-                          hintStyle: AppText.bodySm.copyWith(
+                          hintStyle: AppTypography.body(context, colorScheme).copyWith(
+                            fontSize: 14 * AppTypographyScale.fromContext(context),
                             color: colorScheme.onSurfaceVariant,
                           ),
                           prefixIcon: Icon(
@@ -400,11 +406,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(r['name'] ?? '',
-                                      style: AppText.body.copyWith(
-                                          fontWeight: AppTextStyles.semiBold)),
+                                      style: AppTypography.body(context, colorScheme).copyWith(
+                                          fontWeight: AppFontWeights.semiBold)),
                                   Text(
                                     '${r['mutualFriends'] ?? 0} mutual friend${(r['mutualFriends'] ?? 0) != 1 ? 's' : ''}',
-                                    style: AppText.bodySm,
+                                    style: AppTypography.body(context, colorScheme).copyWith(
+                                      fontSize: 14 * AppTypographyScale.fromContext(context),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -449,10 +457,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       padding: const EdgeInsets.all(AppSpacing.xs2),
                       child: TextField(
                         onChanged: _onSearchPlayersChanged,
-                        style: AppText.bodySm,
+                        style: AppTypography.body(context, colorScheme).copyWith(
+                          fontSize: 14 * AppTypographyScale.fromContext(context),
+                        ),
                         decoration: InputDecoration(
                           hintText: 'Search by name or phone…',
-                          hintStyle: AppText.bodySm.copyWith(
+                          hintStyle: AppTypography.body(context, colorScheme).copyWith(
+                            fontSize: 14 * AppTypographyScale.fromContext(context),
                             color: colorScheme.onSurfaceVariant,
                           ),
                           prefixIcon: Icon(
@@ -509,8 +520,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                           children: [
                                             Text(
                                               p.name,
-                                              style: AppText.body.copyWith(
-                                                  fontWeight: AppTextStyles.semiBold),
+                                              style: AppTypography.body(context, colorScheme).copyWith(
+                                                  fontWeight: AppFontWeights.semiBold),
                                             ),
                                             const SizedBox(height: 2),
                                             Row(
@@ -520,7 +531,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                                 const SizedBox(width: 8),
                                                 Text(
                                                     '${p.matchesPlayed} matches',
-                                                    style: AppText.label),
+                                                    style: AppTypography.textTheme(colorScheme).labelMedium),
                                               ],
                                             ),
                                           ],
@@ -620,14 +631,14 @@ class _FriendTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(f['name'],
-                    style: AppText.body.copyWith(fontWeight: AppTextStyles.semiBold)),
+                    style: AppTypography.body(context, colorScheme).copyWith(fontWeight: AppFontWeights.semiBold)),
                 const SizedBox(height: 2),
                 Row(
                   children: [
                     _SkillBadge(skill: f['skillLevel'] ?? 'Intermediate'),
                     const SizedBox(width: 8),
                     Text('${f['matchesPlayed'] ?? 0} matches',
-                        style: AppText.label),
+                    style: AppTypography.textTheme(colorScheme).labelMedium),
                   ],
                 ),
               ],
@@ -675,7 +686,7 @@ class _FriendTile extends StatelessWidget {
                   );
                 },
                 child: Text('Invite',
-                    style: AppText.label.copyWith(color: colorScheme.primary)),
+                    style: AppTypography.textTheme(colorScheme).labelMedium?.copyWith(color: colorScheme.primary)),
               ),
             ],
           ),
