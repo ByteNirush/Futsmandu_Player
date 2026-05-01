@@ -10,7 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/config/esewa_payment_config.dart';
 import '../../core/design_system/app_spacing.dart';
 import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';
 import 'data/services/player_payments_service.dart';
@@ -528,11 +528,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                 color: AppColors.blue.withValues(alpha: 0.07),
                 borderRadius: BorderRadius.circular(12),
                 border:
-                    Border(left: BorderSide(color: AppColors.blue, width: 3)),
+                    const Border(left: BorderSide(color: AppColors.blue, width: 3)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, size: 16, color: AppColors.blue),
+                  const Icon(Icons.info_outline, size: 16, color: AppColors.blue),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
