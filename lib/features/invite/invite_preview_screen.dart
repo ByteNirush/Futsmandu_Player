@@ -6,7 +6,7 @@ import '../../core/design_system/app_spacing.dart';
 import '../../core/painters/field_painter.dart';
 import '../../core/services/player_auth_storage_service.dart';
 import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';
 import '../../shared/widgets/status_badge.dart';
@@ -152,8 +152,16 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
       );
     } on MatchApiException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+
+      // Handle 409 Conflict - user already joined or has pending request
+      if (e.statusCode == 409) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You have already joined this match.')),
+        );
+      } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(e.message)));
+      }
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -193,7 +201,7 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                 Text(
                   _errorMessage ?? 'Could not load invite preview.',
                   textAlign: TextAlign.center,
-                  style: AppText.body.copyWith(color: AppColors.txtDisabled),
+                  style: AppTypography.body(context, Theme.of(context).colorScheme).copyWith(color: AppColors.txtDisabled),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 ElevatedButton(
@@ -254,7 +262,7 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                   Positioned(
                     top: MediaQuery.of(context).padding.top + 16,
                     right: 16,
-                    child: StatusBadge(
+                    child: const StatusBadge(
                       label: 'Preview',
                       color: AppColors.amber,
                     ),
@@ -263,10 +271,10 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text("You're Invited!", style: AppText.bodySm),
+                        Text("You're Invited!", style: AppTypography.caption(context, Theme.of(context).colorScheme)),
                         const SizedBox(height: 6),
                         Text('Join the Match',
-                            style: AppText.h1, textAlign: TextAlign.center),
+                            style: AppTypography.heading(context, Theme.of(context).colorScheme), textAlign: TextAlign.center),
                       ],
                     ),
                   ),
@@ -288,7 +296,7 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(invite['venueName']?.toString() ?? '',
-                                      style: AppText.h2),
+                                      style: AppTypography.subHeading(context, Theme.of(context).colorScheme)),
                                   const SizedBox(height: 4),
                                   Row(
                                     crossAxisAlignment:
@@ -302,7 +310,7 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                                         child: Text(
                                           invite['venueAddress']?.toString() ??
                                               '',
-                                          style: AppText.bodySm,
+                                          style: AppTypography.caption(context, Theme.of(context).colorScheme),
                                         ),
                                       ),
                                     ],
@@ -359,11 +367,10 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      Text("Who's Playing", style: AppText.h3),
+                      Text("Who's Playing", style: AppTypography.textTheme(Theme.of(context).colorScheme).titleMedium),
                       const Spacer(),
                       Text('$spotsLeft spots left',
-                          style:
-                              AppText.bodySm.copyWith(color: AppColors.amber)),
+                          style: AppTypography.caption(context, Theme.of(context).colorScheme).copyWith(color: AppColors.amber)),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -376,12 +383,12 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.group_outlined, color: AppColors.green),
+                        const Icon(Icons.group_outlined, color: AppColors.green),
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(
                           child: Text(
                             'Confirm your spot and join the lineup.',
-                            style: AppText.bodySm,
+                            style: AppTypography.caption(context, Theme.of(context).colorScheme),
                           ),
                         ),
                       ],
@@ -463,7 +470,7 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                         Center(
                           child: Text(
                             'Preview only - sign in to join',
-                            style: AppText.label,
+                            style: AppTypography.textTheme(Theme.of(context).colorScheme).labelMedium,
                           ),
                         ),
                       ],
@@ -487,12 +494,13 @@ class _GridItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppText.label),
+        Text(label, style: AppTypography.textTheme(scheme).labelMedium),
         const SizedBox(height: 2),
-        Text(value, style: AppText.h3.copyWith(fontSize: 16)),
+        Text(value, style: AppTypography.textTheme(scheme).titleSmall?.copyWith(fontSize: 16)),
       ],
     );
   }
@@ -529,7 +537,7 @@ class _PositionChip extends StatelessWidget {
         child: Text(
           label,
           textAlign: TextAlign.center,
-          style: AppText.label.copyWith(
+          style: AppTypography.textTheme(Theme.of(context).colorScheme).labelMedium?.copyWith(
             color: isSelected ? AppColors.bgPrimary : AppColors.txtDisabled,
           ),
         ),
