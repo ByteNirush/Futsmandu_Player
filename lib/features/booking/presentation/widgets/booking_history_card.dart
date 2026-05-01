@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/design_system/app_spacing.dart';
 import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import '../../../../core/theme/app_text.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../../../shared/widgets/futs_card.dart';
 import '../../../../shared/widgets/status_badge.dart';
 import '../../data/models/booking_models.dart';
@@ -69,7 +69,7 @@ class BookingHistoryCard extends StatelessWidget {
                     ),
                     if (booking.isPartialTeam) ...[
                       const SizedBox(height: 4),
-                      StatusBadge(
+                      const StatusBadge(
                         label: 'Partial Team',
                         color: AppColors.blue,
                       ),
@@ -91,7 +91,7 @@ class BookingHistoryCard extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.group_add_rounded,
+                    const Icon(Icons.group_add_rounded,
                         size: 14, color: AppColors.green),
                     const SizedBox(width: 6),
                     Text(
@@ -125,7 +125,7 @@ class BookingHistoryCard extends StatelessWidget {
                 Text(
                   amount,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: AppTextStyles.semiBold,
+                    fontWeight: AppFontWeights.semiBold,
                     color: AppColors.txtPrimary,
                   ),
                 ),
@@ -135,7 +135,7 @@ class BookingHistoryCard extends StatelessWidget {
                     height: 34,
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppColors.blue),
+                        side: const BorderSide(color: AppColors.blue),
                         foregroundColor: AppColors.blue,
                         padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm),
@@ -154,7 +154,7 @@ class BookingHistoryCard extends StatelessWidget {
                     height: 34,
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppColors.green),
+                        side: const BorderSide(color: AppColors.green),
                         foregroundColor: AppColors.green,
                         padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm),
@@ -173,7 +173,7 @@ class BookingHistoryCard extends StatelessWidget {
                     height: 34,
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: AppColors.red),
+                        side: const BorderSide(color: AppColors.red),
                         foregroundColor: AppColors.red,
                         padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.sm),
