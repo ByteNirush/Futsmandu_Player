@@ -234,28 +234,6 @@ class PlayerMatchService {
     }
   }
 
-  Future<Map<String, dynamic>> updateTeams({
-    required String matchId,
-    required List<String> teamA,
-    required List<String> teamB,
-  }) async {
-    try {
-      final response = await _client.put(
-        ApiConfig.updateMatchTeamsEndpoint(matchId),
-        data: {
-          'A': teamA,
-          'B': teamB,
-        },
-      );
-      final data = _unwrap(response.data);
-      return data is Map
-          ? data.cast<String, dynamic>()
-          : const <String, dynamic>{};
-    } on DioException catch (error) {
-      throw _toMatchApiExceptionFromDio(error);
-    }
-  }
-
   Future<Map<String, dynamic>> recordResult({
     required String matchId,
     required String winner,
@@ -317,7 +295,6 @@ class PlayerMatchService {
         '${ApiConfig.matchesEndpoint}/join',
         data: {
           'matchGroupId': matchId,
-          if (position != null && position.isNotEmpty) 'position': position,
         },
       );
 
@@ -520,6 +497,9 @@ class PlayerMatchService {
       'team': _teamLabel(raw['team_side']),
       'status': _string(raw['status']),
       'isAdmin': raw['role'] == 'admin',
+      'joinedAt': _string(raw['created_at']).isNotEmpty
+          ? _string(raw['created_at'])
+          : _string(raw['joined_at']),
     };
   }
 

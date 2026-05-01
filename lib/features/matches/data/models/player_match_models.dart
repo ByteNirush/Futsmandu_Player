@@ -9,6 +9,7 @@ class MatchMember {
     required this.team,
     required this.status,
     required this.isAdmin,
+    this.joinedAt,
   });
 
   final String id;
@@ -20,6 +21,7 @@ class MatchMember {
   final String team;
   final String status;
   final bool isAdmin;
+  final String? joinedAt;
 
   factory MatchMember.fromMap(Map<String, dynamic> raw) {
     final profileImageUrl =
@@ -35,6 +37,7 @@ class MatchMember {
       team: _string(raw['team']).isNotEmpty ? _string(raw['team']) : '-',
       status: _string(raw['status']),
       isAdmin: raw['isAdmin'] == true || role == 'admin',
+      joinedAt: _string(raw['joinedAt']).isNotEmpty ? _string(raw['joinedAt']) : null,
     );
   }
 
@@ -49,6 +52,7 @@ class MatchMember {
       'team': team,
       'status': status,
       'isAdmin': isAdmin,
+      'joinedAt': joinedAt,
     };
   }
 }
