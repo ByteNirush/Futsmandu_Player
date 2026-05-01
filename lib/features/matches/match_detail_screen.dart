@@ -1,17 +1,13 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../core/design_system/app_spacing.dart';
 import '../../core/painters/field_painter.dart';
 import '../../core/services/player_auth_storage_service.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../shared/widgets/futs_button.dart';
-import '../../shared/widgets/futs_card.dart';
 import '../../shared/widgets/status_badge.dart';
 import 'data/services/player_match_service.dart';
+import '../friends/data/services/player_friends_service.dart';
 
 class MatchDetailScreen extends StatefulWidget {
   const MatchDetailScreen({super.key});
@@ -32,8 +28,6 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
   String? _currentUserId;
   Map<String, dynamic>? _match;
   bool _initialized = false;
-  String? _selectedPosition = 'midfielder';
-  String _selectedWinner = 'A';
 
   @override
   void didChangeDependencies() {
@@ -133,6 +127,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
         'team': member['team']?.toString() ?? '—',
         'status': member['status']?.toString() ?? 'confirmed',
         'isAdmin': member['isAdmin'] == true,
+        'joinedAt': member['joinedAt']?.toString() ?? member['created_at']?.toString() ?? '',
       };
     }).toList(growable: false);
     final confirmedCount = members
@@ -145,9 +140,10 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     final slotsAvailable = raw['slotsAvailable'] is num
       ? (raw['slotsAvailable'] as num).toInt()
       : spotsLeft;
-    final playersNeeded = raw['playersNeeded'] is num
-      ? (raw['playersNeeded'] as num).toInt()
-      : math.max(0, maxPlayers - confirmedCount);
+    final rawPlayersNeeded = raw['playersNeeded'];
+    final playersNeeded = rawPlayersNeeded is num
+      ? rawPlayersNeeded.toInt()
+      : (maxPlayers > confirmedCount ? maxPlayers - confirmedCount : 0);
     final costSplitMode = raw['costSplitMode']?.toString() ?? '';
     final description = raw['description']?.toString() ?? '';
     final fillStatus = raw['fillStatus']?.toString() ?? '';
@@ -218,13 +214,20 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     return members.any((member) => member['id']?.toString() == _currentUserId);
   }
 
+  bool get _hasPendingJoinRequest {
+    final pending = _pendingMembers;
+    if (_currentUserId == null) return false;
+    return pending.any((member) => member['id']?.toString() == _currentUserId);
+  }
+
   bool get _isJoinable {
     final isOpen = _match?['isOpen'] == true;
     final isPartialTeamBooking = _match?['isPartialTeamBooking'] == true;
     final rawSlots = _match?['slotsAvailable'];
     final slotsAvailable =
         (rawSlots is num ? rawSlots : 0).toInt();
-    return (isOpen || isPartialTeamBooking) && slotsAvailable > 0;
+    final alreadyJoined = _isCurrentUserMember || _hasPendingJoinRequest;
+    return (isOpen || isPartialTeamBooking) && slotsAvailable > 0 && !alreadyJoined;
   }
 
   String get _matchId => _match?['id']?.toString() ?? '';
@@ -235,23 +238,11 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
           .map((item) => item.cast<String, dynamic>())
           .toList(growable: false);
 
-  List<Map<String, dynamic>> get _confirmedMembers =>
-      (_match?['confirmedMembers'] as List? ?? const [])
-          .whereType<Map>()
-          .map((item) => item.cast<String, dynamic>())
-          .toList(growable: false);
-
   List<Map<String, dynamic>> get _pendingMembers =>
       (_match?['pendingMembers'] as List? ?? const [])
           .whereType<Map>()
           .map((item) => item.cast<String, dynamic>())
           .toList(growable: false);
-
-  List<Map<String, dynamic>> _teamMembers(String team) {
-    return _confirmedMembers
-        .where((member) => member['team']?.toString() == team)
-        .toList(growable: false);
-  }
 
   String _displayTimeRange() {
     final start = _match?['time']?.toString() ?? '';
@@ -268,50 +259,47 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
 
     if (_matchId.isEmpty) return;
 
+    // Prevent duplicate join requests - check if user is already a member or has pending request
+    if (_isCurrentUserMember || _hasPendingJoinRequest) {
+      if (!mounted) return;
+      final message = _hasPendingJoinRequest
+          ? 'You already have a pending join request.'
+          : 'You have already joined this match.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+      return;
+    }
+
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _isSubmitting = true);
     try {
-      await _matchService.requestToJoinMatch(
+      await _matchService.joinMatch(
         matchId: _matchId,
-        position: _selectedPosition,
       );
       if (!mounted) return;
+
+      // Refresh match data to update slots and show user as joined
       await _loadMatch(refresh: true);
+
       messenger.showSnackBar(
-        const SnackBar(content: Text('Requested to join match')),
+        const SnackBar(content: Text('Successfully joined the match!')),
       );
     } on MatchApiException catch (e) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+
+      // Handle 409 Conflict - user already joined or has pending request
+      if (e.statusCode == 409) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('You have already joined this match.')),
+        );
+      } else {
+        messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      }
     } catch (_) {
       if (!mounted) return;
       messenger.showSnackBar(
         const SnackBar(content: Text('Could not join match right now')),
-      );
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-  }
-
-  Future<void> _leaveMatch() async {
-    if (_matchId.isEmpty) return;
-
-    final messenger = ScaffoldMessenger.of(context);
-    setState(() => _isSubmitting = true);
-    try {
-      await _matchService.leaveMatch(_matchId);
-      if (!mounted) return;
-      await _loadMatch(refresh: true);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Left match')),
-      );
-    } on MatchApiException catch (e) {
-      if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
-    } catch (_) {
-      if (!mounted) return;
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Could not leave match right now')),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -400,57 +388,129 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     }
   }
 
-  Future<void> _autoBalanceTeams() async {
-    if (_matchId.isEmpty) return;
+  Future<void> _showAddFriendBottomSheet() async {
+    if (!mounted) return;
+    final friends = await PlayerFriendsService.instance.getFriends();
 
-    final confirmed = List<Map<String, dynamic>>.from(_confirmedMembers);
-    if (confirmed.isEmpty) return;
+    if (!mounted) return;
 
-    final teamA = <String>[];
-    final teamB = <String>[];
-    for (var i = 0; i < confirmed.length; i++) {
-      final memberId = confirmed[i]['id']?.toString();
-      if (memberId == null || memberId.isEmpty) continue;
-      if (i.isEven) {
-        teamA.add(memberId);
-      } else {
-        teamB.add(memberId);
-      }
-    }
+    final existingMemberIds = _members
+        .map((m) => m['id']?.toString())
+        .where((id) => id != null && id.isNotEmpty)
+        .toSet();
 
-    final messenger = ScaffoldMessenger.of(context);
-    setState(() => _isSubmitting = true);
-    try {
-      await _matchService.updateTeams(
-          matchId: _matchId, teamA: teamA, teamB: teamB);
-      if (!mounted) return;
-      await _loadMatch(refresh: true);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Teams updated')),
-      );
-    } on MatchApiException catch (e) {
-      if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (bottomContext) => Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(bottomContext).size.height * 0.7),
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          children: [
+            Text(
+              'Add Friend to Match',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            if (friends.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: Text(
+                  'No friends available',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.txtDisabled),
+                  textAlign: TextAlign.center,
+                ),
+              )
+            else
+              ...friends.map((friend) {
+                final friendId = friend['id']?.toString() ?? '';
+                final friendName = friend['name']?.toString() ?? 'Unknown';
+                final avatarUrl = friend['avatarUrl']?.toString() ?? '';
+                final skillLevel = friend['skillLevel']?.toString() ?? '';
+                final isAlreadyInMatch = existingMemberIds.contains(friendId);
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: Material(
+                    child: InkWell(
+                      onTap: friendId.isEmpty || isAlreadyInMatch
+                          ? null
+                          : () async {
+                              Navigator.pop(bottomContext);
+                              await _addFriendToMatch(friendId, friendName);
+                            },
+                      child: Container(
+                        padding: const EdgeInsets.all(AppSpacing.sm),
+                        decoration: BoxDecoration(
+                          color: AppColors.bgPrimary,
+                          border: Border.all(color: AppColors.txtDisabled.withValues(alpha: 0.2)),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 20,
+                              backgroundColor: AppColors.bgPrimary,
+                              backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+                              child: avatarUrl.isEmpty
+                                  ? Text(
+                                      friendName.isNotEmpty ? friendName.substring(0, 1).toUpperCase() : '?',
+                                      style: Theme.of(context).textTheme.labelMedium,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(friendName, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: AppFontWeights.semiBold)),
+                                  if (skillLevel.isNotEmpty)
+                                    Text(skillLevel, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.txtDisabled)),
+                                ],
+                              ),
+                            ),
+                            if (isAlreadyInMatch)
+                              Text(
+                                'Added',
+                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: AppColors.txtDisabled,
+                                  fontWeight: AppFontWeights.medium,
+                                ),
+                              )
+                            else
+                              const Icon(Icons.add_circle_outline, color: AppColors.green, size: 24),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+          ],
+        ),
+      ),
+    );
   }
 
-  Future<void> _recordResult() async {
+  Future<void> _addFriendToMatch(String friendId, String friendName) async {
     if (_matchId.isEmpty) return;
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _isSubmitting = true);
     try {
-      await _matchService.recordResult(
-          matchId: _matchId, winner: _selectedWinner);
+      await _matchService.addFriendToMatch(matchId: _matchId, friendId: friendId);
       if (!mounted) return;
       await _loadMatch(refresh: true);
       messenger.showSnackBar(
-        const SnackBar(content: Text('Result recorded')),
+        SnackBar(content: Text('Added $friendName to match')),
       );
     } on MatchApiException catch (e) {
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Could not add friend to match')),
+      );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -461,13 +521,393 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     Navigator.of(context).pushNamed('/login');
   }
 
-  Color _skillColor(String skillLevel) {
-    return switch (skillLevel) {
-      'Advanced' => AppColors.red,
-      'Intermediate' => AppColors.amber,
-      'Beginner' => AppColors.green,
-      _ => AppColors.txtDisabled,
+  Color _skillColor(String? skillLevel) {
+    return switch (skillLevel?.toLowerCase().trim()) {
+      'advanced' => AppColors.red,
+      'intermediate' => AppColors.amber,
+      'beginner' => AppColors.green,
+      _ => AppColors.blue,
     };
+  }
+
+  Widget _buildSlotVisualization(int confirmedCount, int maxPlayers, int slotsAvailable, BuildContext context) {
+    final confirmedMembers = _members.where((m) => m['status'] == 'confirmed').toList();
+    final emptySlots = maxPlayers - confirmedCount;
+    final progress = maxPlayers > 0 ? confirmedCount / maxPlayers : 0.0;
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.people_alt_outlined, size: 18, color: AppColors.textSecondary()),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                'Player Slots',
+                style: AppTypography.textTheme(Theme.of(context).colorScheme).titleSmall?.copyWith(
+                  fontWeight: AppFontWeights.semiBold,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: progress >= 1.0
+                    ? AppColors.green.withValues(alpha: 0.15)
+                    : AppColors.amber.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Text(
+                  '$confirmedCount/$maxPlayers',
+                  style: AppTypography.textTheme(Theme.of(context).colorScheme).labelSmall?.copyWith(
+                    color: progress >= 1.0 ? AppColors.green : AppColors.amber,
+                    fontWeight: AppFontWeights.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.xxs),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              backgroundColor: AppColors.bgElevated,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                progress >= 1.0 ? AppColors.green : AppColors.blue,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          // Player slots grid
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 5,
+              childAspectRatio: 1.0,
+              crossAxisSpacing: AppSpacing.xs,
+              mainAxisSpacing: AppSpacing.xs,
+            ),
+            itemCount: maxPlayers,
+            itemBuilder: (context, index) {
+              if (index < confirmedMembers.length) {
+                final member = confirmedMembers[index];
+                return _buildPlayerSlot(member, context);
+              } else {
+                return _buildEmptySlot(index - confirmedMembers.length < slotsAvailable, context);
+              }
+            },
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          // Player names below grid
+          if (confirmedMembers.isNotEmpty)
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.xs,
+              children: confirmedMembers.map((member) {
+                final name = member['name']?.toString() ?? 'Unknown';
+                final joinedAt = member['joinedAt']?.toString() ?? '';
+                final bookingTime = _formatBookingTime(joinedAt);
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.person_rounded, size: 12, color: AppColors.green),
+                    const SizedBox(width: 4),
+                    Text(
+                      name,
+                      style: AppTypography.textTheme(Theme.of(context).colorScheme).labelSmall?.copyWith(
+                        fontWeight: AppFontWeights.semiBold,
+                      ),
+                    ),
+                    if (bookingTime.isNotEmpty) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        '($bookingTime)',
+                        style: AppTypography.textTheme(Theme.of(context).colorScheme).labelSmall?.copyWith(
+                          color: AppColors.textSecondary(),
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              }).toList(),
+            ),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '$confirmedCount confirmed • $emptySlots open',
+                style: AppTypography.textTheme(Theme.of(context).colorScheme).bodySmall?.copyWith(
+                  color: AppColors.textSecondary(),
+                ),
+              ),
+              if (slotsAvailable > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.green.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.login_rounded, size: 12, color: AppColors.green),
+                      const SizedBox(width: 4),
+                      Text(
+                        '$slotsAvailable spot${slotsAvailable == 1 ? '' : 's'} left',
+                        style: AppTypography.textTheme(Theme.of(context).colorScheme).labelSmall?.copyWith(
+                          color: AppColors.green,
+                          fontWeight: AppFontWeights.semiBold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPlayerSlot(Map<String, dynamic> member, BuildContext context) {
+    final name = member['name']?.toString() ?? 'Unknown';
+    final avatarUrl = member['avatarUrl']?.toString() ?? '';
+    final initials = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?';
+    final isAdmin = member['isAdmin'] == true;
+    final skillLevel = member['skillLevel']?.toString() ?? '';
+
+    return Stack(
+      children: [
+        CircleAvatar(
+          backgroundColor: AppColors.green.withValues(alpha: 0.12),
+          backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+          child: avatarUrl.isEmpty
+              ? Text(
+                  initials,
+                  style: AppTypography.textTheme(Theme.of(context).colorScheme).titleSmall?.copyWith(
+                    color: AppColors.green,
+                    fontWeight: AppFontWeights.bold,
+                  ),
+                )
+              : null,
+        ),
+        if (isAdmin)
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: AppColors.amber,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.bgPrimary, width: 2),
+              ),
+              child: Icon(Icons.star, size: 8, color: AppColors.bgPrimary),
+            ),
+          ),
+        if (skillLevel.isNotEmpty && skillLevel != 'All')
+          Positioned(
+            left: 0,
+            bottom: 0,
+            child: Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                color: _skillColor(skillLevel),
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.bgPrimary, width: 2),
+              ),
+              child: Icon(
+                skillLevel == 'Advanced' ? Icons.bolt : Icons.trending_up,
+                size: 8,
+                color: AppColors.bgPrimary,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildEmptySlot(bool isAvailable, BuildContext context) {
+    return CircleAvatar(
+      backgroundColor: isAvailable ? AppColors.bgElevated : AppColors.bgElevated.withValues(alpha: 0.3),
+      child: Icon(
+        isAvailable ? Icons.add_rounded : Icons.lock_outline,
+        size: 18,
+        color: isAvailable ? AppColors.textSecondary() : AppColors.textDisabled(),
+      ),
+    );
+  }
+
+  String _formatBookingTime(String? joinedAt) {
+    if (joinedAt == null || joinedAt.isEmpty) return '';
+    try {
+      final dateTime = DateTime.parse(joinedAt);
+      final now = DateTime.now();
+      final difference = now.difference(dateTime);
+      
+      if (difference.inMinutes < 1) {
+        return 'Just now';
+      } else if (difference.inMinutes < 60) {
+        return '${difference.inMinutes}m ago';
+      } else if (difference.inHours < 24) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inDays < 7) {
+        return '${difference.inDays}d ago';
+      } else {
+        return '${dateTime.day}/${dateTime.month}';
+      }
+    } catch (e) {
+      return '';
+    }
+  }
+
+  Widget _buildConfirmedPlayersList(List<Map<String, dynamic>> members, BuildContext context) {
+    final confirmed = members.where((m) => m['status'] == 'confirmed').toList();
+    if (confirmed.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.groups_outlined, size: 20, color: AppColors.textSecondary()),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              'Confirmed Players',
+              style: AppTypography.textTheme(Theme.of(context).colorScheme).titleMedium?.copyWith(
+                fontWeight: AppFontWeights.bold,
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '${confirmed.length} player${confirmed.length == 1 ? '' : 's'}',
+              style: AppTypography.textTheme(Theme.of(context).colorScheme).bodySmall?.copyWith(
+                color: AppColors.textSecondary(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        AppCard(
+          child: Column(
+            children: confirmed.asMap().entries.map((entry) {
+              final index = entry.key;
+              final member = entry.value;
+              final isLast = index == confirmed.length - 1;
+              final position = member['position']?.toString() ?? '—';
+              final joinedAt = member['joinedAt']?.toString() ?? '';
+              final bookingTime = _formatBookingTime(joinedAt);
+
+              return Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                    child: Row(
+                      children: [
+                        _buildMemberAvatar(member, size: 40),
+                        const SizedBox(width: AppSpacing.sm),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                member['name']?.toString() ?? 'Unknown',
+                                style: AppTypography.textTheme(Theme.of(context).colorScheme).bodyMedium?.copyWith(
+                                  fontWeight: AppFontWeights.semiBold,
+                                ),
+                              ),
+                              if (member['skillLevel']?.toString().isNotEmpty == true)
+                                Text(
+                                  member['skillLevel'].toString(),
+                                  style: AppTypography.textTheme(Theme.of(context).colorScheme).bodySmall?.copyWith(
+                                    color: AppColors.textSecondary(),
+                                  ),
+                                ),
+                              if (bookingTime.isNotEmpty)
+                                Text(
+                                  'Joined $bookingTime',
+                                  style: AppTypography.textTheme(Theme.of(context).colorScheme).labelSmall?.copyWith(
+                                    color: AppColors.green,
+                                    fontWeight: AppFontWeights.semiBold,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.bgElevated,
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                          ),
+                          child: Text(
+                            position.toUpperCase(),
+                            style: AppTypography.textTheme(Theme.of(context).colorScheme).labelSmall?.copyWith(
+                              color: AppColors.textSecondary(),
+                              fontWeight: AppFontWeights.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!isLast) Divider(height: 1, color: AppColors.borderClr),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMemberAvatar(Map<String, dynamic> member, {double size = 40}) {
+    final name = member['name']?.toString() ?? '?';
+    final avatarUrl = member['avatarUrl']?.toString() ?? '';
+    final initials = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?';
+    final isAdmin = member['isAdmin'] == true;
+
+    return Stack(
+      children: [
+        CircleAvatar(
+          radius: size / 2,
+          backgroundColor: isAdmin ? AppColors.amber.withValues(alpha: 0.2) : AppColors.bgElevated,
+          backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
+          child: avatarUrl.isEmpty
+            ? Text(
+                initials,
+                style: AppTypography.textTheme(Theme.of(context).colorScheme).titleSmall?.copyWith(
+                  color: isAdmin ? AppColors.amber : AppColors.txtPrimary,
+                  fontWeight: AppFontWeights.bold,
+                ),
+              )
+            : null,
+        ),
+        if (isAdmin)
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                color: AppColors.amber,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.bgPrimary, width: 2),
+              ),
+              child: Icon(Icons.star, size: 10, color: AppColors.bgPrimary),
+            ),
+          ),
+      ],
+    );
   }
 
   @override
@@ -514,8 +954,6 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     final dateLabel = match['date']?.toString() ?? '';
     final timeLabel = _displayTimeRange();
     final members = _members;
-    final teamA = _teamMembers('A');
-    final teamB = _teamMembers('B');
     final confirmedCount =
         members.where((member) => member['status'] == 'confirmed').length;
     final maxPlayers =
@@ -622,7 +1060,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  FutsCard(
+                  AppCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -638,8 +1076,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                               _StatCol(
                                 value: match['skillLevel']?.toString() ?? 'All',
                                 label: 'Skill',
-                                color: _skillColor(
-                                    match['skillLevel']?.toString() ?? ''),
+                                color: _skillColor(match['skillLevel']?.toString()),
                               ),
                               const VerticalDivider(),
                               _StatCol(
@@ -705,33 +1142,51 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Text('Teams', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
-                      const Spacer(),
-                      Text('$confirmedCount/$maxPlayers players',
-                          style: Theme.of(context).textTheme.bodyMedium),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: _TeamColumn(
-                            team: 'A', color: AppColors.green, members: teamA),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _TeamColumn(
-                            team: 'B', color: AppColors.blue, members: teamB),
-                      ),
-                    ],
-                  ),
+                  _buildSlotVisualization(confirmedCount, maxPlayers, slotsAvailable, context),
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildConfirmedPlayersList(members, context),
                   const SizedBox(height: 20),
                   Text('Invite Friends', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
                   const SizedBox(height: 12),
-                  FutsCard(
+                  if (_isAdmin) ...[
+                    AppCard(
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Add friends directly',
+                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: AppFontWeights.semiBold),
+                                ),
+                                Text(
+                                  'Invite friends from your friend list to the match',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed: _isSubmitting ? null : _showAddFriendBottomSheet,
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(0, 38),
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                              backgroundColor: AppColors.green,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                            ),
+                            child: Text(
+                              'Add',
+                              style: AppTypography.textTheme(Theme.of(context).colorScheme).labelLarge?.copyWith(color: AppColors.bgPrimary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  AppCard(
                     child: Row(
                       children: [
                         Expanded(
@@ -743,8 +1198,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: AppFontWeights.semiBold),
                               ),
                               Text(
-                                match['inviteToken']?.toString().isNotEmpty ==
-                                        true
+                                match['inviteToken']?.toString().isNotEmpty == true
                                     ? 'Invite link is already active'
                                     : 'Create a new invite link for friends',
                                 style: Theme.of(context).textTheme.bodyMedium,
@@ -757,84 +1211,19 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                           onPressed: _isAdmin ? _copyInviteLink : null,
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(0, 38),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.sm),
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
                             backgroundColor: AppColors.green,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(999)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                           ),
                           child: Text(
                             'Copy Link',
-                            style: AppTypography.textTheme(
-                        Theme.of(context).colorScheme,
-                      ).labelLarge?.copyWith(
-                        color: AppColors.bgPrimary,
-                      ),
+                            style: AppTypography.textTheme(Theme.of(context).colorScheme).labelLarge?.copyWith(color: AppColors.bgPrimary),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  if (_isAdmin) ...[
-                    Text('Admin Tools', style: AppTypography.textTheme(
-                        Theme.of(context).colorScheme,
-                      ).headlineMedium),
-                    const SizedBox(height: 12),
-                    FutsCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: FutsButton(
-                                  label: 'Auto Balance Teams',
-                                  isLoading: _isSubmitting,
-                                  onPressed: _autoBalanceTeams,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: DropdownButtonFormField<String>(
-                                  initialValue: _selectedWinner,
-                                  items: const [
-                                    DropdownMenuItem(
-                                        value: 'A', child: Text('Team A')),
-                                    DropdownMenuItem(
-                                        value: 'B', child: Text('Team B')),
-                                    DropdownMenuItem(
-                                        value: 'draw', child: Text('Draw')),
-                                  ],
-                                  onChanged: (value) {
-                                    if (value != null) {
-                                      setState(() => _selectedWinner = value);
-                                    }
-                                  },
-                                  decoration: const InputDecoration(
-                                      labelText: 'Match Result'),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              SizedBox(
-                                width: 140,
-                                child: FutsButton(
-                                  label: 'Save Result',
-                                  isLoading: _isSubmitting,
-                                  onPressed: _recordResult,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
+                  const SizedBox(height: AppSpacing.lg),
                   if (_pendingMembers.isNotEmpty && _isAdmin) ...[
                     Text('Pending Requests', style: AppTypography.textTheme(
                         Theme.of(context).colorScheme,
@@ -842,8 +1231,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                     const SizedBox(height: 12),
                     ..._pendingMembers.map(
                       (member) => Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.xs2),
-                        child: FutsCard(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+                        child: AppCard(
                           child: Row(
                             children: [
                               CircleAvatar(
@@ -939,78 +1328,25 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
         ),
         child: _isCurrentUserMember
             ? FutsButton(
-                label: _isAdmin ? 'Admin Member' : 'Leave Match',
+                label: 'Continue',
                 outlined: true,
-                customColor: AppColors.red,
-                onPressed: _isAdmin || _isSubmitting ? null : _leaveMatch,
+                onPressed: _isSubmitting ? null : () {},
               )
-            : _isLoggedIn
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            ('GK', 'goalkeeper'),
-                            ('DEF', 'defender'),
-                            ('MID', 'midfielder'),
-                            ('FWD', 'striker'),
-                          ].map((entry) {
-                            final label = entry.$1;
-                            final apiValue = entry.$2;
-                            final isSelected = _selectedPosition == apiValue;
-                            return GestureDetector(
-                              onTap: () =>
-                                  setState(() => _selectedPosition = apiValue),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 180),
-                                margin:
-                                    const EdgeInsets.only(right: AppSpacing.xs),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.sm,
-                                  vertical: AppSpacing.xs,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? AppColors.green
-                                      : AppColors.bgElevated,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? AppColors.green
-                                        : AppColors.borderClr,
-                                  ),
-                                ),
-                                child: Text(
-                                  label,
-                                  style: AppTypography.textTheme(
-                        Theme.of(context).colorScheme,
-                      ).bodyMedium?.copyWith(
-                                    fontWeight: AppFontWeights.semiBold,
-                                    color: isSelected
-                                        ? AppColors.bgPrimary
-                                        : AppColors.txtDisabled,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      FutsButton(
+            : _hasPendingJoinRequest
+                ? const FutsButton(
+                    label: 'Request Pending',
+                    outlined: true,
+                    onPressed: null,
+                  )
+                : _isLoggedIn
+                    ? FutsButton(
                         label: isPartialTeamBooking
                             ? 'Join Match & Play'
                             : 'Join Match',
                         isLoading: _isSubmitting,
-                        onPressed: !_isJoinable || _selectedPosition == null
-                            ? null
-                            : _joinMatch,
-                      ),
-                    ],
-                  )
-                : Column(
+                        onPressed: _isJoinable ? _joinMatch : null,
+                      )
+                    : Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       FutsButton(
@@ -1055,126 +1391,6 @@ class _StatCol extends StatelessWidget {
           Text(label, style: AppTypography.textTheme(
                         Theme.of(context).colorScheme,
                       ).bodySmall),
-        ],
-      ),
-    );
-  }
-}
-
-class _TeamColumn extends StatelessWidget {
-  final String team;
-  final Color color;
-  final List<Map<String, dynamic>> members;
-
-  const _TeamColumn({
-    required this.team,
-    required this.color,
-    required this.members,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final int emptySlots = math.max(0, 5 - members.length);
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xs2),
-      decoration: BoxDecoration(
-        color: AppColors.bgElevated,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderClr),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: color.withValues(alpha: 0.15),
-                ),
-                child: Center(
-                  child: Text(
-                    team,
-                    style: AppTypography.textTheme(
-                        Theme.of(context).colorScheme,
-                      ).bodySmall?.copyWith(
-                        fontWeight: AppFontWeights.semiBold,
-                        color: color,
-                      ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text('Team $team', style: AppTypography.textTheme(
-                        Theme.of(context).colorScheme,
-                      ).headlineMedium?.copyWith(fontSize: 16)),
-              const Spacer(),
-              Text('${members.length}/5', style: AppTypography.textTheme(
-                        Theme.of(context).colorScheme,
-                      ).bodySmall),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ...members.map((member) => _MemberRow(m: member)),
-          ...List.generate(emptySlots, (_) {
-            return Container(
-              height: 34,
-              margin: const EdgeInsets.only(top: AppSpacing.xxs),
-              decoration: BoxDecoration(
-                color: AppColors.bgSurface,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Center(
-                child: Text(
-                  'Empty slot',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.txtDisabled),
-                ),
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-}
-
-class _MemberRow extends StatelessWidget {
-  final Map<String, dynamic> m;
-
-  const _MemberRow({required this.m});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.xxs),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 14,
-            backgroundColor: AppColors.bgElevated,
-            backgroundImage: (m['avatarUrl']?.toString().isNotEmpty == true)
-                ? NetworkImage(m['avatarUrl'].toString())
-                : null,
-            child: (m['avatarUrl']?.toString().isNotEmpty == true)
-                ? null
-                : Text(
-                    (m['name']?.toString().isNotEmpty == true)
-                        ? m['name'].toString().substring(0, 1)
-                        : '?',
-                  ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              m['name'].toString().split(' ').first,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.txtPrimary),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          Text(m['position']?.toString() ?? '—', style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: AppFontWeights.semiBold)),
         ],
       ),
     );
