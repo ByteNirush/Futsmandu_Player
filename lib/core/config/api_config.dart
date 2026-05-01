@@ -5,7 +5,7 @@ class ApiConfig {
   static const String baseUrl = String.fromEnvironment(
     'FUTSMANDU_API_BASE_URL',
     defaultValue: 'http://localhost:3001',
-    // defaultValue: 'http://192.168.18.104:3001',
+    // defaultValue: 'http://192.168.18.103:3001',
   ); 
   static const String apiPrefix = '/api/v1/player';
   static const String authEndpoint = '$apiPrefix/auth';
