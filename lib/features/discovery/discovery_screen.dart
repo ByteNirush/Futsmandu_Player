@@ -5,7 +5,7 @@ import 'package:futsmandu_design_system/components/empty_state/empty_state.dart'
 
 import '../../core/design_system/app_spacing.dart';
 import '../../core/design_system/app_radius.dart';
-import '../../core/theme/app_text.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 import '../matches/data/models/player_match_models.dart';
 import '../matches/presentation/providers/matches_controller.dart';
@@ -100,7 +100,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
       appBar: AppBar(
         title: Text(
           'Explore',
-          style: AppText.h2.copyWith(color: scheme.onSurface),
+          style: AppTypography.subHeading(context, scheme).copyWith(color: scheme.onSurface),
         ),
         elevation: 0,
         backgroundColor: scheme.surface,
@@ -149,7 +149,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                   Expanded(
                     child: Text(
                       error,
-                      style: AppText.bodySm.copyWith(color: scheme.error),
+                      style: AppTypography.body(context, scheme).copyWith(
+                        fontSize: 14 * AppTypographyScale.fromContext(context),
+                        color: scheme.error,
+                      ),
                     ),
                   ),
                 ],
@@ -159,9 +162,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.sm2,
+              AppSpacing.sm,
               AppSpacing.sm2,
-              AppSpacing.sm2,
-              AppSpacing.xs,
+              AppSpacing.sm,
             ),
             child: TextField(
               controller: _searchController,
@@ -170,16 +173,22 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                   _searchQuery = value.trim();
                 });
               },
-              style: AppText.bodySm,
+              style: AppTypography.body(context, scheme).copyWith(
+                fontSize: 15 * AppTypographyScale.fromContext(context),
+              ),
               decoration: InputDecoration(
-                hintText: 'Search venue, court, or location',
-                hintStyle: AppText.bodySm.copyWith(
-                  color: scheme.onSurfaceVariant,
+                hintText: 'Search venues, courts, or locations...',
+                hintStyle: AppTypography.body(context, scheme).copyWith(
+                  fontSize: 15 * AppTypographyScale.fromContext(context),
+                  color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
                 ),
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: scheme.onSurfaceVariant,
-                  size: 18,
+                prefixIcon: Container(
+                  margin: const EdgeInsets.only(left: AppSpacing.sm, right: AppSpacing.xs),
+                  child: Icon(
+                    Icons.search_rounded,
+                    color: scheme.primary,
+                    size: 22,
+                  ),
                 ),
                 suffixIcon: _searchQuery.isEmpty
                     ? null
@@ -192,74 +201,112 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                           });
                           FocusScope.of(context).unfocus();
                         },
-                        icon: const Icon(Icons.close_rounded, size: 16),
+                        icon: Icon(Icons.close_rounded, size: 18, color: scheme.onSurfaceVariant),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
-                          minWidth: 32,
-                          minHeight: 32,
+                          minWidth: 36,
+                          minHeight: 36,
                         ),
                       ),
                 filled: true,
-                fillColor: scheme.surfaceContainerHighest,
+                fillColor: scheme.surfaceContainerLow,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
                   borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  borderSide: BorderSide(color: scheme.primary.withValues(alpha: 0.3), width: 1.5),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.xs,
+                  vertical: AppSpacing.sm,
                 ),
                 isDense: true,
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.xs),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm2),
-            child: Row(
-              children: [
-                Text(
-                  '${matches.length} matches',
-                  style: AppText.bodySm.copyWith(
-                    fontWeight: AppTextStyles.semiBold,
-                    color: scheme.onSurfaceVariant,
-                  ),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xs,
+              ),
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: Border.all(
+                  color: scheme.outlineVariant.withValues(alpha: 0.5),
+                  width: 1,
                 ),
-                const Spacer(),
-                Material(
-                  color: scheme.surfaceContainerHigh,
-                  borderRadius: BorderRadius.circular(14),
-                  child: DropdownButtonHideUnderline(
-                    child: DropdownButton<MatchDiscoveryTab>(
-                      value: selectedDropdownTab,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xs2,
-                      ),
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                      borderRadius: BorderRadius.circular(14),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        ref
-                            .read(matchDiscoveryControllerProvider.notifier)
-                            .setTab(value);
-                      },
-                      items: _searchDropdownTabs.map((tab) {
-                        return DropdownMenuItem<MatchDiscoveryTab>(
-                          value: tab,
-                          child: Text(
-                            _labelForTab(tab),
-                            style: AppText.label.copyWith(
-                              color: scheme.onSurfaceVariant,
-                              fontWeight: AppTextStyles.semiBold,
-                            ),
-                          ),
-                        );
-                      }).toList(),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.xxs),
+                    decoration: BoxDecoration(
+                      color: scheme.primaryContainer.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Icon(
+                      Icons.sports_soccer_rounded,
+                      size: 16,
+                      color: scheme.primary,
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: AppSpacing.xs),
+                  Text(
+                    '${matches.length} ${matches.length == 1 ? 'match' : 'matches'} found',
+                    style: AppTypography.body(context, scheme).copyWith(
+                      fontSize: 13 * AppTypographyScale.fromContext(context),
+                      fontWeight: AppFontWeights.medium,
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                  const Spacer(),
+                  Material(
+                    color: Colors.transparent,
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<MatchDiscoveryTab>(
+                        value: selectedDropdownTab,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xs,
+                        ),
+                        icon: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: scheme.primary,
+                          size: 18,
+                        ),
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        dropdownColor: scheme.surfaceContainerHigh,
+                        onChanged: (value) {
+                          if (value == null) return;
+                          ref
+                              .read(matchDiscoveryControllerProvider.notifier)
+                              .setTab(value);
+                        },
+                        items: _searchDropdownTabs.map((tab) {
+                          return DropdownMenuItem<MatchDiscoveryTab>(
+                            value: tab,
+                            child: Text(
+                              _labelForTab(tab),
+                              style: AppTypography.textTheme(scheme).labelMedium?.copyWith(
+                                color: scheme.onSurface,
+                                fontWeight: AppFontWeights.semiBold,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
 
