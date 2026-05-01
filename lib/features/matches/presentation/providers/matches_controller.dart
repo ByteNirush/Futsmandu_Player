@@ -174,13 +174,29 @@ class MatchDiscoveryController extends AsyncNotifier<MatchDiscoveryState> {
     }
   }
 
-  Future<List<MatchSummary>> _loadTab(MatchDiscoveryTab tab) {
+  Future<List<MatchSummary>> _loadTab(MatchDiscoveryTab tab) async {
     switch (tab) {
       case MatchDiscoveryTab.tonight:
-        return _service.fetchTonightMatches(
+        // Fetch both open matches for today AND tonight matches (same as home screen)
+        final today = DateTime.now().toIso8601String().split('T').first;
+        final openMatches = await _service.fetchOpenMatches(
+          date: today,
           latitude: fallbackLatitude,
           longitude: fallbackLongitude,
         );
+        final tonightMatches = await _service.fetchTonightMatches(
+          latitude: fallbackLatitude,
+          longitude: fallbackLongitude,
+        );
+        // Merge and deduplicate by ID (prioritize open matches)
+        final mergedById = <String, MatchSummary>{};
+        for (final match in [...openMatches, ...tonightMatches]) {
+          final id = match.matchGroupId.isNotEmpty ? match.matchGroupId : match.id;
+          if (id.isNotEmpty && !mergedById.containsKey(id)) {
+            mergedById[id] = match;
+          }
+        }
+        return mergedById.values.toList();
       case MatchDiscoveryTab.tomorrow:
         return _service.fetchTomorrowMatches(
           latitude: fallbackLatitude,
