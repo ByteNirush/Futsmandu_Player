@@ -25,6 +25,8 @@ class BookingRepository {
     required String startTime,
     String? bookingType,
     int? maxPlayers,
+    int? currentPlayerCount,
+    int? playersNeeded,
     List<String>? friendIds,
   }) {
     return _service.createBooking(
@@ -33,6 +35,8 @@ class BookingRepository {
       startTime: startTime,
       bookingType: bookingType,
       maxPlayers: maxPlayers,
+      currentPlayerCount: currentPlayerCount,
+      playersNeeded: playersNeeded,
       friendIds: friendIds,
     );
   }

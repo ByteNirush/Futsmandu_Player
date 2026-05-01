@@ -62,6 +62,8 @@ class PlayerBookingService {
     required String startTime,
     String? bookingType,
     int? maxPlayers,
+    int? currentPlayerCount,
+    int? playersNeeded,
     List<String>? friendIds,
   }) async {
     try {
@@ -74,6 +76,8 @@ class PlayerBookingService {
           if (bookingType != null && bookingType.isNotEmpty)
             'bookingType': _mapBookingTypeToBackend(bookingType),
           if (maxPlayers != null) 'maxPlayers': maxPlayers,
+          if (currentPlayerCount != null) 'currentPlayerCount': currentPlayerCount,
+          if (playersNeeded != null) 'playersNeeded': playersNeeded,
           if (friendIds != null && friendIds.isNotEmpty) 'friendIds': friendIds,
         },
       );
