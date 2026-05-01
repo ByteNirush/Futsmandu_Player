@@ -191,8 +191,8 @@ class _VenuesMapViewState extends State<VenuesMapView> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.verified_rounded,
-                                  size: AppSpacing.md - 8, color: AppColors.green),
+                              const Icon(Icons.verified_rounded,
+                                size: AppSpacing.md - 8, color: AppColors.green),
                               const SizedBox(width: AppSpacing.xxs),
                               Text(
                                 'Verified',
