@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/esewa_payment_config.dart';
 import '../../core/design_system/app_spacing.dart';
+import '../../core/utils/time_formatters.dart';
 import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../shared/widgets/futs_button.dart';
@@ -174,7 +175,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
       return bookingRecord['total_amount'].toDouble() / 100.0;
     }
 
-    final bookingAmountString = args?['bookingRecord']?['total_amount']?.toString();
+    final bookingAmountString =
+        args?['bookingRecord']?['total_amount']?.toString();
     if (bookingAmountString != null) {
       final parsed = double.tryParse(bookingAmountString);
       if (parsed != null) return parsed / 100.0;
@@ -430,7 +432,11 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
-        title: Text('Complete Payment', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
+        title: Text('Complete Payment',
+            style: Theme.of(context)
+                .textTheme
+                .titleLarge
+                ?.copyWith(fontWeight: AppFontWeights.bold)),
         backgroundColor: AppColors.bgPrimary,
         elevation: 0,
         leading: const BackButton(),
@@ -455,29 +461,39 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text('Booking Summary', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
+                  Text('Booking Summary',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: AppFontWeights.bold)),
                   const SizedBox(height: 10),
                   Divider(height: 20, color: AppColors.borderClr),
                   _SumRow(
                       'Venue', args?['venue']?['name'] ?? 'Futsmandu Arena'),
                   _SumRow('Court', selectedCourtName),
                   _SumRow('Date', bookingDate),
-                  _SumRow('Time', '$startTime - $endTime'),
+                  _SumRow(
+                    'Time',
+                    formatClockTimeRange12Hour(startTime, endTime),
+                  ),
                   const _SumRow('Duration', '60 minutes'),
                   Divider(height: 20, color: AppColors.borderClr),
                   Row(
                     children: [
                       Text('Total Amount',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: AppFontWeights.semiBold)),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(fontWeight: AppFontWeights.semiBold)),
                       const Spacer(),
                       Text(
                         amountLabel,
                         style: AppTypography.textTheme(
                           Theme.of(context).colorScheme,
                         ).titleSmall?.copyWith(
-                          fontWeight: AppFontWeights.semiBold,
-                          color: AppColors.green,
-                        ),
+                              fontWeight: AppFontWeights.semiBold,
+                              color: AppColors.green,
+                            ),
                       ),
                     ],
                   ),
@@ -486,14 +502,21 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                     children: [
                       const Spacer(),
                       Text('Booking fee NPR 20 (non-refundable)',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: AppFontWeights.semiBold)),
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelSmall
+                              ?.copyWith(fontWeight: AppFontWeights.semiBold)),
                     ],
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 22),
-            Text('Choose Payment Method', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
+            Text('Choose Payment Method',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: AppFontWeights.bold)),
             const SizedBox(height: 10),
             Row(
               children: [
@@ -527,12 +550,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
               decoration: BoxDecoration(
                 color: AppColors.blue.withValues(alpha: 0.07),
                 borderRadius: BorderRadius.circular(12),
-                border:
-                    const Border(left: BorderSide(color: AppColors.blue, width: 3)),
+                border: const Border(
+                    left: BorderSide(color: AppColors.blue, width: 3)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline, size: 16, color: AppColors.blue),
+                  const Icon(Icons.info_outline,
+                      size: 16, color: AppColors.blue),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -541,7 +565,10 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
                           : _isAwaitingKhaltiCallback
                               ? 'Waiting for Khalti callback. We will verify automatically when you return.'
                               : 'You will be redirected to the payment page. Return to auto-verify and confirm your booking.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.info),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodyMedium
+                          ?.copyWith(color: AppColors.info),
                     ),
                   ),
                 ],
@@ -580,7 +607,10 @@ class _SumRow extends StatelessWidget {
           Text(label, style: Theme.of(context).textTheme.bodyMedium),
           const Spacer(),
           Text(value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.txtPrimary)),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppColors.txtPrimary)),
         ],
       ),
     );
@@ -643,14 +673,18 @@ class _PaymentCard extends StatelessWidget {
                         style: AppTypography.textTheme(
                           Theme.of(context).colorScheme,
                         ).labelMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onPrimary,
-                          fontWeight: AppFontWeights.semiBold,
-                        ),
+                              color: Theme.of(context).colorScheme.onPrimary,
+                              fontWeight: AppFontWeights.semiBold,
+                            ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text(name, style: Theme.of(context).textTheme.labelSmall?.copyWith(fontWeight: AppFontWeights.semiBold)),
+                  Text(name,
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelSmall
+                          ?.copyWith(fontWeight: AppFontWeights.semiBold)),
                 ],
               ),
             ),
