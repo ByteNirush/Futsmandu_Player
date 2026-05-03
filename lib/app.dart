@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import 'dart:async';
 
-import 'core/design_system/app_spacing.dart';
-import 'package:futsmandu_design_system/futsmandu_design_system.dart' show AppTheme;
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import 'core/services/notifications/local_notification_service.dart';
 import 'core/theme/theme_provider.dart';
 import 'features/auth/presentation/providers/auth_controller.dart';
@@ -33,7 +31,6 @@ import 'features/friends/friends_screen.dart';
 import 'features/invite/invite_preview_screen.dart';
 import 'features/discovery/discovery_screen.dart';
 import 'features/maps/maps_page.dart';
-import 'package:futsmandu_design_system/components/common/app_logo.dart';
 
 class FutsmanduApp extends ConsumerStatefulWidget {
   const FutsmanduApp({super.key});
@@ -174,7 +171,7 @@ class _AuthLoadingScreen extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             AppLogo(size: 72),
-            SizedBox(height: AppSpacing.md),
+            SizedBox(height: AppSpacing.xl),
             CircularProgressIndicator(),
           ],
         ),
