@@ -11,8 +11,10 @@ import '../../core/design_system/app_radius.dart';
 import '../../core/design_system/app_spacing.dart';
 import '../../core/mock/mock_data.dart';
 import '../../core/services/player_auth_storage_service.dart';
+import '../../core/utils/time_formatters.dart';
 import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import '../../features/booking/data/services/player_booking_service.dart';
+import '../../features/booking/utils/slot_time_filter.dart';
 import '../../features/matches/data/services/player_match_service.dart';
 import '../../features/notifications/data/services/player_notifications_service.dart';
 import '../../features/profile/data/services/player_profile_service.dart';
@@ -33,6 +35,36 @@ String _greetingForHour(int hour) {
   if (hour < 12) return 'Good morning';
   if (hour < 17) return 'Good afternoon';
   return 'Good evening';
+}
+
+DateTime? _matchStartDateTime(Map<String, dynamic> match) {
+  final rawDate = (match['matchDate'] ?? match['bookingDate'] ?? '').toString();
+  final parsedDate = DateTime.tryParse(rawDate);
+  if (parsedDate == null) return null;
+
+  final localDate = parsedDate.toLocal();
+  final dateOnly = DateTime(localDate.year, localDate.month, localDate.day);
+  return parseSlotStartDateTime(
+    match['time'] ?? match['startTime'],
+    selectedDate: dateOnly,
+  );
+}
+
+bool _isUpcomingMatch(Map<String, dynamic> match, DateTime now) {
+  final startsAt = _matchStartDateTime(match);
+  return startsAt != null && startsAt.isAfter(now.toLocal());
+}
+
+int _compareMatchesByStartTime(
+  Map<String, dynamic> a,
+  Map<String, dynamic> b,
+) {
+  final aStart = _matchStartDateTime(a);
+  final bStart = _matchStartDateTime(b);
+  if (aStart == null && bStart == null) return 0;
+  if (aStart == null) return 1;
+  if (bStart == null) return -1;
+  return aStart.compareTo(bStart);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -129,7 +161,8 @@ class _EmailNudgeBannerState extends State<_EmailNudgeBanner> {
       child: Row(
         children: [
           const SizedBox(width: AppSpacing.xs),
-          const Icon(Icons.mark_email_unread, size: 18, color: AppColors.warning),
+          const Icon(Icons.mark_email_unread,
+              size: 18, color: AppColors.warning),
           const SizedBox(width: AppSpacing.xs),
           Expanded(
             child: Text(
@@ -276,7 +309,7 @@ class _MatchMiniCard extends StatelessWidget {
                           const SizedBox(width: AppSpacing.xxs),
                           Flexible(
                             child: Text(
-                              '${match['time']} · ${match['distance']}',
+                              '${formatClockTime12Hour(match['time'])} · ${match['distance']}',
                               style: textTheme.labelSmall?.copyWith(
                                 color: colorScheme.onPrimary
                                     .withValues(alpha: 0.7),
@@ -290,16 +323,14 @@ class _MatchMiniCard extends StatelessWidget {
                       Text(
                         'Need $playersNeeded players',
                         style: textTheme.labelSmall?.copyWith(
-                          color: colorScheme.onPrimary
-                              .withValues(alpha: 0.9),
+                          color: colorScheme.onPrimary.withValues(alpha: 0.9),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         '$availableSlots slots available',
                         style: textTheme.labelSmall?.copyWith(
-                          color: colorScheme.onPrimary
-                              .withValues(alpha: 0.75),
+                          color: colorScheme.onPrimary.withValues(alpha: 0.75),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -342,37 +373,6 @@ class _MatchMiniCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Meta Chip (icon + text row inside booking card)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _MetaChip extends StatelessWidget {
-  final IconData icon;
-  final String text;
-
-  const _MetaChip(this.icon, this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final textTheme = Theme.of(context).textTheme;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 12, color: colorScheme.onSurfaceVariant),
-        const SizedBox(width: AppSpacing.xxs),
-        Text(
-          text,
-          style: textTheme.labelSmall?.copyWith(
-            color: colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Upcoming Booking Card
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -381,85 +381,123 @@ class _UpcomingBookingCard extends StatelessWidget {
 
   const _UpcomingBookingCard(this.b);
 
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '';
+    try {
+      final parts = dateStr.split(' ');
+      if (parts.length >= 3) {
+        return '${parts[0]} ${parts[1]} ${parts[2]}';
+      }
+      return dateStr;
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    return FutsCard(
-      padding: EdgeInsets.zero,
-      onTap: () => Navigator.pushNamed(context, '/bookings'),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Left status accent strip
-            Container(
-              width: 4,
-              decoration: BoxDecoration(
-                color: colorScheme.primary,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(AppRadius.md),
-                  bottomLeft: Radius.circular(AppRadius.md),
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.xs2),
+    final price = b['priceNPR'] ?? b['price'] ?? b['amount'] ?? '0';
 
-            // Content
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  top: AppSpacing.xs,
-                  bottom: AppSpacing.xs,
-                  right: AppSpacing.xs,
+    final bookingId = b['bookingId'] as String? ?? b['id'] as String? ?? '';
+
+    return FutsCard(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      onTap: () => Navigator.pushNamed(context, '/bookings'),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Middle: Venue info
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  b['venueName'] as String? ?? '',
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: AppFontWeights.semiBold,
+                    color: colorScheme.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        StatusBadge(
-                          label: 'CONFIRMED',
-                          color: colorScheme.primary,
-                        ),
-                        const Spacer(),
-                        Text(
-                          'NPR ${b['priceNPR']}',
-                          style: textTheme.titleSmall?.copyWith(
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                      ],
+                const SizedBox(height: AppSpacing.xxs),
+                Text(
+                  b['courtName'] as String? ?? '',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (bookingId.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    'Booking ID: $bookingId',
+                    style: textTheme.labelSmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
                     ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(b['venueName'] as String? ?? '', style: textTheme.titleSmall),
-                    Text(
-                      b['courtName'] as String? ?? '',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Row(
-                      children: [
-                        _MetaChip(
-                          Icons.calendar_today,
-                          (b['date'] as String? ?? '')
-                              .split(' ')
-                              .take(3)
-                              .join(' '),
-                        ),
-                        const SizedBox(width: AppSpacing.xs2),
-                        _MetaChip(Icons.access_time, b['time'] as String? ?? ''),
-                      ],
-                    ),
-                  ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(width: AppSpacing.sm),
+
+          // Right: Price, status, date/time
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Price
+              Text(
+                'NPR $price',
+                style: textTheme.titleSmall?.copyWith(
+                  color: colorScheme.onSurface,
+                  fontWeight: AppFontWeights.semiBold,
                 ),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(height: AppSpacing.xxs),
+              // Status badge (small green pill)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Text(
+                  'confirmed',
+                  style: textTheme.labelSmall?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: AppFontWeights.medium,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              // Date
+              Text(
+                _formatDate(b['date'] as String?),
+                style: textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              // Time
+              Text(
+                formatClockTime12Hour(b['time']),
+                style: textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -548,13 +586,15 @@ class _TopFutsalCard extends StatelessWidget {
                       const SizedBox(height: AppSpacing.xxs),
                       Row(
                         children: [
-                          const Icon(Icons.star, size: 14, color: AppColors.warning),
+                          const Icon(Icons.star,
+                              size: 14, color: AppColors.warning),
                           const SizedBox(width: AppSpacing.xxs),
                           Flexible(
                             child: Text(
                               '${venue['rating']}${venue['distance'] != null && venue['distance'].toString().isNotEmpty ? '  ·  ${venue['distance']}' : ''}',
                               style: textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onPrimary.withValues(alpha: 0.9),
+                                color: colorScheme.onPrimary
+                                    .withValues(alpha: 0.9),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -684,14 +724,13 @@ class _HomeScreenState extends State<HomeScreen> {
       _tonightMatchesError = null;
     });
     try {
-      final today = DateTime.now().toIso8601String().split('T').first;
+      final now = DateTime.now();
       List<Map<String, dynamic>> openMatches = const [];
       List<Map<String, dynamic>> tonightMatches = const [];
       String? firstError;
 
       try {
         openMatches = await PlayerMatchService.instance.getOpenMatches(
-          date: today,
           limit: 20,
         );
       } catch (e) {
@@ -713,12 +752,18 @@ class _HomeScreenState extends State<HomeScreen> {
         if (id.isEmpty || mergedById.containsKey(id)) {
           continue;
         }
+        if (!_isUpcomingMatch(match, now)) {
+          continue;
+        }
         mergedById[id] = match;
       }
 
+      final upcomingMatches = mergedById.values.toList(growable: false)
+        ..sort(_compareMatchesByStartTime);
+
       if (!mounted) return;
       setState(() {
-        _tonightMatches = mergedById.values.toList(growable: false);
+        _tonightMatches = upcomingMatches;
         _tonightMatchesError = _tonightMatches.isEmpty ? firstError : null;
         _isLoadingTonightMatches = false;
       });
@@ -781,7 +826,8 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     setState(() => _isSearching = true);
-    _searchDebounce = Timer(_kSearchDebounce, () => _performSearch(value.trim()));
+    _searchDebounce =
+        Timer(_kSearchDebounce, () => _performSearch(value.trim()));
   }
 
   void _updateSearchDropdownPosition() {
@@ -969,8 +1015,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: IconButton(
                               icon: const Icon(Icons.notifications_outlined),
                               color: colorScheme.onSurfaceVariant,
-                              onPressed: () =>
-                                  Navigator.pushNamed(context, '/notifications'),
+                              onPressed: () => Navigator.pushNamed(
+                                  context, '/notifications'),
                             ),
                           ),
                         ],
@@ -995,7 +1041,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: AppColors.warning.withValues(alpha: 0.10),
                           borderRadius: BorderRadius.circular(AppRadius.md),
                           border: const Border(
-                            left: BorderSide(color: AppColors.warning, width: 3),
+                            left:
+                                BorderSide(color: AppColors.warning, width: 3),
                           ),
                         ),
                         child: Row(
@@ -1150,10 +1197,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                       children: [
                                         const SizedBox(height: AppSpacing.xs),
                                         Text(
-                                          'No open matches tonight',
+                                          'No open matches available',
                                           style: textTheme.bodySmall?.copyWith(
-                                            color:
-                                                colorScheme.onSurfaceVariant,
+                                            color: colorScheme.onSurfaceVariant,
                                           ),
                                         ),
                                         TextButton(
@@ -1276,8 +1322,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     dense: true,
                                     leading: venue['coverUrl'] != null
                                         ? ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(AppSpacing.xxs),
+                                            borderRadius: BorderRadius.circular(
+                                                AppSpacing.xxs),
                                             child: CachedNetworkImage(
                                               imageUrl:
                                                   venue['coverUrl'] as String,
