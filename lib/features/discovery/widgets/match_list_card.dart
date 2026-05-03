@@ -1,11 +1,9 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/mock/mock_data.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import '../../../core/design_system/app_spacing.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../matches/data/models/player_match_models.dart';
 import '../../../shared/widgets/futs_card.dart';
 import '../../../shared/widgets/status_badge.dart';
@@ -31,8 +29,9 @@ class MatchListCard extends StatelessWidget {
 
     // Spot color
     final int spotsLeft = match.spotsLeft;
-    final int playersNeeded = match.playersNeeded;
     final int slotsAvailable = match.slotsAvailable;
+    // Always compute playersNeeded from actual member count for accuracy
+    final int playersNeeded = (match.maxPlayers - match.memberCount).clamp(0, match.maxPlayers);
     final spotColor = spotsLeft == 1
         ? AppColors.error
         : spotsLeft <= 3
@@ -89,7 +88,7 @@ class MatchListCard extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: AppSpacing.sm2),
+            const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,21 +107,21 @@ class MatchListCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: AppSpacing.xs),
+                      const SizedBox(width: AppSpacing.sm),
                       StatusBadge(
                         label: '$slotsAvailable slots',
                         color: spotColor,
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.xxs),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     match.courtName,
                     style: AppTypography.textTheme(
                       Theme.of(context).colorScheme,
                     ).bodySmall?.copyWith(color: AppColors.txtDisabled),
                   ),
-                  const SizedBox(height: AppSpacing.xxs),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     'Need $playersNeeded players  |  $slotsAvailable slots available',
                     style: AppTypography.textTheme(
@@ -131,7 +130,7 @@ class MatchListCard extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: AppSpacing.lg),
 
                   // Info Chips
                   Wrap(
@@ -144,7 +143,7 @@ class MatchListCard extends StatelessWidget {
                           color: skillColor),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: AppSpacing.lg),
 
                   // Footer Row: Friends Profile + Price
                   Row(
@@ -176,7 +175,7 @@ class MatchListCard extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: AppSpacing.xs),
+                              const SizedBox(width: AppSpacing.sm),
                               Flexible(
                                 child: Text(
                                   '+$friendsCount friends',

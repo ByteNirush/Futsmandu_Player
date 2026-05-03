@@ -3,15 +3,10 @@ import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:futsmandu_design_system/futsmandu_design_system.dart'
-    show ProfileSectionHeader, SettingsTile, AppCard;
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/design_system/app_radius.dart';
-import '../../core/design_system/app_spacing.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/services/player_auth_storage_service.dart';
 import 'data/models/player_profile_models.dart';
@@ -111,7 +106,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         body: SafeArea(
           child: Center(
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
+              padding: const EdgeInsets.all(AppSpacing.xl),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -120,14 +115,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     color: AppColors.red,
                     size: 36,
                   ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: AppSpacing.lg),
                   Text(
                     _errorMessage!,
                     textAlign: TextAlign.center,
                     style: AppTypography.caption(
                         context, Theme.of(context).colorScheme),
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.xl),
                   FilledButton(
                     onPressed: _loadProfile,
                     child: const Text('Retry'),
@@ -155,7 +150,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             tooltip: 'Refresh profile',
             onPressed: _loadProfile,
           ),
-          const SizedBox(width: AppSpacing.xs),
+          const SizedBox(width: AppSpacing.sm),
         ],
       ),
       body: SafeArea(
@@ -163,10 +158,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           opacity: _fadeAnim,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
-              AppSpacing.screenPadding,
-              AppSpacing.sm,
-              AppSpacing.screenPadding,
+              AppSpacing.pageHorizontal,
               AppSpacing.lg,
+              AppSpacing.pageHorizontal,
+              AppSpacing.xxl,
             ),
             children: [
               // ── Profile Header Card ─────────────────────────────────────
@@ -177,7 +172,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 localAvatarFile: _localAvatarFile,
               ),
 
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.xxl),
 
               Text(
                 'Account',
@@ -186,7 +181,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.sm),
               _AccountSection(
                 onManageProfile: _openEditProfileSheet,
                 onShowStats: () => _showStatsSheet(
@@ -204,7 +199,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 onLogout: () => _showLogoutConfirm(context),
               ),
 
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.xxl),
 
               Text(
                 'Preferences',
@@ -213,7 +208,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.sm),
               _PreferencesSection(
                 notificationsEnabled: _notificationsEnabled,
                 onNotificationsChanged: (value) {
@@ -221,7 +216,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 },
               ),
 
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.xxl),
 
               Text(
                 'Support',
@@ -230,11 +225,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.sm),
               _SupportSection(
                 onSupportTap: () => _showSupportSheet(context),
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.xxxl),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -279,10 +274,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       builder: (ctx) {
         return SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
-            AppSpacing.md,
+            AppSpacing.xl,
             0,
-            AppSpacing.md,
-            AppSpacing.lg + MediaQuery.of(ctx).padding.bottom,
+            AppSpacing.xl,
+            AppSpacing.xxl + MediaQuery.of(ctx).padding.bottom,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -294,7 +289,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.xxl),
               _PerformanceSection(
                 matchesPlayed: matchesPlayed,
                 won: won,
@@ -302,7 +297,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 draw: draw,
                 winRate: winRate,
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.xl),
               _ReliabilitySection(
                 user: user,
                 score: score,
@@ -325,10 +320,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
+              AppSpacing.xl,
               0,
-              AppSpacing.md,
-              AppSpacing.md,
+              AppSpacing.xl,
+              AppSpacing.xl,
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -381,10 +376,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           builder: (ctx, setLocalState) {
             return Padding(
               padding: EdgeInsets.fromLTRB(
-                AppSpacing.sm,
-                AppSpacing.sm,
-                AppSpacing.sm,
-                MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.sm,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                MediaQuery.of(ctx).viewInsets.bottom + AppSpacing.lg,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -397,13 +392,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           color: colorScheme.onSurface,
                         ),
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.xl),
                   TextField(
                     controller: nameController,
                     decoration: const InputDecoration(labelText: 'Name'),
                     textCapitalization: TextCapitalization.words,
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.xl),
                   DropdownButtonFormField<String>(
                     initialValue: selectedSkill,
                     items: const [
@@ -420,7 +415,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                       setLocalState(() => selectedSkill = value);
                     },
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.xl),
                   Text(
                     'Preferred Roles',
                     style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
@@ -428,10 +423,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                           fontWeight: AppFontWeights.medium,
                         ),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: AppSpacing.lg),
                   Wrap(
-                    spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.sm,
+                    spacing: AppSpacing.lg,
+                    runSpacing: AppSpacing.lg,
                     children: [
                       for (final role in const [
                         'goalkeeper',
@@ -454,7 +449,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: AppSpacing.lg),
                   SwitchListTile.adaptive(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Show Match History Publicly'),
@@ -462,7 +457,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                     onChanged: (value) =>
                         setLocalState(() => showMatchHistory = value),
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.xl),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
@@ -845,7 +840,7 @@ class _PlayerProfileHeader extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -902,7 +897,7 @@ class _PlayerProfileHeader extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
+          const SizedBox(width: AppSpacing.xl),
           // ── Player info ────────────────────────────────────
           Expanded(
             child: Column(
@@ -925,7 +920,7 @@ class _PlayerProfileHeader extends StatelessWidget {
                       ),
                     ),
                     if (user['isVerified'] == true) ...[
-                      const SizedBox(width: AppSpacing.xs),
+                      const SizedBox(width: AppSpacing.sm),
                       Icon(
                         Icons.verified_rounded,
                         size: 16,
@@ -1024,7 +1019,7 @@ class _PerformanceStat extends StatelessWidget {
             ),
             child: Icon(icon, size: 18, color: color),
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             value,
             style: tt.headlineSmall?.copyWith(
@@ -1032,7 +1027,7 @@ class _PerformanceStat extends StatelessWidget {
               fontWeight: AppFontWeights.bold,
             ),
           ),
-          const SizedBox(height: AppSpacing.xxs),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             label,
             style: tt.labelMedium?.copyWith(
@@ -1063,8 +1058,8 @@ class _StatPill extends StatelessWidget {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xs,
-          vertical: AppSpacing.xxs,
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
         ),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
@@ -1080,7 +1075,7 @@ class _StatPill extends StatelessWidget {
                 color: color,
               ),
             ),
-            const SizedBox(width: AppSpacing.xxs),
+            const SizedBox(width: AppSpacing.xs),
             Flexible(
               child: Text(
                 label,
@@ -1118,8 +1113,8 @@ class _InfoChip extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs,
-        vertical: AppSpacing.xxs,
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
@@ -1135,7 +1130,7 @@ class _InfoChip extends StatelessWidget {
               color: color,
             ),
           ),
-          const SizedBox(width: AppSpacing.xxs),
+          const SizedBox(width: AppSpacing.xs),
           Text(
             label,
             style: tt.labelSmall?.copyWith(
@@ -1234,10 +1229,10 @@ class _AvatarSourceSheet extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        AppSpacing.sm,
-        AppSpacing.sm,
-        AppSpacing.sm,
-        AppSpacing.sm + MediaQuery.of(context).padding.bottom,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg + MediaQuery.of(context).padding.bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1247,7 +1242,7 @@ class _AvatarSourceSheet extends StatelessWidget {
             child: Container(
               width: 36,
               height: 4,
-              margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+              margin: const EdgeInsets.only(bottom: AppSpacing.lg),
               decoration: BoxDecoration(
                 color: cs.outlineVariant,
                 borderRadius: BorderRadius.circular(4),
@@ -1260,13 +1255,13 @@ class _AvatarSourceSheet extends StatelessWidget {
                   fontWeight: AppFontWeights.bold,
                 ),
           ),
-          const SizedBox(height: AppSpacing.xs2),
+          const SizedBox(height: AppSpacing.md),
           _SourceTile(
             icon: Icons.photo_library_outlined,
             label: 'Choose from Gallery',
             onTap: () => Navigator.pop(context, ImageSource.gallery),
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: AppSpacing.sm),
           _SourceTile(
             icon: Icons.camera_alt_outlined,
             label: 'Take a Photo',
@@ -1300,13 +1295,13 @@ class _SourceTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.lg),
         child: Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.xs2,
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
           ),
           child: Row(
             children: [
               Icon(icon, color: cs.primary, size: 22),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: AppSpacing.lg),
               Text(
                 label,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
@@ -1350,9 +1345,9 @@ class _PerformanceSection extends StatelessWidget {
           title: 'Performance',
           subtitle: 'Your match statistics and win rate.',
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: AppSpacing.lg),
         AppCard(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1364,7 +1359,7 @@ class _PerformanceSection extends StatelessWidget {
                     value: '$matchesPlayed',
                     color: AppColors.blue,
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: AppSpacing.lg),
                   _PerformanceStat(
                     icon: Icons.emoji_events_outlined,
                     label: 'Win Rate',
@@ -1373,7 +1368,7 @@ class _PerformanceSection extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.lg),
               Row(
                 children: [
                   _StatPill(
@@ -1381,13 +1376,13 @@ class _PerformanceSection extends StatelessWidget {
                     value: '$won',
                     color: AppColors.green,
                   ),
-                  const SizedBox(width: AppSpacing.xs),
+                  const SizedBox(width: AppSpacing.sm),
                   _StatPill(
                     label: 'Lost',
                     value: '$lost',
                     color: AppColors.red,
                   ),
-                  const SizedBox(width: AppSpacing.xs),
+                  const SizedBox(width: AppSpacing.sm),
                   _StatPill(
                     label: 'Draw',
                     value: '$draw',
@@ -1395,11 +1390,11 @@ class _PerformanceSection extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.lg),
               Divider(
                   height: 1,
                   color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.lg),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -1418,7 +1413,7 @@ class _PerformanceSection extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.sm),
               ClipRRect(
                 borderRadius: BorderRadius.circular(AppRadius.pill),
                 child: LinearProgressIndicator(
@@ -1460,9 +1455,9 @@ class _ReliabilitySection extends StatelessWidget {
           title: 'Reliability Score',
           subtitle: 'Your attendance and booking behavior.',
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: AppSpacing.lg),
         AppCard(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.all(AppSpacing.xl),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -1501,7 +1496,7 @@ class _ReliabilitySection extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1516,7 +1511,7 @@ class _ReliabilitySection extends StatelessWidget {
                             shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(width: AppSpacing.xs),
+                        const SizedBox(width: AppSpacing.sm),
                         Text(
                           scoreLabel,
                           style:
@@ -1538,10 +1533,10 @@ class _ReliabilitySection extends StatelessWidget {
                             color: colorScheme.onSurfaceVariant,
                           ),
                     ),
-                    const SizedBox(height: AppSpacing.xs2),
+                    const SizedBox(height: AppSpacing.md),
                     Wrap(
-                      spacing: AppSpacing.xs,
-                      runSpacing: AppSpacing.xs,
+                      spacing: AppSpacing.sm,
+                      runSpacing: AppSpacing.sm,
                       children: [
                         _InfoChip(
                           label: 'No-shows',
@@ -1605,7 +1600,7 @@ class _PreferencesSection extends StatelessWidget {
                             color: Theme.of(context)
                                 .colorScheme
                                 .onSurfaceVariant)),
-                    const SizedBox(width: AppSpacing.xs),
+                    const SizedBox(width: AppSpacing.sm),
                     Icon(Icons.arrow_forward_ios_rounded,
                         size: 16,
                         color: Theme.of(context).colorScheme.onSurfaceVariant),

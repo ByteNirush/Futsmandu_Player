@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:futsmandu_design_system/components/empty_state/empty_state.dart';
 
-import '../../core/design_system/app_spacing.dart';
-import '../../core/design_system/app_radius.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 import '../matches/data/models/player_match_models.dart';
 import '../matches/presentation/providers/matches_controller.dart';
@@ -125,14 +122,14 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
           if (error != null)
             Container(
               margin: const EdgeInsets.fromLTRB(
-                AppSpacing.sm2,
-                AppSpacing.xs,
-                AppSpacing.sm2,
+                AppSpacing.lg,
+                AppSpacing.sm,
+                AppSpacing.lg,
                 0,
               ),
               padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xs2,
-                vertical: AppSpacing.xs,
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.sm,
               ),
               decoration: BoxDecoration(
                 color: scheme.errorContainer.withValues(alpha: 0.3),
@@ -145,7 +142,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                     size: 18,
                     color: scheme.error,
                   ),
-                  const SizedBox(width: AppSpacing.xs),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
                       error,
@@ -161,10 +158,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
 
           Padding(
             padding: const EdgeInsets.fromLTRB(
-              AppSpacing.sm2,
+              AppSpacing.lg,
               AppSpacing.sm,
-              AppSpacing.sm2,
-              AppSpacing.sm,
+              AppSpacing.lg,
+              0,
             ),
             child: TextField(
               controller: _searchController,
@@ -173,22 +170,16 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                   _searchQuery = value.trim();
                 });
               },
-              style: AppTypography.body(context, scheme).copyWith(
-                fontSize: 15 * AppTypographyScale.fromContext(context),
-              ),
+              style: theme.textTheme.bodySmall,
               decoration: InputDecoration(
-                hintText: 'Search venues, courts, or locations...',
-                hintStyle: AppTypography.body(context, scheme).copyWith(
-                  fontSize: 15 * AppTypographyScale.fromContext(context),
-                  color: scheme.onSurfaceVariant.withValues(alpha: 0.7),
+                hintText: 'Search venues...',
+                hintStyle: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
                 ),
-                prefixIcon: Container(
-                  margin: const EdgeInsets.only(left: AppSpacing.sm, right: AppSpacing.xs),
-                  child: Icon(
-                    Icons.search_rounded,
-                    color: scheme.primary,
-                    size: 22,
-                  ),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: scheme.onSurfaceVariant,
+                  size: 18,
                 ),
                 suffixIcon: _searchQuery.isEmpty
                     ? null
@@ -201,40 +192,37 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                           });
                           FocusScope.of(context).unfocus();
                         },
-                        icon: Icon(Icons.close_rounded, size: 18, color: scheme.onSurfaceVariant),
+                        icon: Icon(
+                          Icons.clear,
+                          color: scheme.onSurfaceVariant,
+                          size: 16,
+                        ),
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(
-                          minWidth: 36,
-                          minHeight: 36,
+                          minWidth: 32,
+                          minHeight: 32,
                         ),
                       ),
                 filled: true,
-                fillColor: scheme.surfaceContainerLow,
+                fillColor: scheme.surfaceContainerHighest,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
                   borderSide: BorderSide.none,
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.xl),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.xl),
-                  borderSide: BorderSide(color: scheme.primary.withValues(alpha: 0.3), width: 1.5),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
+                  horizontal: AppSpacing.lg,
                   vertical: AppSpacing.sm,
                 ),
                 isDense: true,
               ),
             ),
           ),
+          const SizedBox(height: AppSpacing.lg),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm2),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
             child: Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm,
+                horizontal: AppSpacing.lg,
                 vertical: AppSpacing.xs,
               ),
               decoration: BoxDecoration(
@@ -248,7 +236,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(AppSpacing.xxs),
+                    padding: const EdgeInsets.all(AppSpacing.xs),
                     decoration: BoxDecoration(
                       color: scheme.primaryContainer.withValues(alpha: 0.5),
                       borderRadius: BorderRadius.circular(AppRadius.md),
@@ -259,7 +247,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                       color: scheme.primary,
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.xs),
+                  const SizedBox(width: AppSpacing.sm),
                   Text(
                     '${matches.length} ${matches.length == 1 ? 'match' : 'matches'} found',
                     style: AppTypography.body(context, scheme).copyWith(
@@ -275,7 +263,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                       child: DropdownButton<MatchDiscoveryTab>(
                         value: selectedDropdownTab,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xs,
+                          horizontal: AppSpacing.sm,
                         ),
                         icon: Icon(
                           Icons.keyboard_arrow_down_rounded,
@@ -310,7 +298,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
             ),
           ),
 
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: AppSpacing.sm),
 
           // MATCH LIST
           Expanded(
@@ -328,16 +316,16 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                         'list_$safeTabIndex$_searchQuery',
                       ),
                       padding: EdgeInsets.fromLTRB(
-                        AppSpacing.sm2,
-                        AppSpacing.xs,
-                        AppSpacing.sm2,
+                        AppSpacing.lg,
+                        AppSpacing.sm,
+                        AppSpacing.lg,
                         MediaQuery.of(context).padding.bottom +
                             kNavBarHeight +
                             20,
                       ),
                       itemCount: matches.length,
                       separatorBuilder: (_, __) =>
-                          const SizedBox(height: AppSpacing.sm),
+                          const SizedBox(height: AppSpacing.lg),
                       itemBuilder: (ctx, i) =>
                           MatchListCard(match: matches[i], index: i),
                     ),

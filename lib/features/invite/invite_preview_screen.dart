@@ -1,12 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:futsmandu_design_system/core/theme/app_radius.dart';
 
-import '../../core/design_system/app_spacing.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../core/painters/field_painter.dart';
 import '../../core/services/player_auth_storage_service.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';
 import '../../shared/widgets/status_badge.dart';
@@ -191,19 +188,19 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
         ),
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.all(AppSpacing.xl),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.link_off_rounded,
                     size: 48, color: AppColors.txtDisabled),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.lg),
                 Text(
                   _errorMessage ?? 'Could not load invite preview.',
                   textAlign: TextAlign.center,
                   style: AppTypography.body(context, Theme.of(context).colorScheme).copyWith(color: AppColors.txtDisabled),
                 ),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: AppSpacing.xl),
                 ElevatedButton(
                   onPressed: _loadInvite,
                   child: const Text('Retry'),
@@ -282,7 +279,7 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(AppSpacing.sm),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -375,7 +372,7 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                   ),
                   const SizedBox(height: 12),
                   Container(
-                    padding: const EdgeInsets.all(AppSpacing.sm),
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     decoration: BoxDecoration(
                       color: AppColors.bgElevated,
                       borderRadius: AppRadius.medium,
@@ -384,7 +381,7 @@ class _InvitePreviewScreenState extends State<InvitePreviewScreen> {
                     child: Row(
                       children: [
                         const Icon(Icons.group_outlined, color: AppColors.green),
-                        const SizedBox(width: AppSpacing.sm),
+                        const SizedBox(width: AppSpacing.lg),
                         Expanded(
                           child: Text(
                             'Confirm your spot and join the lineup.',
@@ -526,7 +523,7 @@ class _PositionChip extends StatelessWidget {
       onTap: () => onTap(value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs2),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.green : AppColors.bgElevated,
           borderRadius: BorderRadius.circular(10),

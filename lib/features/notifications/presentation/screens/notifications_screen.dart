@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:futsmandu_design_system/core/theme/app_radius.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 
-import '../../../../core/design_system/app_spacing.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import '../../../../shared/widgets/enhanced_empty_state.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../data/models/player_notification_models.dart';
 import '../../data/services/player_notifications_service.dart';
 import '../providers/notifications_controller.dart';
@@ -141,8 +137,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 : _markAllRead,
             child: state.isMarkingAllRead
                 ? const SizedBox(
-                    width: AppSpacing.md,
-                    height: AppSpacing.md,
+                    width: AppSpacing.xl,
+                    height: AppSpacing.xl,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Text('Mark all read'),
@@ -156,12 +152,12 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           if (state.errorMessage != null && state.items.isNotEmpty)
             Container(
               margin: const EdgeInsets.fromLTRB(
-                AppSpacing.xs2,
-                AppSpacing.xs,
-                AppSpacing.xs2,
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
                 0,
               ),
-              padding: const EdgeInsets.all(AppSpacing.xs),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               decoration: BoxDecoration(
                 color: AppColors.red.withValues(alpha: 0.08),
                 borderRadius: AppRadius.small,
@@ -192,7 +188,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 if (state.errorMessage != null && state.items.isEmpty) {
                   return Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
+                      padding: const EdgeInsets.all(AppSpacing.xl),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -201,7 +197,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                             textAlign: TextAlign.center,
                             style: AppTypography.body(context, Theme.of(context).colorScheme).copyWith(color: AppColors.red),
                           ),
-                          const SizedBox(height: AppSpacing.xl),
+                          const SizedBox(height: AppSpacing.xxxl),
                           ElevatedButton(
                             onPressed: controller.loadInitial,
                             child: const Text('Retry'),
@@ -235,7 +231,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     itemBuilder: (ctx, i) {
                       if (i >= state.items.length) {
                         return const Padding(
-                          padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                          padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
                           child: Center(child: CircularProgressIndicator()),
                         );
                       }
@@ -285,26 +281,26 @@ class _NotificationTile extends StatelessWidget {
             ? AppColors.bgPrimary
             : AppColors.bgElevated.withValues(alpha: 0.4),
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.xs2,
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: AppSpacing.xl + 4,
-              height: AppSpacing.xl + 4,
+              width: AppSpacing.xxxl + 4,
+              height: AppSpacing.xxxl + 4,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: iconColor.withValues(alpha: 0.12),
               ),
               child: Icon(
                 iconFor(type),
-                size: AppSpacing.md - 2,
+                size: AppSpacing.xl - 2,
                 color: iconColor,
               ),
             ),
-            const SizedBox(width: AppSpacing.sm),
+            const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,14 +314,14 @@ class _NotificationTile extends StatelessWidget {
                           isRead ? AppColors.txtDisabled : AppColors.txtPrimary,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xxs),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     item.body,
                     style: AppTypography.body(context, Theme.of(context).colorScheme).copyWith(fontSize: 14 * AppTypographyScale.fromContext(context)),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: AppSpacing.xs),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(
                     item.timeAgo,
                     style: AppTypography.caption(context, Theme.of(context).colorScheme),
@@ -335,9 +331,9 @@ class _NotificationTile extends StatelessWidget {
             ),
             if (!isRead)
               Container(
-                margin: const EdgeInsets.only(top: AppSpacing.sm),
-                width: AppSpacing.sm - 7,
-                height: AppSpacing.sm - 7,
+                margin: const EdgeInsets.only(top: AppSpacing.lg),
+                width: AppSpacing.lg - 7,
+                height: AppSpacing.lg - 7,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppColors.green,

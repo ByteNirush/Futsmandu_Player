@@ -2,10 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../../core/design_system/app_spacing.dart';
-import '../../core/design_system/app_radius.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../shared/widgets/futs_card.dart';
 import 'data/models/player_friends_models.dart';
 import 'data/services/player_friends_service.dart';
@@ -230,12 +227,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
           if (_error != null)
             Container(
               margin: const EdgeInsets.fromLTRB(
-                AppSpacing.xs2,
-                AppSpacing.xs,
-                AppSpacing.xs2,
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
                 0,
               ),
-              padding: const EdgeInsets.all(AppSpacing.xs),
+              padding: const EdgeInsets.all(AppSpacing.sm),
               decoration: BoxDecoration(
                 color: colorScheme.error.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
@@ -271,7 +268,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                     }),
                     child: Container(
                       padding:
-                          const EdgeInsets.symmetric(vertical: AppSpacing.xs2),
+                          const EdgeInsets.symmetric(vertical: AppSpacing.md),
                       color: Colors.transparent,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -315,7 +312,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xs2),
+                      padding: const EdgeInsets.all(AppSpacing.md),
                       child: TextField(
                         onChanged: (v) => setState(() => _friendSearch = v),
                         style: AppTypography.body(context, colorScheme).copyWith(
@@ -339,8 +336,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                             borderSide: BorderSide.none,
                           ),
                           contentPadding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm,
-                            vertical: AppSpacing.xs,
+                            horizontal: AppSpacing.lg,
+                            vertical: AppSpacing.sm,
                           ),
                           isDense: true,
                         ),
@@ -387,11 +384,11 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   itemBuilder: (context, index) {
                     final r = _friendRequests[index];
                     return Padding(
-                      padding: const EdgeInsets.all(AppSpacing.sm),
+                      padding: const EdgeInsets.all(AppSpacing.lg),
                       child: FutsCard(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: AppSpacing.xs2,
+                          horizontal: AppSpacing.lg,
+                          vertical: AppSpacing.md,
                         ),
                         child: Row(
                           children: [
@@ -454,7 +451,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                 Column(
                   children: [
                     Padding(
-                      padding: const EdgeInsets.all(AppSpacing.xs2),
+                      padding: const EdgeInsets.all(AppSpacing.md),
                       child: TextField(
                         onChanged: _onSearchPlayersChanged,
                         style: AppTypography.body(context, colorScheme).copyWith(
@@ -478,8 +475,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                             borderSide: BorderSide.none,
                           ),
                           contentPadding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm,
-                            vertical: AppSpacing.xs,
+                            horizontal: AppSpacing.lg,
+                            vertical: AppSpacing.sm,
                           ),
                           isDense: true,
                         ),
@@ -501,8 +498,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
                                 return Padding(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: AppSpacing.sm,
-                                    vertical: AppSpacing.xs,
+                                    horizontal: AppSpacing.lg,
+                                    vertical: AppSpacing.sm,
                                   ),
                                   child: Row(
                                     children: [
@@ -548,8 +545,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
                                           duration:
                                               const Duration(milliseconds: 200),
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: AppSpacing.sm,
-                                            vertical: AppSpacing.xs,
+                                            horizontal: AppSpacing.lg,
+                                            vertical: AppSpacing.sm,
                                           ),
                                           decoration: BoxDecoration(
                                             color: isSent
@@ -615,8 +612,8 @@ class _FriendTile extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.sm,
       ),
       child: Row(
         children: [
@@ -718,8 +715,8 @@ class _SkillBadge extends StatelessWidget {
     final c = _skillColor(skill);
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs,
-        vertical: AppSpacing.xxs,
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
         color: c.withValues(alpha: 0.1),
