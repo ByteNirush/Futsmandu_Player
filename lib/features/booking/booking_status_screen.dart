@@ -2,9 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/design_system/app_spacing.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import 'data/services/player_booking_service.dart';
 import 'presentation/providers/booking_repository_provider.dart';
 
@@ -68,21 +66,24 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen>
     });
 
     try {
-      final playersNeeded = (maxPlayers != null && myPlayers != null)
-          ? maxPlayers - myPlayers
+      // Backend has a strict check: currentPlayerCount MUST equal 1 (admin) + friendIds.length.
+      // To support "offline" players (myPlayers > 1), we map the excess offline players
+      // by reducing the app-managed maxPlayers and playersNeeded counts.
+      final offlineCount = (myPlayers ?? 1) - 1;
+      final apiMaxPlayers = (maxPlayers != null) ? maxPlayers - offlineCount : null;
+      final apiCurrentPlayerCount = 1 + (friendIds?.length ?? 0);
+      final apiPlayersNeeded = (apiMaxPlayers != null)
+          ? apiMaxPlayers - apiCurrentPlayerCount
           : null;
-
-      // Backend expects: currentPlayerCount = 1 (booking admin) + auto-added friends
-      final currentPlayerCount = 1 + (friendIds?.length ?? 0);
 
       final bookingRecord = await ref.read(bookingRepositoryProvider).createBooking(
             courtId: courtId,
             date: bookingDate,
             startTime: startTime,
             bookingType: bookingType,
-            maxPlayers: maxPlayers,
-            currentPlayerCount: currentPlayerCount,
-            playersNeeded: playersNeeded,
+            maxPlayers: apiMaxPlayers,
+            currentPlayerCount: apiCurrentPlayerCount,
+            playersNeeded: apiPlayersNeeded,
             friendIds: friendIds,
           );
 
@@ -179,18 +180,18 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen>
                 ],
               )
             : Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.xl),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.error_outline, size: 48, color: AppColors.red),
-                    const SizedBox(height: AppSpacing.sm),
+                    const SizedBox(height: AppSpacing.lg),
                     Text(
                       _errorMessage ?? 'Unable to create booking.',
                       style: AppTypography.body(context, Theme.of(context).colorScheme),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: AppSpacing.md),
+                    const SizedBox(height: AppSpacing.xl),
                     ElevatedButton(
                       onPressed: _createBookingAndContinue,
                       child: const Text('Retry'),
@@ -255,7 +256,7 @@ class _PulsingDotsState extends State<_PulsingDots>
           child: Container(
             width: 8,
             height: 8,
-            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.green,

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/design_system/app_spacing.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../../../core/utils/time_formatters.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../data/models/booking_models.dart';
 import '../providers/booking_controllers.dart';
 import 'cancel_booking_sheet.dart';
@@ -45,7 +43,7 @@ class BookingDetailSheet extends ConsumerWidget {
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: detailAsync.when(
           loading: () => const SizedBox(
             height: 260,
@@ -57,7 +55,7 @@ class BookingDetailSheet extends ConsumerWidget {
               height: 260,
               child: Center(
                 child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
+                  padding: const EdgeInsets.all(AppSpacing.xl),
                   child: Text(
                     message.isNotEmpty
                         ? message
@@ -106,14 +104,14 @@ class BookingDetailSheet extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: AppSpacing.xl),
                 Text(
                   'Booking Detail',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: AppFontWeights.bold,
                       ),
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.lg),
                 _DetailRow('Booking ID', booking['id']?.toString() ?? '-'),
                 _DetailRow(
                   'Status',
@@ -142,7 +140,7 @@ class BookingDetailSheet extends ConsumerWidget {
                   booking['displayAmount']?.toString() ??
                       'NPR ${booking['total_amount'] ?? 0}',
                 ),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: AppSpacing.xl),
                 if (isPartialTeam && matchGroupId.isNotEmpty) ...[
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
@@ -159,7 +157,7 @@ class BookingDetailSheet extends ConsumerWidget {
                     },
                     child: const Text('View Match Group'),
                   ),
-                  const SizedBox(height: AppSpacing.xs),
+                  const SizedBox(height: AppSpacing.sm),
                 ],
                 if (isCancellable) ...[
                   ElevatedButton(
@@ -170,7 +168,7 @@ class BookingDetailSheet extends ConsumerWidget {
                     onPressed: () => _showCancelSheet(context),
                     child: const Text('Cancel Booking'),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: AppSpacing.lg),
                 ],
                 OutlinedButton(
                   onPressed: () => Navigator.pop(context),
@@ -194,7 +192,7 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

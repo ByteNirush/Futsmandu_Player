@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/design_system/app_spacing.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
-import '../../shared/widgets/enhanced_empty_state.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../shared/widgets/futs_card.dart';
 import '../../shared/widgets/status_badge.dart';
 import 'data/models/payment_models.dart';
@@ -105,10 +102,10 @@ class PaymentHistoryScreen extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Icon(Icons.error_outline, size: 48, color: AppColors.red),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.lg),
               Text(error.toString(),
                   style: AppTypography.body(context, Theme.of(context).colorScheme), textAlign: TextAlign.center),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.xl),
               ElevatedButton(
                 onPressed: () => ref
                     .read(paymentHistoryControllerProvider.notifier)
@@ -128,9 +125,9 @@ class PaymentHistoryScreen extends ConsumerWidget {
           }
 
           return ListView.separated(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.all(AppSpacing.xl),
             itemCount: payments.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.lg),
             itemBuilder: (_, i) => _PaymentHistoryCard(
               payment: payments[i],
               statusColor: _statusColor(payments[i].status),
@@ -197,7 +194,7 @@ class _PaymentHistoryCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: AppSpacing.lg),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -224,7 +221,7 @@ class _PaymentHistoryCard extends StatelessWidget {
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xs2,
+                  horizontal: AppSpacing.md,
                   vertical: 2,
                 ),
                 decoration: BoxDecoration(

@@ -8,10 +8,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/config/esewa_payment_config.dart';
-import '../../core/design_system/app_spacing.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../core/utils/time_formatters.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';
 import 'data/services/player_payments_service.dart';
@@ -443,20 +441,20 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.sm,
-          AppSpacing.sm,
-          AppSpacing.sm,
-          AppSpacing.md,
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.lg,
+          AppSpacing.xl,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             FutsCard(
               padding: const EdgeInsets.fromLTRB(
-                AppSpacing.sm,
-                AppSpacing.sm,
-                AppSpacing.sm,
-                AppSpacing.sm,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.lg,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -544,8 +542,8 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
             const SizedBox(height: 14),
             Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xs2,
-                vertical: AppSpacing.xs2,
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.md,
               ),
               decoration: BoxDecoration(
                 color: AppColors.blue.withValues(alpha: 0.07),
@@ -601,7 +599,7 @@ class _SumRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
         children: [
           Text(label, style: Theme.of(context).textTheme.bodyMedium),
@@ -641,8 +639,8 @@ class _PaymentCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         height: 88,
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xs,
-          vertical: AppSpacing.xs,
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
           color: isSelected

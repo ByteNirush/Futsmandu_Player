@@ -3,13 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 
-import '../../core/design_system/app_spacing.dart';
-import 'package:futsmandu_design_system/futsmandu_design_system.dart'
-    show AppRadius;
-import 'package:futsmandu_design_system/core/theme/app_colors.dart'
-    show AppColors;
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../venues/data/services/player_venues_service.dart';
 import '../friends/data/services/player_friends_service.dart';
@@ -355,9 +350,13 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
 
   int get _playersNeeded => _totalPlayers - _myPlayers;
 
+  int get _totalSecuredPlayers => _myPlayers + _selectedFriendIds.length;
+
+  int get _totalRemainingNeeded => _totalPlayers - _totalSecuredPlayers;
+
   String get _bookingTypeInfo => _isFullBooking
       ? 'Full court booking — only your team can access this slot.'
-      : 'Open match — you have $_myPlayers players, need $_playersNeeded more to complete a $_totalPlayers-player team.';
+      : 'Open match — you have $_totalSecuredPlayers players, need $_totalRemainingNeeded more to complete a $_totalPlayers-player team.';
 
   void _confirmBooking() {
     final venue = _venue;
@@ -417,10 +416,10 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(
-          AppSpacing.pagePadding,
-          AppSpacing.sm,
-          AppSpacing.pagePadding,
-          AppSpacing.md,
+          AppSpacing.pageHorizontal,
+          AppSpacing.lg,
+          AppSpacing.pageHorizontal,
+          AppSpacing.xl,
         ),
         child: Column(
           children: List.generate(_stepTitles.length, (i) {
@@ -457,7 +456,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.xs),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -477,13 +476,13 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                           ),
                         ),
                         if (isCompleted) ...[
-                          const SizedBox(height: AppSpacing.xs),
+                          const SizedBox(height: AppSpacing.sm),
                           _buildStepSummary(i, colorScheme, textTheme),
-                          const SizedBox(height: AppSpacing.md),
+                          const SizedBox(height: AppSpacing.xl),
                         ] else if (isActive) ...[
-                          const SizedBox(height: AppSpacing.sm),
+                          const SizedBox(height: AppSpacing.lg),
                           _buildStepContent(i, colorScheme, textTheme),
-                          const SizedBox(height: AppSpacing.sm),
+                          const SizedBox(height: AppSpacing.lg),
                           SizedBox(
                             width: double.infinity,
                             child: FutsButton(
@@ -491,9 +490,9 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                               onPressed: _canAdvance() ? _advance : null,
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.md),
+                          const SizedBox(height: AppSpacing.xl),
                         ] else ...[
-                          const SizedBox(height: AppSpacing.md),
+                          const SizedBox(height: AppSpacing.xl),
                         ],
                       ],
                     ),
@@ -526,7 +525,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
       case 2:
         final extra = _isFullBooking
             ? ''
-            : '  •  $_myPlayers of $_totalPlayers (need $_playersNeeded more)';
+            : '  •  $_totalSecuredPlayers of $_totalPlayers (need $_totalRemainingNeeded more)';
         return Text(
           '$_bookingTypeLabel$extra',
           style: textTheme.bodyMedium?.copyWith(color: colorScheme.primary),
@@ -572,12 +571,12 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
         final subtitle = [type, surface].where((s) => s.isNotEmpty).join(' · ');
 
         return Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
           child: GestureDetector(
             onTap: () => setState(() => _selectedCourtIdx = idx),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(AppSpacing.sm),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               decoration: BoxDecoration(
                 color: isSelected
                     ? colorScheme.primary.withValues(alpha: 0.12)
@@ -606,7 +605,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                       size: 22,
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.xs),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -617,7 +616,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                               ?.copyWith(fontWeight: AppFontWeights.semiBold),
                         ),
                         if (subtitle.isNotEmpty) ...[
-                          const SizedBox(height: AppSpacing.xxs),
+                          const SizedBox(height: AppSpacing.xs),
                           Text(
                             subtitle,
                             style: textTheme.bodySmall
@@ -628,7 +627,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                     ),
                   ),
                   if (price != null) ...[
-                    const SizedBox(width: AppSpacing.xs),
+                    const SizedBox(width: AppSpacing.sm),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -669,7 +668,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
               width: 1,
             ),
           ),
-          padding: const EdgeInsets.all(AppSpacing.xs),
+          padding: const EdgeInsets.all(AppSpacing.sm),
           child: TableCalendar<dynamic>(
             firstDay: DateUtils.dateOnly(DateTime.now()),
             lastDay: DateUtils.dateOnly(
@@ -754,12 +753,12 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
           ),
         ),
         if (_selectedDate != null) ...[
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.lg),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.xs,
-              vertical: AppSpacing.xxs,
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
             ),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
@@ -773,7 +772,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.lg),
           _buildSlotGrid(colorScheme, textTheme),
         ],
       ],
@@ -784,7 +783,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
     if (_isLoadingSlots) {
       return const Center(
         child: Padding(
-          padding: EdgeInsets.all(AppSpacing.md),
+          padding: EdgeInsets.all(AppSpacing.xl),
           child: CircularProgressIndicator(),
         ),
       );
@@ -796,7 +795,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
     if (_availabilitySlots.isEmpty) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(AppSpacing.sm),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHigh,
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -805,7 +804,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
           children: [
             Icon(Icons.event_busy_outlined,
                 size: 18, color: colorScheme.onSurfaceVariant),
-            const SizedBox(width: AppSpacing.xs),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
                 'No slots available for this date.',
@@ -885,7 +884,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                                               : colorScheme.onSurface,
                                 ),
                           ),
-                          const SizedBox(height: AppSpacing.xxs),
+                          const SizedBox(height: AppSpacing.xs),
                           Text(
                             isUnavailable ? 'Unavailable' : 'Available',
                             style: textTheme.labelSmall?.copyWith(
@@ -909,11 +908,11 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
               }).toList(),
             ),
             if (_selectedSlots.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.lg),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
+                    horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
                 decoration: BoxDecoration(
                   color: colorScheme.primary.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(AppRadius.md),
@@ -922,7 +921,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                   children: [
                     Icon(Icons.info_outline_rounded,
                         size: 16, color: colorScheme.primary),
-                    const SizedBox(width: AppSpacing.xs),
+                    const SizedBox(width: AppSpacing.sm),
                     Expanded(
                       child: Text(
                         'Only consecutive time slots can be selected',
@@ -952,7 +951,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
           colorScheme: colorScheme,
           textTheme: textTheme,
         ),
-        const SizedBox(height: AppSpacing.xs),
+        const SizedBox(height: AppSpacing.sm),
         _BookingTypeCard(
           title: 'Partial Team',
           description: 'Create an open match — others can join to fill spots.',
@@ -963,10 +962,11 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
           textTheme: textTheme,
         ),
         if (!_isFullBooking) ...[
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.lg),
           _PartialTeamPicker(
             myPlayers: _myPlayers,
             totalPlayers: _totalPlayers,
+            selectedFriendsCount: _selectedFriendIds.length,
             onMyPlayersChanged: (v) {
               setState(() {
                 _myPlayers = v;
@@ -980,7 +980,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
             colorScheme: colorScheme,
             textTheme: textTheme,
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.xl),
           _buildFriendSelection(colorScheme, textTheme),
         ],
       ],
@@ -990,7 +990,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
   Widget _buildFriendSelection(ColorScheme colorScheme, TextTheme textTheme) {
     if (_isLoadingFriends) {
       return Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -1010,7 +1010,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
 
     if (_friends.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         decoration: BoxDecoration(
           color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(AppRadius.md),
@@ -1022,7 +1022,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
           children: [
             Icon(Icons.people_outline,
                 size: 18, color: colorScheme.onSurfaceVariant),
-            const SizedBox(width: AppSpacing.xs),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
                 'No friends found. Add friends to invite them to your match.',
@@ -1037,7 +1037,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
     }
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -1051,7 +1051,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
           Row(
             children: [
               Icon(Icons.people_outline, size: 18, color: colorScheme.primary),
-              const SizedBox(width: AppSpacing.xs),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
                   'Invite Friends',
@@ -1066,13 +1066,13 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                 Flexible(
                   child: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xs, vertical: AppSpacing.xxs),
+                        horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                     decoration: BoxDecoration(
                       color: colorScheme.primary.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     child: Text(
-                      '${_selectedFriendIds.length}/$_playersNeeded',
+                      '$_totalSecuredPlayers/$_totalPlayers',
                       style: textTheme.labelSmall?.copyWith(
                         color: colorScheme.primary,
                         fontWeight: AppFontWeights.semiBold,
@@ -1084,17 +1084,17 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                 ),
             ],
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: AppSpacing.sm),
           Text(
-            'Select friends to fill the remaining $_playersNeeded spots',
+            'Select friends to fill the remaining $_totalRemainingNeeded spots',
             style: textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.lg),
           Wrap(
-            spacing: AppSpacing.xs,
-            runSpacing: AppSpacing.xs,
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
             children: _friends.map((friend) {
               final friendId = friend['id']?.toString() ?? '';
               final friendName = friend['name']?.toString() ?? 'Unknown';
@@ -1121,7 +1121,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xs, vertical: AppSpacing.xxs),
+                      horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? colorScheme.primary.withValues(alpha: 0.12)
@@ -1155,7 +1155,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                               )
                             : null,
                       ),
-                      const SizedBox(width: AppSpacing.xxs),
+                      const SizedBox(width: AppSpacing.xs),
                       Flexible(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1185,7 +1185,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                         ),
                       ),
                       if (isSelected) ...[
-                        const SizedBox(width: AppSpacing.xxs),
+                        const SizedBox(width: AppSpacing.xs),
                         Icon(Icons.check_circle_rounded,
                             color: colorScheme.primary, size: 16),
                       ],
@@ -1195,10 +1195,10 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
               );
             }).toList(),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.lg),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.sm),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
               color: colorScheme.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(AppRadius.md),
@@ -1207,10 +1207,10 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
               children: [
                 Icon(Icons.info_outline_rounded,
                     size: 16, color: colorScheme.primary),
-                const SizedBox(width: AppSpacing.xs),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
-                    '${_playersNeeded - _selectedFriendIds.length} more random players can join if available',
+                    '$_totalRemainingNeeded more random players can join if available',
                     style: textTheme.bodySmall?.copyWith(
                       color: colorScheme.primary,
                       height: 1.4,
@@ -1247,7 +1247,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(16),
@@ -1266,7 +1266,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
             colorScheme: colorScheme,
             textTheme: textTheme,
           ),
-          const Divider(height: AppSpacing.lg),
+          const Divider(height: AppSpacing.xxl),
           _ReviewRow(
             icon: Icons.sports_soccer_outlined,
             label: 'Court',
@@ -1274,7 +1274,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
             colorScheme: colorScheme,
             textTheme: textTheme,
           ),
-          const Divider(height: AppSpacing.lg),
+          const Divider(height: AppSpacing.xxl),
           _ReviewRow(
             icon: Icons.calendar_today_outlined,
             label: 'Date',
@@ -1282,7 +1282,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
             colorScheme: colorScheme,
             textTheme: textTheme,
           ),
-          const Divider(height: AppSpacing.lg),
+          const Divider(height: AppSpacing.xxl),
           _ReviewRow(
             icon: Icons.access_time_outlined,
             label: 'Time',
@@ -1290,7 +1290,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
             colorScheme: colorScheme,
             textTheme: textTheme,
           ),
-          const Divider(height: AppSpacing.lg),
+          const Divider(height: AppSpacing.xxl),
           _ReviewRow(
             icon: Icons.groups_outlined,
             label: 'Type',
@@ -1298,10 +1298,10 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
             colorScheme: colorScheme,
             textTheme: textTheme,
           ),
-          const Divider(height: AppSpacing.lg),
+          const Divider(height: AppSpacing.xxl),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.sm),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
               color: colorScheme.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(AppRadius.md),
@@ -1313,7 +1313,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
               children: [
                 Icon(Icons.info_outline_rounded,
                     size: 16, color: colorScheme.primary),
-                const SizedBox(width: AppSpacing.xs),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     _bookingTypeInfo,
@@ -1324,10 +1324,10 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
               ],
             ),
           ),
-          const Divider(height: AppSpacing.lg),
+          const Divider(height: AppSpacing.xxl),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(AppSpacing.sm),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             decoration: BoxDecoration(
               color: colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(AppRadius.md),
@@ -1337,7 +1337,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
               children: [
                 Icon(Icons.info_outline_rounded,
                     size: 16, color: colorScheme.primary),
-                const SizedBox(width: AppSpacing.xs),
+                const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
                     'Booking fee NPR 20 (non-refundable). Final price shown at payment.',
@@ -1432,7 +1432,7 @@ class _BookingTypeCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(AppSpacing.sm),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         decoration: BoxDecoration(
           color: isSelected
               ? colorScheme.primary.withValues(alpha: 0.12)
@@ -1457,7 +1457,7 @@ class _BookingTypeCard extends StatelessWidget {
               alignment: Alignment.center,
               child: Icon(icon, color: colorScheme.primary, size: 22),
             ),
-            const SizedBox(width: AppSpacing.xs),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1467,7 +1467,7 @@ class _BookingTypeCard extends StatelessWidget {
                     style: textTheme.titleSmall
                         ?.copyWith(fontWeight: AppFontWeights.semiBold),
                   ),
-                  const SizedBox(height: AppSpacing.xxs),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     description,
                     style: textTheme.bodySmall
@@ -1477,7 +1477,7 @@ class _BookingTypeCard extends StatelessWidget {
               ),
             ),
             if (isSelected) ...[
-              const SizedBox(width: AppSpacing.xs),
+              const SizedBox(width: AppSpacing.sm),
               Icon(Icons.check_circle_rounded,
                   color: colorScheme.primary, size: 20),
             ],
@@ -1495,6 +1495,7 @@ class _BookingTypeCard extends StatelessWidget {
 class _PartialTeamPicker extends StatelessWidget {
   final int myPlayers;
   final int totalPlayers;
+  final int selectedFriendsCount;
   final ValueChanged<int> onMyPlayersChanged;
   final ValueChanged<int> onTotalPlayersChanged;
   final ColorScheme colorScheme;
@@ -1503,6 +1504,7 @@ class _PartialTeamPicker extends StatelessWidget {
   const _PartialTeamPicker({
     required this.myPlayers,
     required this.totalPlayers,
+    required this.selectedFriendsCount,
     required this.onMyPlayersChanged,
     required this.onTotalPlayersChanged,
     required this.colorScheme,
@@ -1524,7 +1526,7 @@ class _PartialTeamPicker extends StatelessWidget {
           colorScheme: colorScheme,
           textTheme: textTheme,
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: AppSpacing.lg),
         _CounterRow(
           title: 'Total team size',
           subtitle: 'Recommended size for this court',
@@ -1535,9 +1537,9 @@ class _PartialTeamPicker extends StatelessWidget {
           colorScheme: colorScheme,
           textTheme: textTheme,
         ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.xl),
         Container(
-          padding: const EdgeInsets.all(AppSpacing.sm),
+          padding: const EdgeInsets.all(AppSpacing.lg),
           decoration: BoxDecoration(
             color: colorScheme.primary.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(AppRadius.md),
@@ -1546,10 +1548,10 @@ class _PartialTeamPicker extends StatelessWidget {
             children: [
               Icon(Icons.info_outline_rounded,
                   size: 16, color: colorScheme.primary),
-              const SizedBox(width: AppSpacing.xs),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
-                  'Remaining players needed: ${totalPlayers - myPlayers}',
+                  'Remaining players needed: ${totalPlayers - (myPlayers + selectedFriendsCount)}',
                   style: textTheme.bodySmall?.copyWith(
                     color: colorScheme.primary,
                     fontWeight: AppFontWeights.semiBold,
@@ -1588,7 +1590,7 @@ class _CounterRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -1607,7 +1609,7 @@ class _CounterRow extends StatelessWidget {
                   style: textTheme.bodyMedium
                       ?.copyWith(fontWeight: AppFontWeights.semiBold),
                 ),
-                const SizedBox(height: AppSpacing.xxs),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   subtitle,
                   style: textTheme.bodySmall
@@ -1616,7 +1618,7 @@ class _CounterRow extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.xs),
+          const SizedBox(width: AppSpacing.sm),
           _PlayerCountStepper(
             value: value,
             min: min,
@@ -1752,7 +1754,7 @@ class _ReviewRow extends StatelessWidget {
           ),
           child: Icon(icon, size: 16, color: colorScheme.primary),
         ),
-        const SizedBox(width: AppSpacing.sm),
+        const SizedBox(width: AppSpacing.lg),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

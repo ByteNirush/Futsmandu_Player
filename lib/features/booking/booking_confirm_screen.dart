@@ -2,10 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/design_system/app_spacing.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../core/utils/time_formatters.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../shared/widgets/futs_button.dart';
 import '../../shared/widgets/futs_card.dart';
 import 'presentation/providers/booking_repository_provider.dart';
@@ -185,10 +183,10 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
           // CONTENT
           SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md,
+              AppSpacing.xl,
               kNavBarHeight,
-              AppSpacing.md,
-              AppSpacing.lg,
+              AppSpacing.xl,
+              AppSpacing.xxl,
             ),
             child: Column(
               children: [
@@ -237,7 +235,7 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
                         const SizedBox(height: 16),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.all(AppSpacing.sm),
+                          padding: const EdgeInsets.all(AppSpacing.lg),
                           decoration: BoxDecoration(
                             color: AppColors.blue.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(16),
@@ -382,7 +380,7 @@ class _ConfirmRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Row(
         children: [
           Text(label, style: Theme.of(context).textTheme.bodyMedium),

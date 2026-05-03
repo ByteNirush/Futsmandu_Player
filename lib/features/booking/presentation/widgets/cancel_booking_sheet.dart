@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/design_system/app_spacing.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../data/models/booking_models.dart';
 import '../providers/booking_controllers.dart';
 
@@ -101,10 +99,10 @@ class _CancelBookingSheetState extends ConsumerState<CancelBookingSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        AppSpacing.md,
-        AppSpacing.md,
-        AppSpacing.md,
-        MediaQuery.of(context).viewInsets.bottom + AppSpacing.md,
+        AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.xl,
+        MediaQuery.of(context).viewInsets.bottom + AppSpacing.xl,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -120,7 +118,7 @@ class _CancelBookingSheetState extends ConsumerState<CancelBookingSheet> {
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.xl),
           Text(
             'Cancel Booking?',
             style: Theme.of(context)
@@ -128,12 +126,12 @@ class _CancelBookingSheetState extends ConsumerState<CancelBookingSheet> {
                 .headlineSmall
                 ?.copyWith(fontWeight: AppFontWeights.bold),
           ),
-          const SizedBox(height: AppSpacing.xs),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             widget.booking.venueName.isNotEmpty ? widget.booking.venueName : 'Selected Venue',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.xl),
           TextFormField(
             controller: _reasonController,
             maxLines: 3,
@@ -158,7 +156,7 @@ class _CancelBookingSheetState extends ConsumerState<CancelBookingSheet> {
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.xl),
           Row(
             children: [
               Expanded(
@@ -167,7 +165,7 @@ class _CancelBookingSheetState extends ConsumerState<CancelBookingSheet> {
                   child: const Text('Keep Booking'),
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(

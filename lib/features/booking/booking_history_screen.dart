@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/design_system/app_spacing.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
-import '../../shared/widgets/enhanced_empty_state.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../shared/widgets/filter_chip_row.dart';
 import 'data/models/booking_models.dart';
 import 'presentation/providers/booking_controllers.dart';
@@ -21,7 +18,7 @@ class BookingHistoryScreen extends ConsumerStatefulWidget {
 
 class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
   final ScrollController _scrollController = ScrollController();
-  static const double _contentHorizontalPadding = AppSpacing.xxs;
+  static const double _contentHorizontalPadding = AppSpacing.xs;
 
   static const List<String> _filters = <String>[
     'All',
@@ -91,9 +88,9 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(
               _contentHorizontalPadding,
-              AppSpacing.xs,
+              AppSpacing.sm,
               _contentHorizontalPadding,
-              AppSpacing.xs,
+              AppSpacing.sm,
             ),
             child: FilterChipRow(
               options: _filters,
@@ -127,9 +124,9 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(
           _contentHorizontalPadding,
-          AppSpacing.lg,
+          AppSpacing.xxl,
           _contentHorizontalPadding,
-          AppSpacing.xl,
+          AppSpacing.xxxl,
         ),
         children: [
           Column(
@@ -139,7 +136,7 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
                 style: Theme.of(context).textTheme.bodyMedium,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.lg),
               ElevatedButton(
                 onPressed: () => ref
                     .read(bookingHistoryControllerProvider.notifier)
@@ -159,9 +156,9 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(
           _contentHorizontalPadding,
-          AppSpacing.lg,
+          AppSpacing.xxl,
           _contentHorizontalPadding,
-          AppSpacing.xl,
+          AppSpacing.xxxl,
         ),
         children: const [
           EmptyStateWidget(
@@ -175,16 +172,16 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
       controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(
         _contentHorizontalPadding,
-        AppSpacing.xs,
+        AppSpacing.sm,
         _contentHorizontalPadding,
-        AppSpacing.xl,
+        AppSpacing.xxxl,
       ),
       itemCount: state.items.length + (state.isLoadingMore ? 1 : 0),
-      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.xs2),
+      separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
       itemBuilder: (context, index) {
         if (index >= state.items.length) {
           return const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
             child: Center(child: CircularProgressIndicator()),
           );
         }

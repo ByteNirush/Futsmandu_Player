@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/design_system/app_spacing.dart';
-import '../../../../core/design_system/app_radius.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../../../core/utils/time_formatters.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../../../shared/widgets/futs_card.dart';
 import '../../data/models/booking_models.dart';
 
@@ -52,7 +49,7 @@ class BookingHistoryCard extends StatelessWidget {
         AppColors.statusColor(isConfirmed ? 'CONFIRMED' : booking.status);
 
     return FutsCard(
-      padding: const EdgeInsets.all(AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       onTap: onTap,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -72,7 +69,7 @@ class BookingHistoryCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: AppSpacing.xxs),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   booking.courtName.isNotEmpty ? booking.courtName : '-',
                   style: textTheme.bodySmall?.copyWith(
@@ -82,7 +79,7 @@ class BookingHistoryCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (booking.id.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.xxs),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     'Booking ID: ${booking.id}',
                     style: textTheme.labelSmall?.copyWith(
@@ -91,7 +88,7 @@ class BookingHistoryCard extends StatelessWidget {
                   ),
                 ],
                 if (booking.isPartialTeam) ...[
-                  const SizedBox(height: AppSpacing.xs),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(
                     'Partial Team',
                     style: textTheme.labelSmall?.copyWith(
@@ -103,7 +100,7 @@ class BookingHistoryCard extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: AppSpacing.lg),
 
           // Right Value & Status Block
           Column(
@@ -117,7 +114,7 @@ class BookingHistoryCard extends StatelessWidget {
                   fontWeight: AppFontWeights.semiBold,
                 ),
               ),
-              const SizedBox(height: AppSpacing.xxs),
+              const SizedBox(height: AppSpacing.xs),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 8,
@@ -135,7 +132,7 @@ class BookingHistoryCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 _formatDate(booking.date.isNotEmpty
                     ? booking.date
