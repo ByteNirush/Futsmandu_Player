@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:futsmandu_design_system/core/theme/app_radius.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import '../../core/design_system/app_spacing.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 
 class FilterChipRow extends StatefulWidget {
   final List<String> options;
@@ -27,20 +24,20 @@ class _FilterChipRowState extends State<FilterChipRow> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xxs,
+        horizontal: AppSpacing.xs,
       ),
       child: Row(
         children: widget.options.map((option) {
           final isSelected = option == widget.selected;
           return Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.xxs),
+            padding: const EdgeInsets.only(right: AppSpacing.xs),
             child: GestureDetector(
               onTap: () => widget.onSelected(option),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xs,
-                  vertical: AppSpacing.xxs, // Use design system spacing
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs, // Use design system spacing
                 ),
                 decoration: BoxDecoration(
                   color: isSelected ? AppColors.green : AppColors.bgElevated,

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:futsmandu_design_system/futsmandu_design_system.dart' as ds;
 
-import '../../core/design_system/app_radius.dart';
-import '../../core/design_system/app_spacing.dart';
 
 class FutsCard extends StatefulWidget {
   final Widget child;
@@ -14,7 +12,7 @@ class FutsCard extends StatefulWidget {
   const FutsCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(AppSpacing.cardPadding),
+    this.padding = const EdgeInsets.all(ds.AppSpacing.cardPadding),
     this.borderRadius,
     this.backgroundColor,
     this.onTap,
@@ -27,9 +25,9 @@ class FutsCard extends StatefulWidget {
 class _FutsCardState extends State<FutsCard> {
   @override
   Widget build(BuildContext context) {
-    final radius = widget.borderRadius ?? BorderRadius.circular(AppRadius.lg);
+    final radius = widget.borderRadius ?? BorderRadius.circular(ds.AppRadius.lg);
     final padding =
-        widget.padding ?? const EdgeInsets.all(AppSpacing.cardPadding);
+        widget.padding ?? const EdgeInsets.all(ds.AppSpacing.cardPadding);
 
     final cardChild =
         widget.backgroundColor == null && widget.borderRadius == null

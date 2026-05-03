@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:futsmandu_design_system/components/buttons/primary_button.dart';
-import 'package:futsmandu_design_system/components/buttons/secondary_button.dart';
 
-import '../../core/design_system/app_radius.dart';
-import '../../core/design_system/app_spacing.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 
 class FutsButton extends StatelessWidget {
   final String label;
