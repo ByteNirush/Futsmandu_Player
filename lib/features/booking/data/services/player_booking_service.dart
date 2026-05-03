@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/config/api_config.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/error_handler.dart';
+import '../../../../core/utils/time_formatters.dart';
 import '../models/booking_models.dart';
 
 class BookingApiException implements Exception {
@@ -76,7 +77,8 @@ class PlayerBookingService {
           if (bookingType != null && bookingType.isNotEmpty)
             'bookingType': _mapBookingTypeToBackend(bookingType),
           if (maxPlayers != null) 'maxPlayers': maxPlayers,
-          if (currentPlayerCount != null) 'currentPlayerCount': currentPlayerCount,
+          if (currentPlayerCount != null)
+            'currentPlayerCount': currentPlayerCount,
           if (playersNeeded != null) 'playersNeeded': playersNeeded,
           if (friendIds != null && friendIds.isNotEmpty) 'friendIds': friendIds,
         },
@@ -130,7 +132,8 @@ class PlayerBookingService {
       final data = _asMap(_unwrap(response.data));
       // Map booking type to UI terminology
       if (data.containsKey('booking_type')) {
-        data['booking_type'] = _mapBookingTypeToUI(_string(data['booking_type']));
+        data['booking_type'] =
+            _mapBookingTypeToUI(_string(data['booking_type']));
       }
       return BookingDetail(data);
     } on DioException catch (error) {
@@ -360,8 +363,6 @@ class PlayerBookingService {
   }
 
   String _timeRange(String start, String end) {
-    if (start.isEmpty && end.isEmpty) return '-';
-    if (end.isEmpty) return start;
-    return '$start - $end';
+    return formatClockTimeRange12Hour(start, end);
   }
 }
