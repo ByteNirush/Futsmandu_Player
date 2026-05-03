@@ -10,7 +10,6 @@ import 'data/models/booking_models.dart';
 import 'presentation/providers/booking_controllers.dart';
 import 'presentation/widgets/booking_detail_sheet.dart';
 import 'presentation/widgets/booking_history_card.dart';
-import 'presentation/widgets/cancel_booking_sheet.dart';
 
 class BookingHistoryScreen extends ConsumerStatefulWidget {
   const BookingHistoryScreen({super.key});
@@ -50,25 +49,6 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
         _scrollController.position.maxScrollExtent - 240) {
       ref.read(bookingHistoryControllerProvider.notifier).loadMore();
     }
-  }
-
-  bool _isCancellableStatus(String? status) {
-    final normalized = (status ?? '').toUpperCase();
-    return normalized == 'CONFIRMED' || normalized == 'HELD';
-  }
-
-  void _showCancelSheet(BookingHistoryItem booking) {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.bgSurface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (sheetContext) {
-        return CancelBookingSheet(booking: booking);
-      },
-    );
   }
 
   void _showBookingDetail(BookingHistoryItem booking) {
@@ -210,37 +190,10 @@ class _BookingHistoryScreenState extends ConsumerState<BookingHistoryScreen> {
         }
 
         final booking = state.items[index];
-        final isCancellable = _isCancellableStatus(booking.status);
-        
+
         return BookingHistoryCard(
           booking: booking,
           onTap: () => _showBookingDetail(booking),
-          onCancel: isCancellable ? () => _showCancelSheet(booking) : null,
-          onJoin: booking.status == 'OPEN_TO_JOIN'
-              ? () async {
-                  try {
-                    await ref
-                        .read(bookingHistoryControllerProvider.notifier)
-                        .joinBooking(bookingId: booking.id);
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Joined booking slot')),
-                    );
-                  } catch (error) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(error.toString())),
-                    );
-                  }
-                }
-              : null,
-          onViewMatch: booking.isPartialTeam && booking.matchGroupId.isNotEmpty
-              ? () => Navigator.pushNamed(
-                    context,
-                    '/match-detail',
-                    arguments: {'id': booking.matchGroupId},
-                  )
-              : null,
         );
       },
     );
