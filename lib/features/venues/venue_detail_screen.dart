@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
-import '../../core/design_system/app_spacing.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart' show AppColors;
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../shared/widgets/futs_button.dart';
 import 'data/services/player_venues_service.dart';
 
@@ -159,10 +157,10 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
           builder: (context, setSheetState) {
             return Padding(
               padding: EdgeInsets.fromLTRB(
-                AppSpacing.sm,
-                AppSpacing.sm,
-                AppSpacing.sm,
-                MediaQuery.of(context).viewInsets.bottom + AppSpacing.sm,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -172,7 +170,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                     'Write Review',
                     style: AppTypography.subHeading(context, sheetColorScheme),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: AppSpacing.lg),
                   TextField(
                     controller: bookingIdController,
                     decoration: const InputDecoration(
@@ -180,7 +178,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                       hintText: 'Enter completed booking ID',
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xs),
+                  const SizedBox(height: AppSpacing.sm),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -188,7 +186,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         'Your rating',
                         style: AppTypography.caption(context, sheetColorScheme),
                       ),
-                      const SizedBox(width: AppSpacing.xxs),
+                      const SizedBox(width: AppSpacing.xs),
                       Text(
                         '$rating/5 - ${ratingLabels[rating - 1]}',
                         style: AppTypography.caption(context, sheetColorScheme)
@@ -199,7 +197,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.xs),
+                  const SizedBox(height: AppSpacing.sm),
                   Center(
                     child: Text(
                       'Tap a star to rate your experience',
@@ -210,14 +208,14 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xs),
+                  const SizedBox(height: AppSpacing.sm),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(5, (index) {
                       final starValue = index + 1;
                       final isSelected = starValue <= rating;
                       return Padding(
-                        padding: const EdgeInsets.only(right: AppSpacing.xs),
+                        padding: const EdgeInsets.only(right: AppSpacing.sm),
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
@@ -225,7 +223,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             onTap: () =>
                                 setSheetState(() => rating = starValue),
                             child: Padding(
-                              padding: const EdgeInsets.all(AppSpacing.xxs),
+                              padding: const EdgeInsets.all(AppSpacing.xs),
                               child: Icon(
                                 isSelected
                                     ? Icons.star_rounded
@@ -241,7 +239,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                       );
                     }),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: AppSpacing.lg),
                   TextField(
                     controller: commentController,
                     maxLines: 3,
@@ -249,7 +247,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                       labelText: 'Comment (optional)',
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.xl),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -325,13 +323,13 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
         ),
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.all(AppSpacing.xl),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.error_outline_rounded,
                     size: 48, color: AppColors.txtDisabled),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.lg),
                 Text(
                   _errorMessage ?? 'Could not load venue details.',
                   textAlign: TextAlign.center,
@@ -341,7 +339,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.lg),
                 ElevatedButton(
                   onPressed: _loadVenueDetail,
                   child: const Text('Retry'),
@@ -381,7 +379,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
             builder: (context, constraints) {
               return Container(
                 padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.md, _spaceMd, AppSpacing.md, _spaceMd),
+                    AppSpacing.xl, _spaceMd, AppSpacing.xl, _spaceMd),
                 decoration: BoxDecoration(
                   color: colorScheme.surface,
                   boxShadow: [
@@ -470,8 +468,8 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.pagePadding,
-                  vertical: AppSpacing.md,
+                  horizontal: AppSpacing.pageHorizontal,
+                  vertical: AppSpacing.xl,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

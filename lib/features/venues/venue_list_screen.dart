@@ -2,12 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../core/design_system/app_shadows.dart';
-import '../../core/design_system/app_radius.dart';
-import '../../core/design_system/app_spacing.dart';
-import '../../shared/widgets/enhanced_empty_state.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 import 'presentation/providers/venues_controller.dart';
 import 'venues_map_view.dart';
@@ -163,7 +159,7 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
     TextTheme textTheme,
   ) {
     return AppBar(
-      titleSpacing: AppSpacing.pagePadding,
+      titleSpacing: AppSpacing.pageHorizontal,
       toolbarHeight: 60,
       title: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -189,7 +185,7 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
           current: _viewMode,
           onChanged: (m) => setState(() => _viewMode = m),
         ),
-        const SizedBox(width: AppSpacing.pagePadding),
+        const SizedBox(width: AppSpacing.pageHorizontal),
       ],
     );
   }
@@ -208,10 +204,10 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
-              AppSpacing.pagePadding,
-              AppSpacing.md,
-              AppSpacing.pagePadding,
-              AppSpacing.xs,
+              AppSpacing.pageHorizontal,
+              AppSpacing.xl,
+              AppSpacing.pageHorizontal,
+              AppSpacing.sm,
             ),
             child: Row(
               children: [
@@ -232,7 +228,7 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
                         size: 15,
                         color: colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(width: AppSpacing.xxs),
+                      const SizedBox(width: AppSpacing.xs),
                       Text(
                         _activeSort,
                         style: textTheme.bodySmall?.copyWith(
@@ -254,15 +250,15 @@ class _VenueListScreenState extends ConsumerState<VenueListScreen> {
         else
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(
-              AppSpacing.pagePadding,
-              AppSpacing.xs,
-              AppSpacing.pagePadding,
-              kNavBarHeight + AppSpacing.xl,
+              AppSpacing.pageHorizontal,
+              AppSpacing.sm,
+              AppSpacing.pageHorizontal,
+              kNavBarHeight + AppSpacing.xxxl,
             ),
             sliver: SliverList.separated(
               itemCount: filtered.length,
               separatorBuilder: (_, __) =>
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.xl),
               itemBuilder: (ctx, i) => VenueCard(venue: filtered[i]),
             ),
           ),
@@ -359,8 +355,8 @@ class _ToggleBtn extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.xs,
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
           color: selected ? colorScheme.onSurface : Colors.transparent,
@@ -410,7 +406,7 @@ class _FilterBar extends StatelessWidget {
             child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.pagePadding,
+                horizontal: AppSpacing.pageHorizontal,
                 vertical: (56 - _kChipHeight) / 2,
               ),
               children: [
@@ -423,7 +419,7 @@ class _FilterBar extends StatelessWidget {
                 ...List.generate(_kFilters.length, (i) {
                   final f = _kFilters[i];
                   return Padding(
-                    padding: const EdgeInsets.only(left: AppSpacing.xs),
+                    padding: const EdgeInsets.only(left: AppSpacing.sm),
                     child: _FilterChip(
                       label: f,
                       selected: activeFilter == f,
@@ -465,7 +461,7 @@ class _FilterChip extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         height: _kChipHeight,
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
         decoration: BoxDecoration(
           color: selected ? colorScheme.onSurface : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -487,7 +483,7 @@ class _FilterChip extends StatelessWidget {
                     ? colorScheme.surface
                     : colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(width: AppSpacing.xxs),
+              const SizedBox(width: AppSpacing.xs),
             ],
             Text(
               label,
@@ -552,7 +548,7 @@ class _FilterSheetState extends State<_FilterSheet> {
           Center(
             child: Container(
               margin: const EdgeInsets.symmetric(
-                vertical: AppSpacing.sm,
+                vertical: AppSpacing.lg,
               ),
               width: 36,
               height: 4,
@@ -565,7 +561,7 @@ class _FilterSheetState extends State<_FilterSheet> {
           // Header row
           Padding(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.pagePadding,
+              horizontal: AppSpacing.pageHorizontal,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -595,27 +591,27 @@ class _FilterSheetState extends State<_FilterSheet> {
           Expanded(
             child: ListView(
               controller: scrollCtrl,
-              padding: const EdgeInsets.all(AppSpacing.md),
+              padding: const EdgeInsets.all(AppSpacing.xl),
               children: [
                 const _SheetSectionLabel(title: 'Sort by'),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.lg),
                 ..._kSortOptions.map((opt) => _SortTile(
                       icon: opt.icon,
                       label: opt.label,
                       selected: _sort == opt.label,
                       onTap: () => setState(() => _sort = opt.label),
                     )),
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: AppSpacing.xxxl),
                 const _SheetSectionLabel(title: 'Court type'),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.lg),
                 _OptionChipGroup(
                   options: const ['Turf', 'Indoor'],
                   active: _filter,
                   onSelect: (v) => setState(() => _filter = v),
                 ),
-                const SizedBox(height: AppSpacing.xl),
+                const SizedBox(height: AppSpacing.xxxl),
                 const _SheetSectionLabel(title: 'Court size'),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.lg),
                 _OptionChipGroup(
                   options: const ['5v5', '7v7'],
                   active: _filter,
@@ -627,10 +623,10 @@ class _FilterSheetState extends State<_FilterSheet> {
           // Apply button
           Padding(
             padding: EdgeInsets.fromLTRB(
-              AppSpacing.pagePadding,
-              AppSpacing.sm,
-              AppSpacing.pagePadding,
-              bottomInset + AppSpacing.lg,
+              AppSpacing.pageHorizontal,
+              AppSpacing.lg,
+              AppSpacing.pageHorizontal,
+              bottomInset + AppSpacing.xxl,
             ),
             child: SizedBox(
               width: double.infinity,
@@ -685,15 +681,15 @@ class _SortTile extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.md),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
+            horizontal: AppSpacing.xl,
+            vertical: AppSpacing.lg,
           ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.md),
@@ -716,7 +712,7 @@ class _SortTile extends StatelessWidget {
                     ? colorScheme.onSurface
                     : colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: AppSpacing.lg),
               Expanded(
                 child: Text(
                   label,
@@ -767,8 +763,8 @@ class _OptionChipGroup extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Wrap(
-      spacing: AppSpacing.xs,
-      runSpacing: AppSpacing.xs,
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
       children: options.map((opt) {
         final selected = active == opt;
         return GestureDetector(
@@ -776,8 +772,8 @@ class _OptionChipGroup extends StatelessWidget {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.xs,
+              horizontal: AppSpacing.xl,
+              vertical: AppSpacing.sm,
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.md),
@@ -893,7 +889,7 @@ class _VenueCardImage extends StatelessWidget {
               child: Center(
                 child: Icon(
                   Icons.sports_soccer_rounded,
-                  size: AppSpacing.lg,
+                  size: AppSpacing.xxl,
                   color: colorScheme.outlineVariant,
                 ),
               ),
@@ -903,7 +899,7 @@ class _VenueCardImage extends StatelessWidget {
               child: Center(
                 child: Icon(
                   Icons.broken_image_outlined,
-                  size: AppSpacing.lg,
+                  size: AppSpacing.xxl,
                   color: colorScheme.outlineVariant,
                 ),
               ),
@@ -926,8 +922,8 @@ class _VenueCardImage extends StatelessWidget {
 
           // Rating pill — top right
           Positioned(
-            top: AppSpacing.sm,
-            right: AppSpacing.sm,
+            top: AppSpacing.lg,
+            right: AppSpacing.lg,
             child: _BadgePill(
               color: colorScheme.scrim,
               child: Row(
@@ -938,7 +934,7 @@ class _VenueCardImage extends StatelessWidget {
                     color: AppColors.ratingStar,
                     size: 13,
                   ),
-                  const SizedBox(width: AppSpacing.xxs),
+                  const SizedBox(width: AppSpacing.xs),
                   Text(
                     rating.toStringAsFixed(1),
                     style: textTheme.labelSmall?.copyWith(
@@ -954,8 +950,8 @@ class _VenueCardImage extends StatelessWidget {
           // Verified pill — top left
           if (verified)
             Positioned(
-              top: AppSpacing.sm,
-              left: AppSpacing.sm,
+              top: AppSpacing.lg,
+              left: AppSpacing.lg,
               child: _BadgePill(
                 color: AppColors.primary,
                 child: Row(
@@ -966,7 +962,7 @@ class _VenueCardImage extends StatelessWidget {
                       size: 12,
                       color: colorScheme.onPrimary,
                     ),
-                    const SizedBox(width: AppSpacing.xxs),
+                    const SizedBox(width: AppSpacing.xs),
                     Text(
                       'Verified',
                       style: textTheme.labelSmall?.copyWith(
@@ -994,8 +990,8 @@ class _BadgePill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xs,
-        vertical: AppSpacing.xxs + 1,
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs + 1,
       ),
       decoration: BoxDecoration(
         color: color,
@@ -1023,7 +1019,7 @@ class _VenueCardBody extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
 
     return Padding(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1038,7 +1034,7 @@ class _VenueCardBody extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
 
-          const SizedBox(height: AppSpacing.xxs + 1),
+          const SizedBox(height: AppSpacing.xs + 1),
 
           // Address
           Row(
@@ -1048,7 +1044,7 @@ class _VenueCardBody extends StatelessWidget {
                 size: 13,
                 color: colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(width: AppSpacing.xxs),
+              const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
                   venue['address'] as String? ?? '',
@@ -1062,16 +1058,16 @@ class _VenueCardBody extends StatelessWidget {
 
           // Court type tags — only if present
           if (courts.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.lg),
             Wrap(
-              spacing: AppSpacing.xxs + 2,
-              runSpacing: AppSpacing.xxs + 2,
+              spacing: AppSpacing.xs + 2,
+              runSpacing: AppSpacing.xs + 2,
               children: courts.take(3).map<Widget>((c) {
                 final label = (c['type'] ?? c['surface'] ?? '') as String;
                 return Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xs,
-                    vertical: AppSpacing.xxs,
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
                   ),
                   decoration: BoxDecoration(
                     color: colorScheme.primaryContainer.withValues(alpha: 0.55),
