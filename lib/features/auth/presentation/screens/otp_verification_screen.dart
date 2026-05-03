@@ -104,138 +104,45 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     final email = args?['email']?.toString() ?? '';
     
     final colorScheme = Theme.of(context).colorScheme;
-    final primaryColor = colorScheme.primary;
     
-    final emailDisplay = email.trim();
-    final hasEmail = emailDisplay.isNotEmpty;
-    
-    final destination = hasEmail ? emailDisplay : 'your email';
+    final destination = email.trim().isNotEmpty ? email.trim() : 'your email';
 
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0, // No horizontal dividing line when scrolled
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: colorScheme.onSurface, size: 22),
-          onPressed: () => Navigator.pop(context),
-        ),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          physics: const ClampingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Branding: Logo at the top
-              const AppLogo(size: 56),
-              const SizedBox(height: 32),
-              
-              // Typography: Heading
-              Text(
-                'Verify your account',
-                style: AppTypography.subHeading(
-                  context,
-                  colorScheme,
-                  color: colorScheme.onSurface.withValues(alpha: 0.9),
-                ),
-                textAlign: TextAlign.center,
+    return AuthScaffold(
+      role: AppRole.player,
+      showAppBar: true,
+      allowScroll: false,
+      child: AuthCard(
+        role: AppRole.player,
+        title: 'Verify Account',
+        subtitle: 'Enter the 6-digit code sent to\n$destination',
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: AppSpacing.xxl),
+            Center(
+              child: OtpPinInput(
+                controller: _otpController,
+                enabled: !_isLoading,
               ),
-              const SizedBox(height: 12),
-              
-              // Typography: Instruction Text
-              Text(
-                'Enter the 6-digit code sent to',
-                style: AppTypography.body(
-                  context,
-                  colorScheme,
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-
-              // Read-only confirmed data for email
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
-                ),
-                child: Text(
-                  destination,
-                  style: AppTypography.body(
-                    context,
-                    colorScheme,
-                  ).copyWith(fontWeight: AppFontWeights.semiBold),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-
-              const SizedBox(height: 48),
-              
-              // OTP Inputs Area
-              Center(
-                child: OtpPinInput(
-                  controller: _otpController,
-                  enabled: !_isLoading,
-                ),
-              ),
-              
-              const SizedBox(height: 56),
-              
-              // Call to Action: Large, pill-shaped primary button
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    foregroundColor: colorScheme.onPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30), // Pill-shaped
-                    ),
-                    elevation: 0,
-                  ),
-                  onPressed: _isLoading ? null : () => _verify(userId),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          'Verify',
-                          style: AppTypography.button(
-                            context,
-                            colorScheme,
-                          ),
-                        ),
-                ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // Secondary Action: Clean text-only link
-              TextButton(
+            ),
+            const SizedBox(height: AppSpacing.xxxl),
+            PrimaryButton(
+              label: 'Verify',
+              isLoading: _isLoading,
+              onPressed: () => _verify(userId),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Center(
+              child: TextButton(
                 style: TextButton.styleFrom(
                   foregroundColor: colorScheme.onSurfaceVariant,
-                  textStyle: AppTypography.textTheme(colorScheme).bodySmall?.copyWith(
-                    fontWeight: AppFontWeights.semiBold,
-                  ),
                 ),
                 onPressed: _isLoading ? null : () => _resend(userId),
                 child: const Text('Resend Code'),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

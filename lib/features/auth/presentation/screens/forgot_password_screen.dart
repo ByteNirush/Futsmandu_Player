@@ -105,13 +105,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                 controller: _emailController,
                 validator: _validateEmail,
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.xl),
               PrimaryButton(
                 label: 'Send Reset Link',
                 isLoading: _isLoading,
                 onPressed: _handleSendResetLink,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.lg),
               Center(
                 child: TextButton(
                   onPressed: () => Navigator.pop(context),

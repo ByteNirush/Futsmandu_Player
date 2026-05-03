@@ -154,7 +154,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _nameController,
                 validator: _validateName,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.lg),
               AppInputField(
                 label: 'Email',
                 showLabelAboveField: true,
@@ -166,7 +166,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _emailController,
                 validator: _validateEmail,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.lg),
               AppInputField(
                 label: 'Phone',
                 showLabelAboveField: true,
@@ -178,7 +178,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _phoneController,
                 validator: _validatePhone,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.lg),
               AppInputField(
                 label: 'Password',
                 showLabelAboveField: true,
@@ -190,7 +190,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _passwordController,
                 validator: _validatePassword,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.lg),
               AppInputField(
                 label: 'Confirm Password',
                 showLabelAboveField: true,
@@ -203,13 +203,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 controller: _confirmPasswordController,
                 validator: _validateConfirmPassword,
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.xl),
               PrimaryButton(
                 label: 'Sign Up',
                 isLoading: _isLoading,
                 onPressed: _handleRegister,
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.lg),
               Center(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

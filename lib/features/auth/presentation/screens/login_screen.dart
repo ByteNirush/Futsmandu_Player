@@ -104,7 +104,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 controller: _emailController,
                 validator: _validateEmail,
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.lg),
               AppInputField(
                 label: 'Password',
                 showLabelAboveField: true,
@@ -117,7 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 controller: _passwordController,
                 validator: _validatePassword,
               ),
-              const SizedBox(height: AppSpacing.xxs),
+              const SizedBox(height: AppSpacing.lg),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -131,15 +131,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: const Text('Forgot Password?'),
                 ),
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.lg),
               PrimaryButton(
                 label: 'Sign In',
                 isLoading: _isLoading,
                 onPressed: _handleLogin,
               ),
-              const SizedBox(height: AppSpacing.sm),
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
                 child: Row(
                   children: [
                     Expanded(
@@ -148,7 +147,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
                       child: Text(
                         'OR',
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -165,7 +164,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.sm),
               Center(
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

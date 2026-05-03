@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/design_system/app_spacing.dart';
-import 'package:futsmandu_design_system/components/common/app_logo.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 
 class AuthScreenScaffold extends StatelessWidget {
   const AuthScreenScaffold({
     super.key,
     required this.child,
     this.showAppBar = false,
-    this.logoTopSpacing = AppSpacing.lg,
+    this.logoTopSpacing = AppSpacing.xxl,
     this.logoSize = 100,
   });
 
@@ -21,7 +20,7 @@ class AuthScreenScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
 
-    final topGap = keyboardVisible ? AppSpacing.sm : logoTopSpacing;
+    final topGap = keyboardVisible ? AppSpacing.lg : logoTopSpacing;
     final currentLogoSize = keyboardVisible ? logoSize * 0.72 : logoSize;
 
     return Scaffold(
@@ -29,7 +28,7 @@ class AuthScreenScaffold extends StatelessWidget {
       appBar: showAppBar ? AppBar() : null,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -45,14 +44,14 @@ class AuthScreenScaffold extends StatelessWidget {
                   child: AppLogo(size: currentLogoSize),
                 ),
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.lg),
               Expanded(
                 child: Align(
                   alignment: Alignment.topCenter,
                   child: child,
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.xl),
             ],
           ),
         ),

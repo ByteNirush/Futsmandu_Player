@@ -132,7 +132,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 controller: _tokenController,
                 validator: _validateToken,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.lg),
               AppInputField(
                 label: 'New Password',
                 showLabelAboveField: true,
@@ -144,7 +144,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 controller: _newPasswordController,
                 validator: _validatePassword,
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.lg),
               AppInputField(
                 label: 'Confirm Password',
                 showLabelAboveField: true,
@@ -157,7 +157,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 controller: _confirmPasswordController,
                 validator: _validateConfirmPassword,
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.xl),
               PrimaryButton(
                 label: 'Save Password',
                 isLoading: _isLoading,
