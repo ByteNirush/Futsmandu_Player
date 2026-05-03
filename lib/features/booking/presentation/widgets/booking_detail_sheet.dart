@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/design_system/app_spacing.dart';
+import '../../../../core/utils/time_formatters.dart';
 import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../data/models/booking_models.dart';
@@ -58,7 +59,9 @@ class BookingDetailSheet extends ConsumerWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   child: Text(
-                    message.isNotEmpty ? message : 'Could not load booking detail.',
+                    message.isNotEmpty
+                        ? message
+                        : 'Could not load booking detail.',
                     style: Theme.of(context).textTheme.bodyMedium,
                     textAlign: TextAlign.center,
                   ),
@@ -74,9 +77,11 @@ class BookingDetailSheet extends ConsumerWidget {
             final venue = court['venue'] is Map
                 ? (court['venue'] as Map).cast<String, dynamic>()
                 : const <String, dynamic>{};
-            final isCancellable = _isCancellableStatus(booking['status']?.toString());
-            final isPartialTeam = booking['booking_type']?.toString() == 'PARTIAL_TEAM';
-            
+            final isCancellable =
+                _isCancellableStatus(booking['status']?.toString());
+            final isPartialTeam =
+                booking['booking_type']?.toString() == 'PARTIAL_TEAM';
+
             final matchGroup = booking['match_group'] is Map
                 ? (booking['match_group'] as Map).cast<String, dynamic>()
                 : const <String, dynamic>{};
@@ -125,7 +130,10 @@ class BookingDetailSheet extends ConsumerWidget {
                 _DetailRow('Date', booking['booking_date']?.toString() ?? '-'),
                 _DetailRow(
                   'Time',
-                  '${booking['start_time'] ?? '-'} - ${booking['end_time'] ?? '-'}',
+                  formatClockTimeRange12Hour(
+                    booking['start_time']?.toString() ?? '',
+                    booking['end_time']?.toString() ?? '',
+                  ),
                 ),
                 if (isPartialTeam && maxPlayers > 0)
                   _DetailRow('Team Size', '$maxPlayers players total'),
