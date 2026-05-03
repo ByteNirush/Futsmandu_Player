@@ -341,7 +341,7 @@ class PlayerMatchService {
     try {
       final response = await _client.post(
         '${ApiConfig.matchesEndpoint}/$matchId/members/add-friend',
-        data: {'friendId': friendId},
+        data: {'matchGroupId': matchId, 'friendId': friendId},
       );
 
       return MatchMemberAddResult.fromMap(_asMap(_unwrap(response.data)));
