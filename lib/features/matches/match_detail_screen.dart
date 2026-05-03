@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../core/painters/field_painter.dart';
 import '../../core/services/player_auth_storage_service.dart';
 import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../shared/widgets/futs_button.dart';
-import '../../shared/widgets/status_badge.dart';
 import 'data/services/player_match_service.dart';
 import '../friends/data/services/player_friends_service.dart';
+import 'presentation/widgets/match_hero_header.dart';
+import 'presentation/widgets/match_info_strip.dart';
+import 'presentation/widgets/player_list_section.dart';
+import 'presentation/widgets/invite_section.dart';
+import 'presentation/widgets/pending_requests_section.dart';
 
 class MatchDetailScreen extends StatefulWidget {
   const MatchDetailScreen({super.key});
@@ -20,6 +23,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
   final PlayerMatchService _matchService = PlayerMatchService.instance;
   final PlayerAuthStorageService _authStorage =
       PlayerAuthStorageService.instance;
+  final ScrollController _scrollController = ScrollController();
 
   bool _isLoading = true;
   bool _isSubmitting = false;
@@ -28,6 +32,30 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
   String? _currentUserId;
   Map<String, dynamic>? _match;
   bool _initialized = false;
+  bool _showCollapsedTitle = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (!_scrollController.hasClients) return;
+    final showTitle = _scrollController.offset > 170;
+    if (showTitle != _showCollapsedTitle && mounted) {
+      setState(() => _showCollapsedTitle = showTitle);
+    }
+  }
+
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   @override
   void didChangeDependencies() {
@@ -36,6 +64,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     _initialized = true;
     _loadMatch();
   }
+
+  // ── Data Loading ──────────────────────────────────────────────────────────
 
   Future<void> _loadMatch({bool refresh = false}) async {
     final rawArgs = ModalRoute.of(context)?.settings.arguments;
@@ -204,30 +234,28 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     };
   }
 
-  bool get _isAdmin => _match?['isAdmin'] == true;
+  // ── Computed Properties ───────────────────────────────────────────────────
 
+  bool get _isAdmin => _match?['isAdmin'] == true;
   bool get _isLoggedIn => _currentUserId != null && _currentUserId!.isNotEmpty;
 
   bool get _isCurrentUserMember {
-    final members = _members;
     if (_currentUserId == null) return false;
-    return members.any((member) => member['id']?.toString() == _currentUserId);
+    return _members.any((m) => m['id']?.toString() == _currentUserId);
   }
 
   bool get _hasPendingJoinRequest {
-    final pending = _pendingMembers;
     if (_currentUserId == null) return false;
-    return pending.any((member) => member['id']?.toString() == _currentUserId);
+    return _pendingMembers.any((m) => m['id']?.toString() == _currentUserId);
   }
 
   bool get _isJoinable {
     final isOpen = _match?['isOpen'] == true;
-    final isPartialTeamBooking = _match?['isPartialTeamBooking'] == true;
+    final isPartial = _match?['isPartialTeamBooking'] == true;
     final rawSlots = _match?['slotsAvailable'];
-    final slotsAvailable =
-        (rawSlots is num ? rawSlots : 0).toInt();
+    final slots = (rawSlots is num ? rawSlots : 0).toInt();
     final alreadyJoined = _isCurrentUserMember || _hasPendingJoinRequest;
-    return (isOpen || isPartialTeamBooking) && slotsAvailable > 0 && !alreadyJoined;
+    return (isOpen || isPartial) && slots > 0 && !alreadyJoined;
   }
 
   String get _matchId => _match?['id']?.toString() ?? '';
@@ -251,15 +279,16 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     return end.isEmpty ? start : '$start - $end';
   }
 
+  // ── Actions ───────────────────────────────────────────────────────────────
+
   Future<void> _joinMatch() async {
     if (!_isLoggedIn) {
       _goToLogin();
       return;
     }
-
     if (_matchId.isEmpty) return;
 
-    // Prevent duplicate join requests - check if user is already a member or has pending request
+    // Prevent duplicate join requests
     if (_isCurrentUserMember || _hasPendingJoinRequest) {
       if (!mounted) return;
       final message = _hasPendingJoinRequest
@@ -274,21 +303,14 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _isSubmitting = true);
     try {
-      await _matchService.joinMatch(
-        matchId: _matchId,
-      );
+      await _matchService.joinMatch(matchId: _matchId);
       if (!mounted) return;
-
-      // Refresh match data to update slots and show user as joined
       await _loadMatch(refresh: true);
-
       messenger.showSnackBar(
         const SnackBar(content: Text('Successfully joined the match!')),
       );
     } on MatchApiException catch (e) {
       if (!mounted) return;
-
-      // Handle 409 Conflict - user already joined or has pending request
       if (e.statusCode == 409) {
         messenger.showSnackBar(
           const SnackBar(content: Text('You have already joined this match.')),
@@ -308,7 +330,6 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
 
   Future<void> _copyInviteLink() async {
     if (_matchId.isEmpty) return;
-
     setState(() => _isSubmitting = true);
     try {
       final response = await _matchService.generateInviteLink(_matchId);
@@ -391,125 +412,315 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
   Future<void> _showAddFriendBottomSheet() async {
     if (!mounted) return;
     final friends = await PlayerFriendsService.instance.getFriends();
-
     if (!mounted) return;
 
-    final existingMemberIds = _members
-        .map((m) => m['id']?.toString())
-        .where((id) => id != null && id.isNotEmpty)
-        .toSet();
+    final memberStatusById = <String, String>{};
+    for (final member in _members) {
+      final id = member['id']?.toString() ?? '';
+      if (id.isEmpty) continue;
+      memberStatusById[id] =
+          member['status']?.toString().toLowerCase() ?? 'confirmed';
+    }
+    for (final member in _pendingMembers) {
+      final id = member['id']?.toString() ?? '';
+      if (id.isEmpty) continue;
+      memberStatusById[id] = 'pending';
+    }
+
+    final validFriends = friends
+        .where((friend) => (friend['id']?.toString() ?? '').isNotEmpty)
+        .toList(growable: false);
+    final selectableFriendCount = validFriends.where((friend) {
+      final friendId = friend['id']?.toString() ?? '';
+      return !memberStatusById.containsKey(friendId);
+    }).length;
+
+    final Set<String> selectedFriendIds = {};
+
+    // Calculate players needed just for UI text
+    final rawSlots = _match?['slotsAvailable'];
+    final slotsAvailable = (rawSlots is num ? rawSlots : 0).toInt();
 
     showModalBottomSheet<void>(
       context: context,
-      builder: (bottomContext) => Container(
-        constraints: BoxConstraints(maxHeight: MediaQuery.of(bottomContext).size.height * 0.7),
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          children: [
-            Text(
-              'Add Friend to Match',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            if (friends.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: Text(
-                  'No friends available',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.txtDisabled),
-                  textAlign: TextAlign.center,
-                ),
-              )
-            else
-              ...friends.map((friend) {
-                final friendId = friend['id']?.toString() ?? '';
-                final friendName = friend['name']?.toString() ?? 'Unknown';
-                final avatarUrl = friend['avatarUrl']?.toString() ?? '';
-                final skillLevel = friend['skillLevel']?.toString() ?? '';
-                final isAlreadyInMatch = existingMemberIds.contains(friendId);
+      isScrollControlled: true,
+      showDragHandle: false,
+      builder: (bottomContext) {
+        final scheme = Theme.of(bottomContext).colorScheme;
+        final tt = AppTypography.textTheme(scheme);
 
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: Material(
-                    child: InkWell(
-                      onTap: friendId.isEmpty || isAlreadyInMatch
-                          ? null
-                          : () async {
-                              Navigator.pop(bottomContext);
-                              await _addFriendToMatch(friendId, friendName);
-                            },
-                      child: Container(
-                        padding: const EdgeInsets.all(AppSpacing.sm),
-                        decoration: BoxDecoration(
-                          color: AppColors.bgPrimary,
-                          border: Border.all(color: AppColors.txtDisabled.withValues(alpha: 0.2)),
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundColor: AppColors.bgPrimary,
-                              backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-                              child: avatarUrl.isEmpty
-                                  ? Text(
-                                      friendName.isNotEmpty ? friendName.substring(0, 1).toUpperCase() : '?',
-                                      style: Theme.of(context).textTheme.labelMedium,
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(friendName, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: AppFontWeights.semiBold)),
-                                  if (skillLevel.isNotEmpty)
-                                    Text(skillLevel, style: Theme.of(context).textTheme.labelSmall?.copyWith(color: AppColors.txtDisabled)),
-                                ],
-                              ),
-                            ),
-                            if (isAlreadyInMatch)
-                              Text(
-                                'Added',
-                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: AppColors.txtDisabled,
-                                  fontWeight: AppFontWeights.medium,
-                                ),
-                              )
-                            else
-                              const Icon(Icons.add_circle_outline, color: AppColors.green, size: 24),
-                          ],
-                        ),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final selectedCount = selectedFriendIds.length;
+            final cappedSelectableCount = slotsAvailable < selectableFriendCount
+                ? slotsAvailable
+                : selectableFriendCount;
+            final subtitle = slotsAvailable <= 0
+                ? 'This match is already full'
+                : validFriends.isEmpty
+                    ? 'No friends available to add'
+                : selectableFriendCount == 0
+                    ? 'All available friends are already in this match'
+                    : 'Select up to $cappedSelectableCount friend${cappedSelectableCount == 1 ? '' : 's'} for the remaining $slotsAvailable spot${slotsAvailable == 1 ? '' : 's'}';
+            final actionLabel = selectedCount > 0
+                ? 'Add $selectedCount Friend${selectedCount == 1 ? '' : 's'}'
+                : slotsAvailable <= 0
+                    ? 'Match is Full'
+                    : validFriends.isEmpty
+                        ? 'No Friends Available'
+                        : selectableFriendCount == 0
+                            ? 'All Friends Added'
+                            : 'Select Friends';
+
+            return Container(
+              constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(bottomContext).size.height * 0.65),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: AppSpacing.sm),
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: scheme.outlineVariant.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
-                );
-              }),
-          ],
-        ),
-      ),
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.xl),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                          child: Row(
+                            children: [
+                              Icon(Icons.people_outline, size: 24, color: scheme.primary),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: Text('Add Friend to Match',
+                                    style: tt.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                          child: Text(
+                            subtitle,
+                            style: tt.bodySmall?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        if (validFriends.isEmpty)
+                          _AddFriendEmptyState(
+                            icon: Icons.person_add_disabled_rounded,
+                            title: 'No friends available',
+                            message: 'Accepted friends will appear here.',
+                            textTheme: tt,
+                            colorScheme: scheme,
+                          )
+                        else
+                          ...validFriends.asMap().entries.map((entry) {
+                            final index = entry.key;
+                            final friend = entry.value;
+                            final fId = friend['id']?.toString() ?? '';
+                            final fName = friend['name']?.toString() ?? 'Unknown';
+                            final avatarUrl = friend['avatarUrl']?.toString() ?? '';
+                            final skillLevel = friend['skillLevel']?.toString() ?? '';
+                            final memberStatus = memberStatusById[fId];
+                            final alreadyIn = memberStatus != null;
+                            final isConfirmed = memberStatus == 'confirmed';
+                            final isPending = memberStatus == 'pending';
+                            final isSelected = selectedFriendIds.contains(fId);
+                            final canSelect = !alreadyIn &&
+                                slotsAvailable > 0 &&
+                                (selectedFriendIds.length < slotsAvailable ||
+                                    isSelected);
+                            final limitReached = !alreadyIn &&
+                                !isSelected &&
+                                selectedFriendIds.length >= slotsAvailable;
+
+                            if (fId.isEmpty) return const SizedBox.shrink();
+
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                InkWell(
+                                  onTap: canSelect
+                                      ? () {
+                                          setModalState(() {
+                                            if (isSelected) {
+                                              selectedFriendIds.remove(fId);
+                                            } else {
+                                              selectedFriendIds.add(fId);
+                                            }
+                                          });
+                                        }
+                                      : null,
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.md),
+                                    child: Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 28,
+                                          backgroundColor: scheme.surfaceContainerHighest,
+                                          backgroundImage: avatarUrl.isNotEmpty
+                                              ? NetworkImage(avatarUrl)
+                                              : null,
+                                          child: avatarUrl.isEmpty
+                                              ? Text(
+                                                  fName.isNotEmpty
+                                                      ? fName.substring(0, 1).toUpperCase()
+                                                      : '?',
+                                                  style: tt.titleMedium?.copyWith(
+                                                    fontWeight: AppFontWeights.semiBold,
+                                                  ))
+                                              : null,
+                                        ),
+                                        const SizedBox(width: AppSpacing.md),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(fName,
+                                                  style: tt.titleMedium?.copyWith(
+                                                      fontWeight: AppFontWeights.semiBold)),
+                                              const SizedBox(height: 2),
+                                              if (skillLevel.isNotEmpty)
+                                                Text(skillLevel,
+                                                    style: tt.bodyMedium?.copyWith(
+                                                        color: AppColors.textDisabled())),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: AppSpacing.sm),
+                                        if (alreadyIn)
+                                          _AddFriendStatusChip(
+                                            icon: isConfirmed
+                                                ? Icons.check_circle_rounded
+                                                : Icons.mark_email_read_outlined,
+                                            label: isConfirmed
+                                                ? 'Added'
+                                                : isPending
+                                                    ? 'Invited'
+                                                    : 'Added',
+                                            backgroundColor: (isPending
+                                                    ? AppColors.amber
+                                                    : AppColors.green)
+                                                .withValues(alpha: 0.12),
+                                            foregroundColor: isPending
+                                                ? AppColors.amber
+                                                : AppColors.green,
+                                            textTheme: tt,
+                                          )
+                                        else if (isSelected)
+                                          _AddFriendStatusChip(
+                                            icon: Icons.check_rounded,
+                                            label: 'Selected',
+                                            backgroundColor: scheme.primary.withValues(alpha: 0.14),
+                                            foregroundColor: scheme.primary,
+                                            textTheme: tt,
+                                          )
+                                        else if (limitReached)
+                                          _AddFriendStatusChip(
+                                            icon: Icons.lock_outline_rounded,
+                                            label: 'Full',
+                                            backgroundColor: scheme.surfaceContainerHighest,
+                                            foregroundColor: AppColors.textDisabled(),
+                                            textTheme: tt,
+                                          )
+                                        else
+                                          _AddFriendStatusChip(
+                                            icon: Icons.add_rounded,
+                                            label: 'Add',
+                                            backgroundColor: scheme.primary,
+                                            foregroundColor: scheme.onPrimary,
+                                            textTheme: tt,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                if (index < validFriends.length - 1)
+                                  Divider(
+                                      height: 1,
+                                      thickness: 1,
+                                      color: scheme.outlineVariant.withValues(alpha: 0.3),
+                                      indent: AppSpacing.xl + 56 + AppSpacing.md),
+                              ],
+                            );
+                          }),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    decoration: BoxDecoration(
+                      color: AppColors.bgSurface,
+                      border: Border(
+                        top: BorderSide(
+                          color: scheme.outlineVariant.withValues(alpha: 0.35),
+                        ),
+                      ),
+                    ),
+                    child: SafeArea(
+                      top: false,
+                      child: FutsButton(
+                        label: actionLabel,
+                        onPressed: selectedFriendIds.isEmpty
+                            ? null
+                            : () {
+                                Navigator.pop(bottomContext);
+                                _addFriendsToMatch(selectedFriendIds);
+                              },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
-  Future<void> _addFriendToMatch(String friendId, String friendName) async {
-    if (_matchId.isEmpty) return;
+  Future<void> _addFriendsToMatch(Set<String> friendIds) async {
+    if (_matchId.isEmpty || friendIds.isEmpty) return;
     final messenger = ScaffoldMessenger.of(context);
     setState(() => _isSubmitting = true);
+    int successCount = 0;
     try {
-      await _matchService.addFriendToMatch(matchId: _matchId, friendId: friendId);
+      // Use matchGroupId for adding friends to match
+      final matchGroupId = _match?['matchGroupId']?.toString() ?? '';
+      if (matchGroupId.isEmpty) return;
+
+      for (final friendId in friendIds) {
+        await _matchService.addFriendToMatch(
+            matchId: matchGroupId, friendId: friendId);
+        successCount++;
+      }
       if (!mounted) return;
       await _loadMatch(refresh: true);
+      final friendLabel = successCount == 1 ? 'friend' : 'friends';
       messenger.showSnackBar(
-        SnackBar(content: Text('Added $friendName to match')),
+        SnackBar(content: Text('Added $successCount $friendLabel to match')),
       );
     } on MatchApiException catch (e) {
       if (!mounted) return;
+      if (successCount > 0) await _loadMatch(refresh: true);
       messenger.showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
+      if (successCount > 0) await _loadMatch(refresh: true);
       messenger.showSnackBar(
-        const SnackBar(content: Text('Could not add friend to match')),
+        const SnackBar(content: Text('Could not add friends to match')),
       );
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
@@ -521,397 +732,11 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     Navigator.of(context).pushNamed('/login');
   }
 
-  Color _skillColor(String? skillLevel) {
-    return switch (skillLevel?.toLowerCase().trim()) {
-      'advanced' => AppColors.red,
-      'intermediate' => AppColors.amber,
-      'beginner' => AppColors.green,
-      _ => AppColors.blue,
-    };
-  }
-
-  Widget _buildSlotVisualization(int confirmedCount, int maxPlayers, int slotsAvailable, BuildContext context) {
-    final confirmedMembers = _members.where((m) => m['status'] == 'confirmed').toList();
-    final emptySlots = maxPlayers - confirmedCount;
-    final progress = maxPlayers > 0 ? confirmedCount / maxPlayers : 0.0;
-
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.people_alt_outlined, size: 18, color: AppColors.textSecondary()),
-              const SizedBox(width: AppSpacing.xs),
-              Text(
-                'Player Slots',
-                style: AppTypography.textTheme(Theme.of(context).colorScheme).titleSmall?.copyWith(
-                  fontWeight: AppFontWeights.semiBold,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: progress >= 1.0
-                    ? AppColors.green.withValues(alpha: 0.15)
-                    : AppColors.amber.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: Text(
-                  '$confirmedCount/$maxPlayers',
-                  style: AppTypography.textTheme(Theme.of(context).colorScheme).labelSmall?.copyWith(
-                    color: progress >= 1.0 ? AppColors.green : AppColors.amber,
-                    fontWeight: AppFontWeights.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          // Progress bar
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.xxs),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 6,
-              backgroundColor: AppColors.bgElevated,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                progress >= 1.0 ? AppColors.green : AppColors.blue,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          // Player slots grid
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
-              childAspectRatio: 1.0,
-              crossAxisSpacing: AppSpacing.xs,
-              mainAxisSpacing: AppSpacing.xs,
-            ),
-            itemCount: maxPlayers,
-            itemBuilder: (context, index) {
-              if (index < confirmedMembers.length) {
-                final member = confirmedMembers[index];
-                return _buildPlayerSlot(member, context);
-              } else {
-                return _buildEmptySlot(index - confirmedMembers.length < slotsAvailable, context);
-              }
-            },
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          // Player names below grid
-          if (confirmedMembers.isNotEmpty)
-            Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.xs,
-              children: confirmedMembers.map((member) {
-                final name = member['name']?.toString() ?? 'Unknown';
-                final joinedAt = member['joinedAt']?.toString() ?? '';
-                final bookingTime = _formatBookingTime(joinedAt);
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.person_rounded, size: 12, color: AppColors.green),
-                    const SizedBox(width: 4),
-                    Text(
-                      name,
-                      style: AppTypography.textTheme(Theme.of(context).colorScheme).labelSmall?.copyWith(
-                        fontWeight: AppFontWeights.semiBold,
-                      ),
-                    ),
-                    if (bookingTime.isNotEmpty) ...[
-                      const SizedBox(width: 4),
-                      Text(
-                        '($bookingTime)',
-                        style: AppTypography.textTheme(Theme.of(context).colorScheme).labelSmall?.copyWith(
-                          color: AppColors.textSecondary(),
-                        ),
-                      ),
-                    ],
-                  ],
-                );
-              }).toList(),
-            ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '$confirmedCount confirmed • $emptySlots open',
-                style: AppTypography.textTheme(Theme.of(context).colorScheme).bodySmall?.copyWith(
-                  color: AppColors.textSecondary(),
-                ),
-              ),
-              if (slotsAvailable > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.green.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.login_rounded, size: 12, color: AppColors.green),
-                      const SizedBox(width: 4),
-                      Text(
-                        '$slotsAvailable spot${slotsAvailable == 1 ? '' : 's'} left',
-                        style: AppTypography.textTheme(Theme.of(context).colorScheme).labelSmall?.copyWith(
-                          color: AppColors.green,
-                          fontWeight: AppFontWeights.semiBold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlayerSlot(Map<String, dynamic> member, BuildContext context) {
-    final name = member['name']?.toString() ?? 'Unknown';
-    final avatarUrl = member['avatarUrl']?.toString() ?? '';
-    final initials = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?';
-    final isAdmin = member['isAdmin'] == true;
-    final skillLevel = member['skillLevel']?.toString() ?? '';
-
-    return Stack(
-      children: [
-        CircleAvatar(
-          backgroundColor: AppColors.green.withValues(alpha: 0.12),
-          backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-          child: avatarUrl.isEmpty
-              ? Text(
-                  initials,
-                  style: AppTypography.textTheme(Theme.of(context).colorScheme).titleSmall?.copyWith(
-                    color: AppColors.green,
-                    fontWeight: AppFontWeights.bold,
-                  ),
-                )
-              : null,
-        ),
-        if (isAdmin)
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: Container(
-              width: 14,
-              height: 14,
-              decoration: BoxDecoration(
-                color: AppColors.amber,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.bgPrimary, width: 2),
-              ),
-              child: Icon(Icons.star, size: 8, color: AppColors.bgPrimary),
-            ),
-          ),
-        if (skillLevel.isNotEmpty && skillLevel != 'All')
-          Positioned(
-            left: 0,
-            bottom: 0,
-            child: Container(
-              width: 14,
-              height: 14,
-              decoration: BoxDecoration(
-                color: _skillColor(skillLevel),
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.bgPrimary, width: 2),
-              ),
-              child: Icon(
-                skillLevel == 'Advanced' ? Icons.bolt : Icons.trending_up,
-                size: 8,
-                color: AppColors.bgPrimary,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildEmptySlot(bool isAvailable, BuildContext context) {
-    return CircleAvatar(
-      backgroundColor: isAvailable ? AppColors.bgElevated : AppColors.bgElevated.withValues(alpha: 0.3),
-      child: Icon(
-        isAvailable ? Icons.add_rounded : Icons.lock_outline,
-        size: 18,
-        color: isAvailable ? AppColors.textSecondary() : AppColors.textDisabled(),
-      ),
-    );
-  }
-
-  String _formatBookingTime(String? joinedAt) {
-    if (joinedAt == null || joinedAt.isEmpty) return '';
-    try {
-      final dateTime = DateTime.parse(joinedAt);
-      final now = DateTime.now();
-      final difference = now.difference(dateTime);
-      
-      if (difference.inMinutes < 1) {
-        return 'Just now';
-      } else if (difference.inMinutes < 60) {
-        return '${difference.inMinutes}m ago';
-      } else if (difference.inHours < 24) {
-        return '${difference.inHours}h ago';
-      } else if (difference.inDays < 7) {
-        return '${difference.inDays}d ago';
-      } else {
-        return '${dateTime.day}/${dateTime.month}';
-      }
-    } catch (e) {
-      return '';
-    }
-  }
-
-  Widget _buildConfirmedPlayersList(List<Map<String, dynamic>> members, BuildContext context) {
-    final confirmed = members.where((m) => m['status'] == 'confirmed').toList();
-    if (confirmed.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.groups_outlined, size: 20, color: AppColors.textSecondary()),
-            const SizedBox(width: AppSpacing.xs),
-            Text(
-              'Confirmed Players',
-              style: AppTypography.textTheme(Theme.of(context).colorScheme).titleMedium?.copyWith(
-                fontWeight: AppFontWeights.bold,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              '${confirmed.length} player${confirmed.length == 1 ? '' : 's'}',
-              style: AppTypography.textTheme(Theme.of(context).colorScheme).bodySmall?.copyWith(
-                color: AppColors.textSecondary(),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.md),
-        AppCard(
-          child: Column(
-            children: confirmed.asMap().entries.map((entry) {
-              final index = entry.key;
-              final member = entry.value;
-              final isLast = index == confirmed.length - 1;
-              final position = member['position']?.toString() ?? '—';
-              final joinedAt = member['joinedAt']?.toString() ?? '';
-              final bookingTime = _formatBookingTime(joinedAt);
-
-              return Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-                    child: Row(
-                      children: [
-                        _buildMemberAvatar(member, size: 40),
-                        const SizedBox(width: AppSpacing.sm),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                member['name']?.toString() ?? 'Unknown',
-                                style: AppTypography.textTheme(Theme.of(context).colorScheme).bodyMedium?.copyWith(
-                                  fontWeight: AppFontWeights.semiBold,
-                                ),
-                              ),
-                              if (member['skillLevel']?.toString().isNotEmpty == true)
-                                Text(
-                                  member['skillLevel'].toString(),
-                                  style: AppTypography.textTheme(Theme.of(context).colorScheme).bodySmall?.copyWith(
-                                    color: AppColors.textSecondary(),
-                                  ),
-                                ),
-                              if (bookingTime.isNotEmpty)
-                                Text(
-                                  'Joined $bookingTime',
-                                  style: AppTypography.textTheme(Theme.of(context).colorScheme).labelSmall?.copyWith(
-                                    color: AppColors.green,
-                                    fontWeight: AppFontWeights.semiBold,
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.bgElevated,
-                            borderRadius: BorderRadius.circular(AppRadius.sm),
-                          ),
-                          child: Text(
-                            position.toUpperCase(),
-                            style: AppTypography.textTheme(Theme.of(context).colorScheme).labelSmall?.copyWith(
-                              color: AppColors.textSecondary(),
-                              fontWeight: AppFontWeights.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!isLast) Divider(height: 1, color: AppColors.borderClr),
-                ],
-              );
-            }).toList(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMemberAvatar(Map<String, dynamic> member, {double size = 40}) {
-    final name = member['name']?.toString() ?? '?';
-    final avatarUrl = member['avatarUrl']?.toString() ?? '';
-    final initials = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?';
-    final isAdmin = member['isAdmin'] == true;
-
-    return Stack(
-      children: [
-        CircleAvatar(
-          radius: size / 2,
-          backgroundColor: isAdmin ? AppColors.amber.withValues(alpha: 0.2) : AppColors.bgElevated,
-          backgroundImage: avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
-          child: avatarUrl.isEmpty
-            ? Text(
-                initials,
-                style: AppTypography.textTheme(Theme.of(context).colorScheme).titleSmall?.copyWith(
-                  color: isAdmin ? AppColors.amber : AppColors.txtPrimary,
-                  fontWeight: AppFontWeights.bold,
-                ),
-              )
-            : null,
-        ),
-        if (isAdmin)
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                color: AppColors.amber,
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.bgPrimary, width: 2),
-              ),
-              child: Icon(Icons.star, size: 10, color: AppColors.bgPrimary),
-            ),
-          ),
-      ],
-    );
-  }
+  // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
+    // Loading state
     if (_isLoading && _match == null) {
       return Scaffold(
         backgroundColor: AppColors.bgPrimary,
@@ -919,12 +744,13 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       );
     }
 
+    // Error state
     if (_errorMessage != null && _match == null) {
       return Scaffold(
         backgroundColor: AppColors.bgPrimary,
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.all(AppSpacing.xl),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -934,7 +760,10 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                 Text(
                   _errorMessage ?? 'Could not load match details.',
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: AppColors.txtDisabled),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: AppColors.txtDisabled),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 ElevatedButton(
@@ -948,449 +777,270 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       );
     }
 
+    // Extract match data
     final match = _match ?? const <String, dynamic>{};
     final venueName = match['venueName']?.toString() ?? '';
+    final venueImage = match['venueImage']?.toString() ?? '';
     final venueAddress = match['venueAddress']?.toString() ?? '';
     final dateLabel = match['date']?.toString() ?? '';
     final timeLabel = _displayTimeRange();
     final members = _members;
     final confirmedCount =
-        members.where((member) => member['status'] == 'confirmed').length;
+        members.where((m) => m['status'] == 'confirmed').length;
     final maxPlayers =
         (match['maxPlayers'] is num ? match['maxPlayers'] as num : 0).toInt();
     final slotsAvailable =
-      (match['slotsAvailable'] is num ? match['slotsAvailable'] as num : 0)
-        .toInt();
-    final playersNeeded =
-      (match['playersNeeded'] is num ? match['playersNeeded'] as num : 0)
-        .toInt();
+        (match['slotsAvailable'] is num ? match['slotsAvailable'] as num : 0)
+            .toInt();
     final isPartialTeamBooking = match['isPartialTeamBooking'] == true;
+    final skillLevel = match['skillLevel']?.toString() ?? 'All';
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 230,
-            pinned: true,
-            backgroundColor: AppColors.bgPrimary,
-            iconTheme: IconThemeData(color: AppColors.txtPrimary),
-            actions: [
-              IconButton(
-                icon: Icon(Icons.refresh, color: AppColors.txtPrimary),
-                onPressed:
-                    _isRefreshing ? null : () => _loadMatch(refresh: true),
-              ),
-              IconButton(
-                icon: Icon(Icons.share_outlined, color: AppColors.txtPrimary),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Share coming soon')),
-                  );
-                },
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsetsDirectional.only(
-                start: 72,
-                bottom: 14,
-                end: 16,
-              ),
-              title: Text(venueName, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: AppFontWeights.bold)),
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if ((match['venueImage']?.toString() ?? '').isNotEmpty)
-                    Image.network(
-                      match['venueImage'].toString(),
-                      fit: BoxFit.cover,
-                    )
-                  else
-                    Container(color: AppColors.bgPrimary),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          AppColors.bgPrimary.withValues(alpha: 0.94),
-                        ],
-                        stops: const [0.42, 1.0],
-                      ),
-                    ),
-                  ),
-                  CustomPaint(
-                    painter: FootballFieldPainter(),
-                    child: const SizedBox.expand(),
-                  ),
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Match Group', style: Theme.of(context).textTheme.bodyMedium),
-                        const SizedBox(height: 6),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.sm),
-                          child: Text(
-                            venueName,
-                            style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontWeight: AppFontWeights.extraBold),
-                            textAlign: TextAlign.center,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '$dateLabel · $timeLabel',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+      body: SingleChildScrollView(
+        controller: _scrollController,
+        child: Column(
+          children: [
+            // ── Hero Header (clean image like venue details) ────────────
+            MatchHeroHeader(
+              venueImage: venueImage,
+              venueName: venueName,
+              isRefreshing: _isRefreshing,
+              onRefresh: () => _loadMatch(refresh: true),
+              onShare: () => _copyInviteLink(),
+              showCollapsedTitle: _showCollapsedTitle,
             ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.sm),
+
+            // ── Unified Content Container ──────────────────────────────────
+            Container(
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppCard(
+                  // ── Venue Name & Date/Time (below hero like venue details) ────
+                  MatchHeaderContent(
+                    venueName: venueName,
+                    dateLabel: dateLabel,
+                    timeLabel: timeLabel,
+                  ),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xs,
+                      vertical: AppSpacing.md,
+                    ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        IntrinsicHeight(
-                          child: Row(
-                            children: [
-                              _StatCol(
-                                value: '$confirmedCount/$maxPlayers',
-                                label: 'Players',
-                                color: AppColors.green,
-                              ),
-                              const VerticalDivider(),
-                              _StatCol(
-                                value: match['skillLevel']?.toString() ?? 'All',
-                                label: 'Skill',
-                                color: _skillColor(match['skillLevel']?.toString()),
-                              ),
-                              const VerticalDivider(),
-                              _StatCol(
-                                value: match['distance']?.toString() ?? '—',
-                                label: 'Distance',
-                                color: AppColors.blue,
-                              ),
-                            ],
-                          ),
+                        // Info strip
+                        MatchInfoStrip(
+                          venueAddress: venueAddress,
+                          skillLevel: skillLevel,
+                          isPartialTeamBooking: isPartialTeamBooking,
+                          isOpen: match['isOpen'] == true,
+                          confirmedCount: confirmedCount,
+                          maxPlayers: maxPlayers,
+                          slotsAvailable: slotsAvailable,
                         ),
-                        const SizedBox(height: 12),
-                        const Divider(),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(Icons.location_on_outlined,
-                                size: 14, color: AppColors.txtDisabled),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                venueAddress,
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            ),
-                            StatusBadge(
-                              label: isPartialTeamBooking
-                                  ? 'Partial Team'
-                                  : (match['isOpen'] == true
-                                      ? 'Open Match'
-                                      : 'Private'),
-                              color: (match['isOpen'] == true ||
-                                      isPartialTeamBooking)
-                                  ? AppColors.green
-                                  : AppColors.txtDisabled,
-                            ),
-                          ],
+
+                        const SizedBox(height: AppSpacing.xl),
+
+                        // Players section
+                        PlayerListSection(
+                          members: members,
+                          maxPlayers: maxPlayers,
+                          slotsAvailable: slotsAvailable,
+                          isAdmin: _isAdmin,
+                          isSubmitting: _isSubmitting,
+                          onAddFriend: _showAddFriendBottomSheet,
                         ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'Players needed: $playersNeeded',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(color: AppColors.txtDisabled),
-                              ),
-                            ),
-                            Text(
-                              'Slots available: $slotsAvailable',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyMedium
-                                  ?.copyWith(
-                                    color: AppColors.green,
-                                    fontWeight: AppFontWeights.semiBold,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  _buildSlotVisualization(confirmedCount, maxPlayers, slotsAvailable, context),
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildConfirmedPlayersList(members, context),
-                  const SizedBox(height: 20),
-                  Text('Invite Friends', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
-                  const SizedBox(height: 12),
-                  if (_isAdmin) ...[
-                    AppCard(
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Add friends directly',
-                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: AppFontWeights.semiBold),
-                                ),
-                                Text(
-                                  'Invite friends from your friend list to the match',
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
-                              ],
-                            ),
+
+                        const SizedBox(height: AppSpacing.xl),
+
+                        // Invite section (only when slots available)
+                        if (slotsAvailable > 0) ...[
+                          InviteSection(
+                            isAdmin: _isAdmin,
+                            isSubmitting: _isSubmitting,
+                            hasExistingInvite:
+                                match['inviteToken']?.toString().isNotEmpty == true,
+                            onCopyInviteLink: _copyInviteLink,
                           ),
-                          const SizedBox(width: 12),
-                          ElevatedButton(
-                            onPressed: _isSubmitting ? null : _showAddFriendBottomSheet,
-                            style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(0, 38),
-                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                              backgroundColor: AppColors.green,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                            ),
-                            child: Text(
-                              'Add',
-                              style: AppTypography.textTheme(Theme.of(context).colorScheme).labelLarge?.copyWith(color: AppColors.bgPrimary),
-                            ),
-                          ),
+                          const SizedBox(height: AppSpacing.xl),
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  AppCard(
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Generate share link',
-                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: AppFontWeights.semiBold),
-                              ),
-                              Text(
-                                match['inviteToken']?.toString().isNotEmpty == true
-                                    ? 'Invite link is already active'
-                                    : 'Create a new invite link for friends',
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            ],
+
+                        // Pending requests (admin only)
+                        if (_pendingMembers.isNotEmpty && _isAdmin) ...[
+                          PendingRequestsSection(
+                            pendingMembers: _pendingMembers,
+                            isSubmitting: _isSubmitting,
+                            onApprove: _approveMember,
+                            onReject: _rejectMember,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton(
-                          onPressed: _isAdmin ? _copyInviteLink : null,
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(0, 38),
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                            backgroundColor: AppColors.green,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                          ),
-                          child: Text(
-                            'Copy Link',
-                            style: AppTypography.textTheme(Theme.of(context).colorScheme).labelLarge?.copyWith(color: AppColors.bgPrimary),
-                          ),
-                        ),
+                          const SizedBox(height: AppSpacing.xl),
+                        ],
+
+                        // Bottom spacing for the action bar
+                        const SizedBox(height: AppSpacing.xl),
                       ],
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  if (_pendingMembers.isNotEmpty && _isAdmin) ...[
-                    Text('Pending Requests', style: AppTypography.textTheme(
-                        Theme.of(context).colorScheme,
-                      ).headlineMedium),
-                    const SizedBox(height: 12),
-                    ..._pendingMembers.map(
-                      (member) => Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-                        child: AppCard(
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 16,
-                                backgroundColor: AppColors.bgElevated,
-                                backgroundImage: (member['avatarUrl']
-                                            ?.toString()
-                                            .isNotEmpty ==
-                                        true)
-                                    ? NetworkImage(
-                                        member['avatarUrl'].toString())
-                                    : null,
-                                child: (member['avatarUrl']
-                                            ?.toString()
-                                            .isNotEmpty ==
-                                        true)
-                                    ? null
-                                    : Text(
-                                        (member['name']
-                                                    ?.toString()
-                                                    .isNotEmpty ==
-                                                true)
-                                            ? member['name']
-                                                .toString()
-                                                .substring(0, 1)
-                                            : '?',
-                                      ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(member['name']?.toString() ?? '-',
-                                        style: AppTypography.textTheme(
-                        Theme.of(context).colorScheme,
-                      ).bodyMedium),
-                                    Text(member['position']?.toString() ?? '-',
-                                        style: AppTypography.textTheme(
-                        Theme.of(context).colorScheme,
-                      ).bodySmall),
-                                  ],
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: _isSubmitting
-                                    ? null
-                                    : () => _approveMember(
-                                        member['id']?.toString() ?? ''),
-                                child: Text(
-                                  'Approve',
-                                  style: AppTypography.textTheme(
-                        Theme.of(context).colorScheme,
-                      ).bodyMedium,
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: _isSubmitting
-                                    ? null
-                                    : () => _rejectMember(
-                                        member['id']?.toString() ?? ''),
-                                child: Text(
-                                  'Reject',
-                                  style: AppTypography.textTheme(
-                        Theme.of(context).colorScheme,
-                      ).bodyMedium?.copyWith(color: AppColors.red),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                  const SizedBox(height: 10),
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+      // ── Bottom Action Bar ───────────────────────────────────────────────
+      bottomNavigationBar: _buildBottomBar(isPartialTeamBooking),
+    );
+  }
+
+  Widget? _buildBottomBar(bool isPartialTeamBooking) {
+    // Already a member — no bottom bar needed
+    if (_isCurrentUserMember) return null;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.sm,
+        AppSpacing.xs,
+        AppSpacing.sm,
+        AppSpacing.md,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.bgSurface,
+        border: Border(top: BorderSide(color: AppColors.borderClr)),
+      ),
+      child: _hasPendingJoinRequest
+          ? const FutsButton(
+              label: 'Request Pending',
+              outlined: true,
+              onPressed: null,
+            )
+          : _isLoggedIn
+              ? FutsButton(
+                  label: isPartialTeamBooking
+                      ? 'Join Match & Play'
+                      : 'Join Match',
+                  isLoading: _isSubmitting,
+                  onPressed: _isJoinable ? _joinMatch : null,
+                )
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FutsButton(
+                      label: 'Sign In to Join',
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/login'),
+                    ),
+                    const SizedBox(height: 12),
+                    FutsButton(
+                      label: 'Create Account',
+                      outlined: true,
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/register'),
+                    ),
+                  ],
+                ),
+    );
+  }
+}
+
+class _AddFriendStatusChip extends StatelessWidget {
+  const _AddFriendStatusChip({
+    required this.icon,
+    required this.label,
+    required this.backgroundColor,
+    required this.foregroundColor,
+    required this.textTheme,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final TextTheme textTheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: foregroundColor),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: textTheme.labelLarge?.copyWith(
+              color: foregroundColor,
+              fontWeight: AppFontWeights.medium,
+            ),
           ),
         ],
-      ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.sm,
-          AppSpacing.xs,
-          AppSpacing.sm,
-          AppSpacing.md,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.bgSurface,
-          border: Border(top: BorderSide(color: AppColors.borderClr)),
-        ),
-        child: _isCurrentUserMember
-            ? FutsButton(
-                label: 'Continue',
-                outlined: true,
-                onPressed: _isSubmitting ? null : () {},
-              )
-            : _hasPendingJoinRequest
-                ? const FutsButton(
-                    label: 'Request Pending',
-                    outlined: true,
-                    onPressed: null,
-                  )
-                : _isLoggedIn
-                    ? FutsButton(
-                        label: isPartialTeamBooking
-                            ? 'Join Match & Play'
-                            : 'Join Match',
-                        isLoading: _isSubmitting,
-                        onPressed: _isJoinable ? _joinMatch : null,
-                      )
-                    : Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      FutsButton(
-                        label: 'Sign In to Join',
-                        onPressed: () => Navigator.pushNamed(context, '/login'),
-                      ),
-                      const SizedBox(height: 12),
-                      FutsButton(
-                        label: 'Create Account',
-                        outlined: true,
-                        onPressed: () =>
-                            Navigator.pushNamed(context, '/register'),
-                      ),
-                    ],
-                  ),
       ),
     );
   }
 }
 
-class _StatCol extends StatelessWidget {
-  final String value;
-  final String label;
-  final Color color;
-
-  const _StatCol({
-    required this.value,
-    required this.label,
-    required this.color,
+class _AddFriendEmptyState extends StatelessWidget {
+  const _AddFriendEmptyState({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.textTheme,
+    required this.colorScheme,
   });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final TextTheme textTheme;
+  final ColorScheme colorScheme;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.xl,
+      ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(value, style: AppTypography.textTheme(
-                        Theme.of(context).colorScheme,
-                      ).headlineMedium?.copyWith(color: color)),
-          const SizedBox(height: 3),
-          Text(label, style: AppTypography.textTheme(
-                        Theme.of(context).colorScheme,
-                      ).bodySmall),
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              icon,
+              color: AppColors.textDisabled(),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            title,
+            style: textTheme.titleMedium?.copyWith(
+              fontWeight: AppFontWeights.semiBold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            message,
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
