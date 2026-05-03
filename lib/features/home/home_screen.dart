@@ -3,16 +3,12 @@ import 'dart:math' as math;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 
-import 'package:futsmandu_design_system/components/empty_state/empty_state.dart';
 
-import '../../core/design_system/app_radius.dart';
-import '../../core/design_system/app_spacing.dart';
+import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../core/mock/mock_data.dart';
 import '../../core/services/player_auth_storage_service.dart';
 import '../../core/utils/time_formatters.dart';
-import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import '../../features/booking/data/services/player_booking_service.dart';
 import '../../features/booking/utils/slot_time_filter.dart';
 import '../../features/matches/data/services/player_match_service.dart';
@@ -118,7 +114,7 @@ class _SectionBody extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.error_outline, color: colorScheme.error, size: 24),
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               'Failed to load',
               style: textTheme.bodySmall
@@ -160,10 +156,10 @@ class _EmailNudgeBannerState extends State<_EmailNudgeBanner> {
       ),
       child: Row(
         children: [
-          const SizedBox(width: AppSpacing.xs),
+          const SizedBox(width: AppSpacing.sm),
           const Icon(Icons.mark_email_unread,
               size: 18, color: AppColors.warning),
-          const SizedBox(width: AppSpacing.xs),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               'Verify your email to enable bookings.',
@@ -213,12 +209,11 @@ class _MatchMiniCard extends StatelessWidget {
     final int memberCount = toInt(match['memberCount']) > 0
         ? toInt(match['memberCount'])
         : math.max(0, maxPlayers - spotsLeft);
-    final int playersNeeded = toInt(match['playersNeeded']) > 0
-        ? toInt(match['playersNeeded'])
-        : math.max(0, maxPlayers - memberCount);
     final int availableSlots = toInt(match['slotsAvailable']) > 0
         ? toInt(match['slotsAvailable'])
         : spotsLeft;
+    // Always compute playersNeeded from actual member count for accuracy
+    final int playersNeeded = math.max(0, maxPlayers - memberCount);
     final Color spotsColor = spotsLeft <= 2
         ? colorScheme.error
         : spotsLeft <= 4
@@ -228,7 +223,7 @@ class _MatchMiniCard extends StatelessWidget {
     return SizedBox(
       width: _kMatchCardWidth,
       child: Padding(
-        padding: const EdgeInsets.only(right: AppSpacing.xs2),
+        padding: const EdgeInsets.only(right: AppSpacing.md),
         child: Material(
           color: colorScheme.surface.withValues(alpha: 0),
           borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -281,9 +276,9 @@ class _MatchMiniCard extends StatelessWidget {
 
                 // Info overlay
                 Positioned(
-                  bottom: AppSpacing.xs,
-                  left: AppSpacing.xs,
-                  right: AppSpacing.xs,
+                  bottom: AppSpacing.sm,
+                  left: AppSpacing.sm,
+                  right: AppSpacing.sm,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -291,7 +286,7 @@ class _MatchMiniCard extends StatelessWidget {
                         label: '$availableSlots slots',
                         color: spotsColor,
                       ),
-                      const SizedBox(height: AppSpacing.xxs),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         match['venueName'] as String? ?? '',
                         style: textTheme.labelLarge?.copyWith(
@@ -306,7 +301,7 @@ class _MatchMiniCard extends StatelessWidget {
                             size: 11,
                             color: colorScheme.onPrimary.withValues(alpha: 0.7),
                           ),
-                          const SizedBox(width: AppSpacing.xxs),
+                          const SizedBox(width: AppSpacing.xs),
                           Flexible(
                             child: Text(
                               '${formatClockTime12Hour(match['time'])} · ${match['distance']}',
@@ -319,7 +314,7 @@ class _MatchMiniCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: AppSpacing.xxs),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         'Need $playersNeeded players',
                         style: textTheme.labelSmall?.copyWith(
@@ -341,8 +336,8 @@ class _MatchMiniCard extends StatelessWidget {
                 // Friends-in badge
                 if ((match['friendsIn'] as int? ?? 0) > 0)
                   Positioned(
-                    top: AppSpacing.xs,
-                    right: AppSpacing.xs,
+                    top: AppSpacing.sm,
+                    right: AppSpacing.sm,
                     child: Container(
                       width: 28,
                       height: 28,
@@ -404,7 +399,7 @@ class _UpcomingBookingCard extends StatelessWidget {
     final bookingId = b['bookingId'] as String? ?? b['id'] as String? ?? '';
 
     return FutsCard(
-      padding: const EdgeInsets.all(AppSpacing.sm),
+      padding: const EdgeInsets.all(AppSpacing.lg),
       onTap: () => Navigator.pushNamed(context, '/bookings'),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -424,7 +419,7 @@ class _UpcomingBookingCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: AppSpacing.xxs),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   b['courtName'] as String? ?? '',
                   style: textTheme.bodySmall?.copyWith(
@@ -434,7 +429,7 @@ class _UpcomingBookingCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (bookingId.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.xxs),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     'Booking ID: $bookingId',
                     style: textTheme.labelSmall?.copyWith(
@@ -446,7 +441,7 @@ class _UpcomingBookingCard extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: AppSpacing.lg),
 
           // Right: Price, status, date/time
           Column(
@@ -461,7 +456,7 @@ class _UpcomingBookingCard extends StatelessWidget {
                   fontWeight: AppFontWeights.semiBold,
                 ),
               ),
-              const SizedBox(height: AppSpacing.xxs),
+              const SizedBox(height: AppSpacing.xs),
               // Status badge (small green pill)
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -480,7 +475,7 @@ class _UpcomingBookingCard extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.xs),
+              const SizedBox(height: AppSpacing.sm),
               // Date
               Text(
                 _formatDate(b['date'] as String?),
@@ -520,7 +515,7 @@ class _TopFutsalCard extends StatelessWidget {
     return SizedBox(
       width: _kVenueCardWidth,
       child: Padding(
-        padding: const EdgeInsets.only(right: AppSpacing.xs2),
+        padding: const EdgeInsets.only(right: AppSpacing.md),
         child: Material(
           color: colorScheme.surface.withValues(alpha: 0),
           borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -569,9 +564,9 @@ class _TopFutsalCard extends StatelessWidget {
 
                 // Info overlay
                 Positioned(
-                  left: AppSpacing.xs,
-                  right: AppSpacing.xs,
-                  bottom: AppSpacing.xs,
+                  left: AppSpacing.sm,
+                  right: AppSpacing.sm,
+                  bottom: AppSpacing.sm,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -583,12 +578,12 @@ class _TopFutsalCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: AppSpacing.xxs),
+                      const SizedBox(height: AppSpacing.xs),
                       Row(
                         children: [
                           const Icon(Icons.star,
                               size: 14, color: AppColors.warning),
-                          const SizedBox(width: AppSpacing.xxs),
+                          const SizedBox(width: AppSpacing.xs),
                           Flexible(
                             child: Text(
                               '${venue['rating']}${venue['distance'] != null && venue['distance'].toString().isNotEmpty ? '  ·  ${venue['distance']}' : ''}',
@@ -928,9 +923,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.sm,
-                        AppSpacing.sm,
-                        AppSpacing.sm,
+                        AppSpacing.lg,
+                        AppSpacing.lg,
+                        AppSpacing.lg,
                         0,
                       ),
                       child: Row(
@@ -1006,7 +1001,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(width: AppSpacing.xxs),
+                          const SizedBox(width: AppSpacing.xs),
 
                           // Notification bell with count badge
                           Badge(
@@ -1029,13 +1024,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     SliverToBoxAdapter(
                       child: Container(
                         margin: const EdgeInsets.only(
-                          left: AppSpacing.sm,
-                          right: AppSpacing.sm,
-                          top: AppSpacing.xs2,
+                          left: AppSpacing.lg,
+                          right: AppSpacing.lg,
+                          top: AppSpacing.md,
                         ),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.xs2,
-                          vertical: AppSpacing.xs,
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.sm,
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.warning.withValues(alpha: 0.10),
@@ -1052,7 +1047,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               size: 18,
                               color: AppColors.warning,
                             ),
-                            const SizedBox(width: AppSpacing.xs),
+                            const SizedBox(width: AppSpacing.sm),
                             Expanded(
                               child: Text(
                                 'Reliability score is $score. Attend bookings to improve.',
@@ -1071,9 +1066,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Padding(
                       key: _searchFieldKey,
                       padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
                         AppSpacing.sm,
-                        AppSpacing.xs,
-                        AppSpacing.sm,
+                        AppSpacing.lg,
                         0,
                       ),
                       child: TextField(
@@ -1114,8 +1109,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderSide: BorderSide.none,
                           ),
                           contentPadding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm,
-                            vertical: AppSpacing.xs,
+                            horizontal: AppSpacing.lg,
+                            vertical: AppSpacing.sm,
                           ),
                           isDense: true,
                         ),
@@ -1126,7 +1121,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // ── Popular Venues section ──────────────────────────────────
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.xs),
+                      padding: const EdgeInsets.only(top: AppSpacing.sm),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -1135,7 +1130,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             onAction: () =>
                                 Navigator.pushNamed(context, '/venues'),
                           ),
-                          const SizedBox(height: AppSpacing.xxs),
+                          const SizedBox(height: AppSpacing.xs),
                           _SectionBody(
                             isLoading: _isLoadingFutsals,
                             error: _futsalsError,
@@ -1156,7 +1151,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     child: ListView.builder(
                                       scrollDirection: Axis.horizontal,
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: AppSpacing.sm,
+                                        horizontal: AppSpacing.lg,
                                       ),
                                       itemCount:
                                           math.min(4, _topFutsals.length),
@@ -1173,7 +1168,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // ── Join a Match section ────────────────────────────────────
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.md),
+                      padding: const EdgeInsets.only(top: AppSpacing.xl),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -1182,7 +1177,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             onAction: () =>
                                 Navigator.pushNamed(context, '/discovery'),
                           ),
-                          const SizedBox(height: AppSpacing.xs2),
+                          const SizedBox(height: AppSpacing.md),
                           _SectionBody(
                             isLoading: _isLoadingTonightMatches,
                             error: _tonightMatchesError,
@@ -1195,7 +1190,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        const SizedBox(height: AppSpacing.xs),
+                                        const SizedBox(height: AppSpacing.sm),
                                         Text(
                                           'No open matches available',
                                           style: textTheme.bodySmall?.copyWith(
@@ -1215,7 +1210,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     child: ListView.builder(
                                       scrollDirection: Axis.horizontal,
                                       padding: const EdgeInsets.symmetric(
-                                        horizontal: AppSpacing.sm,
+                                        horizontal: AppSpacing.lg,
                                       ),
                                       itemCount:
                                           math.min(5, _tonightMatches.length),
@@ -1234,11 +1229,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Padding(
                       padding: EdgeInsets.fromLTRB(
                         0,
-                        AppSpacing.md,
+                        AppSpacing.xl,
                         0,
                         MediaQuery.of(context).padding.bottom +
                             kNavBarHeight +
-                            AppSpacing.sm,
+                            AppSpacing.lg,
                       ),
                       child: Column(
                         children: [
@@ -1247,13 +1242,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             onAction: () =>
                                 Navigator.pushNamed(context, '/bookings'),
                           ),
-                          const SizedBox(height: AppSpacing.xs2),
+                          const SizedBox(height: AppSpacing.md),
                           _SectionBody(
                             isLoading: _isLoadingBookings,
                             placeholderHeight: 90,
                             builder: (context) => Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.sm,
+                                horizontal: AppSpacing.lg,
                               ),
                               child: upcomingBooking != null
                                   ? _UpcomingBookingCard(upcomingBooking)
@@ -1278,8 +1273,8 @@ class _HomeScreenState extends State<HomeScreen> {
             // ── Search results overlay ──────────────────────────────────────
             if (_showSearchResults)
               Positioned(
-                left: AppSpacing.sm,
-                right: AppSpacing.sm,
+                left: AppSpacing.lg,
+                right: AppSpacing.lg,
                 top: _searchDropdownTop - MediaQuery.of(context).padding.top,
                 child: Material(
                   color: colorScheme.surface,
@@ -1292,12 +1287,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: _isSearching
                         ? const Padding(
-                            padding: EdgeInsets.all(AppSpacing.md),
+                            padding: EdgeInsets.all(AppSpacing.xl),
                             child: Center(child: _SmallSpinner()),
                           )
                         : _searchResults.isEmpty
                             ? Padding(
-                                padding: const EdgeInsets.all(AppSpacing.md),
+                                padding: const EdgeInsets.all(AppSpacing.xl),
                                 child: Text(
                                   'No venues found',
                                   style: textTheme.bodyMedium?.copyWith(
@@ -1309,12 +1304,12 @@ class _HomeScreenState extends State<HomeScreen> {
                             : ListView.separated(
                                 shrinkWrap: true,
                                 padding: const EdgeInsets.symmetric(
-                                    vertical: AppSpacing.xs),
+                                    vertical: AppSpacing.sm),
                                 itemCount: _searchResults.length,
                                 separatorBuilder: (_, __) => const Divider(
                                   height: 1,
-                                  indent: AppSpacing.sm,
-                                  endIndent: AppSpacing.sm,
+                                  indent: AppSpacing.lg,
+                                  endIndent: AppSpacing.lg,
                                 ),
                                 itemBuilder: (context, index) {
                                   final venue = _searchResults[index];
@@ -1323,7 +1318,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     leading: venue['coverUrl'] != null
                                         ? ClipRRect(
                                             borderRadius: BorderRadius.circular(
-                                                AppSpacing.xxs),
+                                                AppSpacing.xs),
                                             child: CachedNetworkImage(
                                               imageUrl:
                                                   venue['coverUrl'] as String,
@@ -1373,7 +1368,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 color: AppColors.warning,
                                               ),
                                               const SizedBox(
-                                                  width: AppSpacing.xxs),
+                                                  width: AppSpacing.xs),
                                               Text(
                                                 '${venue['rating']}',
                                                 style: textTheme.bodySmall
@@ -1417,7 +1412,7 @@ class _SectionPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       child: Container(
         height: height,
         decoration: BoxDecoration(
