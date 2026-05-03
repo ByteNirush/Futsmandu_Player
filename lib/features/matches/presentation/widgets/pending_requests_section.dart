@@ -28,11 +28,18 @@ class PendingRequestsSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Icon(Icons.pending_actions_rounded,
-                size: 20, color: AppColors.amber),
-            const SizedBox(width: AppSpacing.xs),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.amber.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: const Icon(Icons.pending_actions_rounded,
+                  size: 18, color: AppColors.amber),
+            ),
+            const SizedBox(width: AppSpacing.xxl),
             Text('Pending Requests',
-                style: tt.titleLarge
+                style: tt.titleMedium
                     ?.copyWith(fontWeight: AppFontWeights.bold)),
             const Spacer(),
             Container(
@@ -50,7 +57,7 @@ class PendingRequestsSection extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.sm),
+        const SizedBox(height: AppSpacing.lg),
         ...pendingMembers.map((member) {
           final name = member['name']?.toString() ?? '-';
           final avatarUrl = member['avatarUrl']?.toString() ?? '';
@@ -60,8 +67,9 @@ class PendingRequestsSection extends StatelessWidget {
               name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?';
 
           return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+            padding: const EdgeInsets.only(bottom: AppSpacing.lg),
             child: AppCard(
+              padding: const EdgeInsets.all(AppSpacing.xxl),
               child: Row(
                 children: [
                   CircleAvatar(
@@ -74,7 +82,7 @@ class PendingRequestsSection extends StatelessWidget {
                         ? Text(initials, style: tt.titleSmall)
                         : null,
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: AppSpacing.xxl),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -100,7 +108,7 @@ class PendingRequestsSection extends StatelessWidget {
                         style: tt.labelSmall?.copyWith(
                             fontWeight: AppFontWeights.bold)),
                   ),
-                  const SizedBox(width: AppSpacing.xs),
+                  const SizedBox(width: AppSpacing.lg),
                   OutlinedButton(
                     onPressed: isSubmitting
                         ? null

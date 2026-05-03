@@ -49,7 +49,7 @@ class PlayerListSection extends StatelessWidget {
               child: Icon(Icons.people_alt_rounded,
                   size: 18, color: scheme.primary),
             ),
-            const SizedBox(width: AppSpacing.sm),
+            const SizedBox(width: AppSpacing.xxl),
             Expanded(
               child: Text(
                 'Players',
@@ -76,7 +76,7 @@ class PlayerListSection extends StatelessWidget {
             ),
             // Add button (admin only, when slots available)
             if (isAdmin && slotsAvailable > 0) ...[
-              const SizedBox(width: AppSpacing.xs),
+              const SizedBox(width: AppSpacing.lg),
               _AddPlayerButton(
                 isSubmitting: isSubmitting,
                 onTap: onAddFriend,
@@ -107,7 +107,7 @@ class PlayerListSection extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.lg),
 
         // Player list — one per row
         if (confirmed.isEmpty)
@@ -137,9 +137,9 @@ class PlayerListSection extends StatelessWidget {
 
         // Spots open indicator with enhanced styling
         if (slotsAvailable > 0) ...[
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: AppSpacing.lg),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: AppColors.amber.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -152,7 +152,7 @@ class PlayerListSection extends StatelessWidget {
               children: [
                 const Icon(Icons.hourglass_empty_rounded,
                     size: 16, color: AppColors.amber),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     '$slotsAvailable spot${slotsAvailable == 1 ? '' : 's'} open — waiting for players',
@@ -198,8 +198,8 @@ class _PlayerRow extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.sm,
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
           ),
           child: Row(
             children: [
@@ -243,7 +243,7 @@ class _PlayerRow extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: AppSpacing.lg),
 
               // Name + meta
               Expanded(
@@ -329,7 +329,7 @@ class _PlayerRow extends StatelessWidget {
         if (showDivider)
           Divider(
             height: 1,
-            indent: AppSpacing.sm + 44 + AppSpacing.sm, // avatar width + gaps
+            indent: AppSpacing.xxl + 44 + AppSpacing.xxl, // avatar width + gaps
             color: scheme.outlineVariant.withValues(alpha: 0.4),
           ),
       ],
@@ -429,12 +429,13 @@ class _EmptyPlayersHint extends StatelessWidget {
     final tt = AppTypography.textTheme(scheme);
 
     return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.xxl),
       child: Center(
         child: Column(
           children: [
             Icon(Icons.group_add_rounded,
-                size: 36, color: AppColors.textDisabled()),
-            const SizedBox(height: AppSpacing.xs),
+                size: 32, color: AppColors.textDisabled()),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               'No players yet',
               style: tt.bodyMedium?.copyWith(

@@ -177,10 +177,9 @@ class MatchDiscoveryController extends AsyncNotifier<MatchDiscoveryState> {
   Future<List<MatchSummary>> _loadTab(MatchDiscoveryTab tab) async {
     switch (tab) {
       case MatchDiscoveryTab.tonight:
-        // Fetch both open matches for today AND tonight matches (same as home screen)
-        final today = DateTime.now().toIso8601String().split('T').first;
+        // Fetch both open matches AND tonight matches (same as home screen)
         final openMatches = await _service.fetchOpenMatches(
-          date: today,
+          limit: 20,
           latitude: fallbackLatitude,
           longitude: fallbackLongitude,
         );

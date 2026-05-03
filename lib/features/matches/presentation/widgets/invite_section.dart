@@ -33,14 +33,14 @@ class InviteSection extends StatelessWidget {
               ),
               child: Icon(Icons.link_rounded, size: 18, color: scheme.primary),
             ),
-            const SizedBox(width: AppSpacing.sm),
+            const SizedBox(width: AppSpacing.lg),
             Text('Invite Friends',
                 style: tt.titleMedium?.copyWith(
                   fontWeight: AppFontWeights.bold,
                 )),
           ],
         ),
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: AppSpacing.lg),
         Container(
           decoration: BoxDecoration(
             color: scheme.surface,
@@ -51,7 +51,7 @@ class InviteSection extends StatelessWidget {
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: Row(
               children: [
                 Container(
@@ -70,7 +70,7 @@ class InviteSection extends StatelessWidget {
                   ),
                   child: Icon(Icons.share_rounded, size: 20, color: scheme.primary),
                 ),
-                const SizedBox(width: AppSpacing.md),
+                const SizedBox(width: AppSpacing.lg),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,7 +90,7 @@ class InviteSection extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: AppSpacing.xs),
+                const SizedBox(width: AppSpacing.lg),
                 FilledButton.tonal(
                   onPressed:
                       isAdmin && !isSubmitting ? onCopyInviteLink : null,

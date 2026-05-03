@@ -11,6 +11,8 @@ import 'presentation/widgets/match_info_strip.dart';
 import 'presentation/widgets/player_list_section.dart';
 import 'presentation/widgets/invite_section.dart';
 import 'presentation/widgets/pending_requests_section.dart';
+import '../../core/utils/time_formatters.dart';
+
 
 class MatchDetailScreen extends StatefulWidget {
   const MatchDetailScreen({super.key});
@@ -276,7 +278,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     final start = _match?['time']?.toString() ?? '';
     final end = _match?['endTime']?.toString() ?? '';
     if (start.isEmpty && end.isEmpty) return '';
-    return end.isEmpty ? start : '$start - $end';
+    return formatClockTimeRange12Hour(start, end);
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────
@@ -478,7 +480,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(height: AppSpacing.sm),
+                  const SizedBox(height: AppSpacing.xxl),
                   Center(
                     child: Container(
                       width: 40,
@@ -491,14 +493,14 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                   ),
                   Expanded(
                     child: ListView(
-                      padding: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.xl),
+                      padding: const EdgeInsets.only(top: AppSpacing.xxxl, bottom: AppSpacing.xxxl),
                       children: [
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
                           child: Row(
                             children: [
                               Icon(Icons.people_outline, size: 24, color: scheme.primary),
-                              const SizedBox(width: AppSpacing.sm),
+                              const SizedBox(width: AppSpacing.xxl),
                               Expanded(
                                 child: Text('Add Friend to Match',
                                     style: tt.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
@@ -506,9 +508,9 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.xs),
+                        const SizedBox(height: AppSpacing.lg),
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl),
                           child: Text(
                             subtitle,
                             style: tt.bodySmall?.copyWith(
@@ -516,7 +518,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.lg),
+                        const SizedBox(height: AppSpacing.xxl),
                         if (validFriends.isEmpty)
                           _AddFriendEmptyState(
                             icon: Icons.person_add_disabled_rounded,
@@ -564,7 +566,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                                         }
                                       : null,
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.md),
+                                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxxl, vertical: AppSpacing.xxxl),
                                     child: Row(
                                       children: [
                                         CircleAvatar(
@@ -583,7 +585,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                                                   ))
                                               : null,
                                         ),
-                                        const SizedBox(width: AppSpacing.md),
+                                        const SizedBox(width: AppSpacing.xxxl),
                                         Expanded(
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -599,7 +601,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                                             ],
                                           ),
                                         ),
-                                        const SizedBox(width: AppSpacing.sm),
+                                        const SizedBox(width: AppSpacing.xxl),
                                         if (alreadyIn)
                                           _AddFriendStatusChip(
                                             icon: isConfirmed
@@ -652,7 +654,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                                       height: 1,
                                       thickness: 1,
                                       color: scheme.outlineVariant.withValues(alpha: 0.3),
-                                      indent: AppSpacing.xl + 56 + AppSpacing.md),
+                                      indent: AppSpacing.xxxl + 56 + AppSpacing.xxxl),
                               ],
                             );
                           }),
@@ -660,7 +662,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
+                    padding: const EdgeInsets.all(AppSpacing.xxxl),
                     decoration: BoxDecoration(
                       color: AppColors.bgSurface,
                       border: Border(
@@ -750,13 +752,13 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
         backgroundColor: AppColors.bgPrimary,
         body: Center(
           child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
+            padding: const EdgeInsets.all(AppSpacing.xxxl),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.error_outline_rounded,
                     size: 48, color: AppColors.txtDisabled),
-                const SizedBox(height: AppSpacing.sm),
+                const SizedBox(height: AppSpacing.xxl),
                 Text(
                   _errorMessage ?? 'Could not load match details.',
                   textAlign: TextAlign.center,
@@ -765,7 +767,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                       .bodyMedium
                       ?.copyWith(color: AppColors.txtDisabled),
                 ),
-                const SizedBox(height: AppSpacing.md),
+                const SizedBox(height: AppSpacing.xxxl),
                 ElevatedButton(
                   onPressed: _loadMatch,
                   child: const Text('Retry'),
@@ -827,9 +829,11 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                   ),
 
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xs,
-                      vertical: AppSpacing.md,
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      AppSpacing.xxs,
+                      AppSpacing.md,
+                      AppSpacing.xxs,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -845,7 +849,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                           slotsAvailable: slotsAvailable,
                         ),
 
-                        const SizedBox(height: AppSpacing.xl),
+                        const SizedBox(height: AppSpacing.xs),
 
                         // Players section
                         PlayerListSection(
@@ -883,7 +887,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                         ],
 
                         // Bottom spacing for the action bar
-                        const SizedBox(height: AppSpacing.xl),
+                        const SizedBox(height: AppSpacing.lg),
                       ],
                     ),
                   ),
@@ -904,10 +908,10 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.sm,
-        AppSpacing.xs,
-        AppSpacing.sm,
-        AppSpacing.md,
+        AppSpacing.xxl,
+        AppSpacing.lg,
+        AppSpacing.xxl,
+        AppSpacing.xxxl,
       ),
       decoration: BoxDecoration(
         color: AppColors.bgSurface,
@@ -1008,8 +1012,8 @@ class _AddFriendEmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.xl,
-        vertical: AppSpacing.xl,
+        horizontal: AppSpacing.xxxl,
+        vertical: AppSpacing.xxxl,
       ),
       child: Column(
         children: [
@@ -1025,7 +1029,7 @@ class _AddFriendEmptyState extends StatelessWidget {
               color: AppColors.textDisabled(),
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xxl),
           Text(
             title,
             style: textTheme.titleMedium?.copyWith(

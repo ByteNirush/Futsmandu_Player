@@ -39,7 +39,7 @@ class MatchInfoStrip extends StatelessWidget {
         (isOpen || isPartialTeamBooking) ? AppColors.green : AppColors.textSecondary();
 
     return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.xxs, AppSpacing.lg, AppSpacing.lg, AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -75,11 +75,11 @@ class MatchInfoStrip extends StatelessWidget {
               ],
             ),
 
-          if (venueAddress.isNotEmpty) const SizedBox(height: AppSpacing.md),
+          if (venueAddress.isNotEmpty) const SizedBox(height: AppSpacing.lg),
 
           // Status + skill + slots row with divider
           Container(
-            padding: const EdgeInsets.only(top: AppSpacing.sm),
+            padding: EdgeInsets.only(top: venueAddress.isNotEmpty ? AppSpacing.md : 0),
             decoration: BoxDecoration(
               border: venueAddress.isNotEmpty
                   ? Border(
@@ -91,8 +91,8 @@ class MatchInfoStrip extends StatelessWidget {
                   : null,
             ),
             child: Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.xs,
+              spacing: AppSpacing.lg,
+              runSpacing: AppSpacing.md,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 StatusBadge(label: statusLabel, color: statusColor),

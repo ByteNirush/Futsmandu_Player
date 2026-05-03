@@ -418,6 +418,9 @@ class PlayerMatchService {
     final maxPlayers = _toInt(raw['max_players']);
     final confirmedCount = confirmedMembers.length;
     final slotsAvailable = (maxPlayers - confirmedCount).clamp(0, maxPlayers);
+    final playersNeeded = _toInt(raw['players_needed']) > 0
+        ? _toInt(raw['players_needed'])
+        : (maxPlayers > 0 ? maxPlayers - confirmedCount : slotsAvailable);
     final fillStatus = _string(raw['fill_status']).isNotEmpty
       ? _string(raw['fill_status'])
       : (slotsAvailable == 0 ? 'FULL' : 'OPEN');
@@ -443,7 +446,7 @@ class PlayerMatchService {
         'maxPlayers': maxPlayers,
         'memberCount': confirmedCount,
         'slotsAvailable': slotsAvailable,
-        'playersNeeded': slotsAvailable,
+        'playersNeeded': playersNeeded,
       'skillLevel': _skillLabel(raw['skill_filter']),
       'skillFilter': _string(raw['skill_filter']),
       'distance': _string(venue['distance']).isNotEmpty
@@ -615,9 +618,18 @@ class PlayerMatchService {
     final maxPlayers = _toInt(raw['maxPlayers']) > 0
         ? _toInt(raw['maxPlayers'])
         : _toInt(raw['max_players']);
-    final memberCount = _toInt(raw['memberCount']) > 0
-      ? _toInt(raw['memberCount'])
-      : _toInt(raw['membersCount']);
+    // Get memberCount from field or count from members array
+    int memberCount = _toInt(raw['memberCount']) > 0
+        ? _toInt(raw['memberCount'])
+        : _toInt(raw['membersCount']);
+    // If still 0, count from members array
+    if (memberCount == 0 && raw['members'] is List) {
+      final members = _asMapList(raw['members']);
+      memberCount = members.where((m) {
+        final status = (m['status'] ?? m['member_status'] ?? '').toString().toLowerCase();
+        return status == 'confirmed' || status == 'joined' || status.isEmpty;
+      }).length;
+    }
     final slotsAvailable = _toInt(raw['slotsAvailable']) > 0
       ? _toInt(raw['slotsAvailable'])
       : _toInt(raw['availableSlots']);
@@ -625,6 +637,9 @@ class PlayerMatchService {
         ? _toInt(raw['spotsLeft'])
       : (slotsAvailable > 0 ? slotsAvailable : maxPlayers - memberCount);
     final normalizedSpotsLeft = spotsLeft < 0 ? 0 : spotsLeft;
+    final playersNeeded = _toInt(raw['playersNeeded']) > 0
+        ? _toInt(raw['playersNeeded'])
+        : (maxPlayers > 0 ? maxPlayers - memberCount : normalizedSpotsLeft);
     final fillStatus = _string(raw['fillStatus']).isNotEmpty
       ? _string(raw['fillStatus'])
       : (normalizedSpotsLeft == 0 ? 'FULL' : 'OPEN');
@@ -668,7 +683,7 @@ class PlayerMatchService {
       'maxPlayers': maxPlayers,
       'memberCount': memberCount,
       'slotsAvailable': normalizedSpotsLeft,
-      'playersNeeded': normalizedSpotsLeft,
+      'playersNeeded': playersNeeded,
       'skillLevel': _skillLabel(skillFilter),
       'skillFilter': skillFilter,
       'distance': distance,

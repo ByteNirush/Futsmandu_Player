@@ -80,26 +80,6 @@ class MatchHeroHeader extends StatelessWidget {
               ),
             ),
 
-          // Gradient overlay at bottom to ensure image blends nicely or text is readable
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 160,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    scheme.surface,
-                  ],
-                ),
-              ),
-            ),
-          ),
-
           // App Bar overlay
           Positioned(
             top: 0,
@@ -171,7 +151,7 @@ class MatchHeaderContent extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.pageHorizontal,
-        AppSpacing.sm,
+        AppSpacing.md,
         AppSpacing.pageHorizontal,
         0,
       ),
@@ -186,7 +166,7 @@ class MatchHeaderContent extends StatelessWidget {
               color: scheme.onSurface,
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.md),
           // Date and time row
           if (dateLabel.isNotEmpty || timeLabel.isNotEmpty)
             Row(
