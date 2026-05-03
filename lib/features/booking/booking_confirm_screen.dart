@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/design_system/app_spacing.dart';
+import '../../core/utils/time_formatters.dart';
 import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../shared/widgets/futs_button.dart';
@@ -105,11 +106,12 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
     setState(() => _isPolling = true);
 
     try {
-      final detail = await ref.read(bookingRepositoryProvider).getBookingDetail(bookingId);
+      final detail =
+          await ref.read(bookingRepositoryProvider).getBookingDetail(bookingId);
       final booking = detail.raw;
       final mg = booking['match_group'];
       final newMatchGroupId = (mg is Map) ? (mg['id']?.toString() ?? '') : '';
-      
+
       if (newMatchGroupId.isNotEmpty && (_matchGroupId?.isEmpty ?? true)) {
         _matchGroupId = newMatchGroupId;
       }
@@ -145,13 +147,13 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
     // Extract booking type and player info
     final bookingType = args?['bookingType']?.toString() ?? '';
     final isPartialTeam = bookingType == 'PARTIAL_TEAM';
-    final myPlayers = args?['myPlayers'] is int ? (args!['myPlayers'] as int) : 0;
+    final myPlayers =
+        args?['myPlayers'] is int ? (args!['myPlayers'] as int) : 0;
     final maxPlayersArg = args?['maxPlayers'];
     final maxPlayers = maxPlayersArg is int
         ? maxPlayersArg
         : int.tryParse(maxPlayersArg?.toString() ?? '') ?? 0;
-    final playersNeeded =
-        (maxPlayers > myPlayers) ? maxPlayers - myPlayers : 0;
+    final playersNeeded = (maxPlayers > myPlayers) ? maxPlayers - myPlayers : 0;
 
     // Effective matchGroupId: prefer the one from polling, fall back to initial
     final effectiveMatchGroupId = (_matchGroupId?.isNotEmpty == true)
@@ -163,7 +165,8 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
     final paymentLabel = gateway.isNotEmpty
         ? '${gateway.toUpperCase()} paid $amountLabel'
         : 'Paid $amountLabel';
-    final showMatchGroupButton = effectiveMatchGroupId.isNotEmpty && isPartialTeam;
+    final showMatchGroupButton =
+        effectiveMatchGroupId.isNotEmpty && isPartialTeam;
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -284,10 +287,14 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
                       FutsCard(
                         child: Column(
                           children: [
-                            _ConfirmRow('Venue', args?['venueName']?.toString() ?? ''),
+                            _ConfirmRow(
+                                'Venue', args?['venueName']?.toString() ?? ''),
                             _ConfirmRow('Court', selectedCourtName),
                             _ConfirmRow('Date', bookingDate),
-                            _ConfirmRow('Time', '$startTime - $endTime'),
+                            _ConfirmRow(
+                              'Time',
+                              formatClockTimeRange12Hour(startTime, endTime),
+                            ),
                             const Divider(),
                             _ConfirmRow('Type',
                                 isPartialTeam ? 'Partial Team' : 'Full Team'),
@@ -311,8 +318,7 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
                                         .bodyMedium
                                         ?.copyWith(
                                           color: AppColors.green,
-                                          fontWeight:
-                                              AppFontWeights.semiBold,
+                                          fontWeight: AppFontWeights.semiBold,
                                         ),
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
