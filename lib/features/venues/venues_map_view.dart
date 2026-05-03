@@ -6,9 +6,11 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:futsmandu_design_system/core/theme/app_radius.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
+
 import '../../core/design_system/app_spacing.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import '../home/home_shell.dart' show kNavBarHeight;
 
 /// Google Map for browsing venues: markers from `lat` / `lng` on each venue map,
@@ -136,14 +138,14 @@ class _VenuesMapViewState extends State<VenuesMapView> {
       builder: (ctx) {
         return Padding(
           padding: EdgeInsets.fromLTRB(
-            12,
+            AppSpacing.xs,
             0,
-            12,
-            12 + widget.mediaPaddingBottom + kNavBarHeight,
+            AppSpacing.xs,
+            AppSpacing.xs + widget.mediaPaddingBottom + kNavBarHeight,
           ),
           child: Material(
             color: AppColors.bgSurface,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: AppRadius.large,
             clipBehavior: Clip.antiAlias,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(
@@ -158,22 +160,22 @@ class _VenuesMapViewState extends State<VenuesMapView> {
                 children: [
                   Center(
                     child: Container(
-                      width: 40,
-                      height: 4,
+                      width: AppSpacing.xl,
+                      height: AppSpacing.xxs,
                       decoration: BoxDecoration(
                         color: AppColors.borderClr,
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: AppRadius.extraLarge,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSpacing.sm),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(
                         child: Text(
                           venue['name'] as String? ?? '',
-                          style: AppText.h3.copyWith(fontSize: 20),
+                          style: AppTypography.subHeading(context, Theme.of(context).colorScheme),
                         ),
                       ),
                       if (verified)
@@ -184,19 +186,21 @@ class _VenuesMapViewState extends State<VenuesMapView> {
                           ),
                           decoration: BoxDecoration(
                             color: AppColors.green.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: AppRadius.small,
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.verified_rounded,
-                                  size: 16, color: AppColors.green),
-                              const SizedBox(width: 4),
+                              const Icon(Icons.verified_rounded,
+                                size: AppSpacing.md - 8, color: AppColors.green),
+                              const SizedBox(width: AppSpacing.xxs),
                               Text(
                                 'Verified',
-                                style: AppText.label.copyWith(
+                                style: AppTypography.textTheme(
+                                  Theme.of(context).colorScheme,
+                                ).labelMedium?.copyWith(
                                   color: AppColors.green,
-                                  fontWeight: AppTextStyles.semiBold,
+                                  fontWeight: AppFontWeights.semiBold,
                                 ),
                               ),
                             ],
@@ -204,41 +208,43 @@ class _VenuesMapViewState extends State<VenuesMapView> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.xs),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(Icons.place_outlined,
-                          size: 18, color: AppColors.txtDisabled),
-                      const SizedBox(width: 6),
+                          size: AppSpacing.md - 6, color: AppColors.txtDisabled),
+                      const SizedBox(width: AppSpacing.xs2 - 6),
                       Expanded(
                         child: Text(
                           venue['address'] as String? ?? '',
-                          style: AppText.bodySm
+                          style: AppTypography.body(context, Theme.of(ctx).colorScheme)
+                              .copyWith(fontSize: 14 * AppTypographyScale.fromContext(ctx))
                               .copyWith(color: AppColors.txtDisabled),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: AppSpacing.xs2),
                   Row(
                     children: [
                       const Icon(Icons.star_rounded,
-                          size: 20, color: AppColors.ratingStar),
-                      const SizedBox(width: 4),
+                          size: AppSpacing.md - 4, color: AppColors.ratingStar),
+                      const SizedBox(width: AppSpacing.xxs),
                       Text(
                         rating.toStringAsFixed(1),
-                        style: AppText.body
-                            .copyWith(fontWeight: AppTextStyles.semiBold),
+                        style: AppTypography.body(context, Theme.of(ctx).colorScheme)
+                            .copyWith(fontWeight: AppFontWeights.semiBold),
                       ),
                       Text(
                         ' ($reviewCount) · $courts courts',
-                        style: AppText.bodySm
+                        style: AppTypography.body(context, Theme.of(ctx).colorScheme)
+                            .copyWith(fontSize: 14 * AppTypographyScale.fromContext(ctx))
                             .copyWith(color: AppColors.txtDisabled),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: AppSpacing.sm2),
                   Row(
                     children: [
                       Expanded(
@@ -247,7 +253,7 @@ class _VenuesMapViewState extends State<VenuesMapView> {
                             Navigator.pop(ctx);
                             _openDirections(pos);
                           },
-                          icon: const Icon(Icons.directions_rounded, size: 20),
+                          icon: const Icon(Icons.directions_rounded, size: AppSpacing.md - 4),
                           label: const Text('Directions'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.txtPrimary,
@@ -257,7 +263,7 @@ class _VenuesMapViewState extends State<VenuesMapView> {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.xs2),
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
@@ -266,7 +272,7 @@ class _VenuesMapViewState extends State<VenuesMapView> {
                                 arguments: venue);
                           },
                           icon:
-                              const Icon(Icons.sports_soccer_rounded, size: 20),
+                              const Icon(Icons.sports_soccer_rounded, size: AppSpacing.md - 4),
                           label: const Text('View venue'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.green,
@@ -343,18 +349,20 @@ class _VenuesMapViewState extends State<VenuesMapView> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.map_outlined,
-                    size: 56,
+                    size: 88,
                     color: AppColors.txtDisabled.withValues(alpha: 0.7)),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.xs2),
                 Text(
                   'No venues on the map',
-                  style: AppText.h3.copyWith(fontSize: 20),
+                  style: AppTypography.subHeading(context, Theme.of(context).colorScheme),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.xs),
                 Text(
                   'Try adjusting search or filters, then switch back to the list.',
-                  style: AppText.bodySm.copyWith(color: AppColors.txtDisabled),
+                  style: AppTypography.body(context, Theme.of(context).colorScheme)
+                    .copyWith(fontSize: 14 * AppTypographyScale.fromContext(context))
+                    .copyWith(color: AppColors.txtDisabled),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -365,7 +373,7 @@ class _VenuesMapViewState extends State<VenuesMapView> {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: AppRadius.large,
       child: Stack(
         fit: StackFit.expand,
         children: [

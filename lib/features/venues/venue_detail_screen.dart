@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import '../../core/design_system/app_spacing.dart';
-import '../../core/theme/app_theme.dart';
-import '../../core/theme/app_colors.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart' show AppColors;
 import '../../shared/widgets/futs_button.dart';
 import 'data/services/player_venues_service.dart';
 
 class _VenueDetailSpacing {
   static const double sectionGap = 20;
   static const double subSectionGap = 16;
-  static const double elementGap = 10;
   static const double smallGap = 6;
 }
 
@@ -306,7 +304,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
+    final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
 
@@ -409,273 +407,292 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
             },
           ),
         ),
-      body: CustomScrollView(
+      body: SingleChildScrollView(
         controller: _detailScrollController,
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 300,
-            pinned: true,
-            backgroundColor: theme.scaffoldBackgroundColor,
-            iconTheme: IconThemeData(color: colorScheme.onSurface),
-            title: AnimatedOpacity(
-              duration: const Duration(milliseconds: 180),
-              opacity: _showCollapsedTitle ? 1 : 0,
-              child: Text(
-                venue['name'] ?? '',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: textTheme.titleMedium,
-              ),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              background: _VenueCoverCarousel(
-                imageUrls: _carouselImages,
-                venueName: venue['name'] ?? '',
-                isVerified: isVerified,
-                pageController: _pageController,
-                currentPage: _currentImagePage,
-                onPageChanged: (page) => setState(() => _currentImagePage = page),
-              ),
-            ),
-            actions: [
-              IconButton(
-                style: IconButton.styleFrom(
-                  backgroundColor: colorScheme.surface.withValues(alpha: 0.62),
-                ),
-                icon: Icon(Icons.share, color: colorScheme.onSurface),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Share coming soon')),
-                  );
-                },
-              ),
-            ],
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.pagePadding,
-                vertical: AppSpacing.sm,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          children: [
+            // ── Hero Header ──────────────────────────────────────────
+            SizedBox(
+              height: 300,
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  // ── Venue Name & Rating Row ───────────────────────────────
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              venue['name'] ?? '',
-                              style: textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: _VenueDetailSpacing.smallGap),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.star_rounded,
-                                  size: 16,
-                                  color: AppColors.warning,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${venue['rating']}',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  ' · ${venue['reviewCount']} reviews',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    color: colorScheme.onSurfaceVariant,
-                                  ),
-                                ),
-                                if (isVerified) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.primaryContainer,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.verified_rounded,
-                                          size: 12,
-                                          color: colorScheme.primary,
-                                        ),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          'Verified',
-                                          style: textTheme.labelSmall?.copyWith(
-                                            color: colorScheme.primary,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  _VenueCoverCarousel(
+                    imageUrls: _carouselImages,
+                    venueName: venue['name'] ?? '',
+                    isVerified: isVerified,
+                    pageController: _pageController,
+                    currentPage: _currentImagePage,
+                    onPageChanged: (page) => setState(() => _currentImagePage = page),
                   ),
-
-                  const SizedBox(height: _VenueDetailSpacing.elementGap),
-
-                  // ── Meta Info Chips ────────────────────────────────────────
-                  Wrap(
-                    spacing: _VenueDetailSpacing.smallGap,
-                    runSpacing: _VenueDetailSpacing.smallGap,
-                    children: [
-                      _MetaChip(
-                        icon: Icons.sports_soccer_rounded,
-                        label: '${courts.length} Courts',
-                      ),
-                      if (venue['distance'] != null)
-                        _MetaChip(
-                          icon: Icons.near_me_rounded,
-                          label: venue['distance'],
-                        ),
-                    ],
-                  ),
-
-                  const SizedBox(height: _VenueDetailSpacing.subSectionGap),
-
-                  // ── About Section ──────────────────────────────────────────
-                  if ((venue['description'] as String?)?.isNotEmpty == true) ...[
-                    _SectionHeader(title: 'About'),
-                    const SizedBox(height: _VenueDetailSpacing.smallGap),
-                    Text(
-                      venue['description'] as String,
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                        height: 1.6,
-                      ),
-                    ),
-                    const SizedBox(height: _VenueDetailSpacing.sectionGap),
-                  ],
-
-                  // ── Location Section ───────────────────────────────────────
-                  _SectionHeader(title: 'Location'),
-                  const SizedBox(height: _VenueDetailSpacing.smallGap),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.location_on_outlined,
-                        size: 20,
-                        color: colorScheme.primary,
-                      ),
-                      const SizedBox(width: _VenueDetailSpacing.smallGap),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              venue['address'] ?? '',
-                              style: textTheme.bodyMedium?.copyWith(
-                                height: 1.5,
-                              ),
-                            ),
-                            if ((venue['addressCity'] ?? '').isNotEmpty ||
-                                (venue['addressDistrict'] ?? '').isNotEmpty)
-                              Text(
-                                '${venue['addressCity'] ?? ''}${(venue['addressCity'] ?? '').isNotEmpty && (venue['addressDistrict'] ?? '').isNotEmpty ? ', ' : ''}${venue['addressDistrict'] ?? ''}',
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                          ],
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: AppBar(
+                      backgroundColor: Colors.transparent,
+                      elevation: 0,
+                      iconTheme: IconThemeData(color: colorScheme.onSurface),
+                      title: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 180),
+                        opacity: _showCollapsedTitle ? 1 : 0,
+                        child: Text(
+                          venue['name'] ?? '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.titleMedium,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: _VenueDetailSpacing.sectionGap),
-
-                  // ── Contact Section ────────────────────────────────────────
-                  _SectionHeader(title: 'Contact'),
-                  const SizedBox(height: _VenueDetailSpacing.smallGap),
-                  if ((venue['ownerPhone'] as String?)?.isNotEmpty == true)
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.phone_outlined,
-                          size: 20,
-                          color: colorScheme.primary,
+                      actions: [
+                        IconButton(
+                          style: IconButton.styleFrom(
+                            backgroundColor: colorScheme.surface.withValues(alpha: 0.62),
+                          ),
+                          icon: Icon(Icons.share, color: colorScheme.onSurface),
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Share coming soon')),
+                            );
+                          },
                         ),
-                        const SizedBox(width: _VenueDetailSpacing.elementGap),
-                        Text(
-                          venue['ownerPhone'] as String,
-                          style: textTheme.bodyMedium,
-                        ),
+                        const SizedBox(width: 8),
                       ],
-                    )
-                  else
-                    Text(
-                      'Contact details not available.',
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
                     ),
-                  const SizedBox(height: _VenueDetailSpacing.sectionGap),
-
-                  // ── Amenities Section ──────────────────────────────────────
-                  _SectionHeader(title: 'Amenities'),
-                  const SizedBox(height: _VenueDetailSpacing.smallGap),
-                  Wrap(
-                    spacing: _VenueDetailSpacing.elementGap,
-                    runSpacing: _VenueDetailSpacing.smallGap,
-                    children: (venue['amenities'] as List).map((a) {
-                      final amenity = a.toString();
-                      return _AmenityChip(label: amenity);
-                    }).toList(),
                   ),
-                  const SizedBox(height: _VenueDetailSpacing.sectionGap),
-
-                  // ── Reviews Section ──────────────────────────────────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _SectionHeader(title: 'Reviews'),
-                      TextButton.icon(
-                        onPressed: _showWriteReviewSheet,
-                        icon: Icon(Icons.edit_outlined, size: 16),
-                        label: const Text('Write a Review'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: colorScheme.primary,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          textStyle: textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: _VenueDetailSpacing.smallGap),
-                  _buildReviews(venue),
-                  const SizedBox(height: _VenueDetailSpacing.elementGap),
                 ],
               ),
             ),
-          ),
-        ],
+            
+            // ── Unified Content Container ──────────────────────────────────
+            Container(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.pagePadding,
+                  vertical: AppSpacing.md,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Venue Name & Rating Row ───────────────────────────────
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                venue['name'] ?? '',
+                                style: textTheme.headlineSmall?.copyWith(
+                                  fontWeight: AppFontWeights.semiBold,
+                                ),
+                              ),
+                              const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.star_rounded,
+                                    size: 16,
+                                    color: AppColors.warning,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${venue['rating']}',
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      fontWeight: AppFontWeights.semiBold,
+                                    ),
+                                  ),
+                                  Text(
+                                    ' · ${venue['reviewCount']} reviews',
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  if (isVerified) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.primaryContainer,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.verified_rounded,
+                                            size: 12,
+                                            color: colorScheme.primary,
+                                          ),
+                                          const SizedBox(width: 2),
+                                          Text(
+                                            'Verified',
+                                            style: textTheme.labelSmall?.copyWith(
+                                              color: colorScheme.primary,
+                                              fontWeight: AppFontWeights.semiBold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+
+                    // ── Meta Info Chips ────────────────────────────────────────
+                    Wrap(
+                      spacing: _VenueDetailSpacing.subSectionGap,
+                      runSpacing: _VenueDetailSpacing.subSectionGap,
+                      children: [
+                        _MetaChip(
+                          icon: Icons.sports_soccer_rounded,
+                          label: '${courts.length} Courts',
+                        ),
+                        if (venue['distance'] != null)
+                          _MetaChip(
+                            icon: Icons.near_me_rounded,
+                            label: venue['distance'],
+                          ),
+                      ],
+                    ),
+
+                    const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+
+                    // ── About Section ──────────────────────────────────────────
+                    if ((venue['description'] as String?)?.isNotEmpty == true) ...[
+                      const _SectionHeader(title: 'About'),
+                      const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                      Text(
+                        venue['description'] as String,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                          height: 1.6,
+                        ),
+                      ),
+                      const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                    ],
+
+                    // ── Location Section ───────────────────────────────────────
+                    const _SectionHeader(title: 'Location'),
+                    const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.location_on_outlined,
+                          size: 20,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: _VenueDetailSpacing.subSectionGap),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                venue['address'] ?? '',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  height: 1.5,
+                                ),
+                              ),
+                              if ((venue['addressCity'] ?? '').isNotEmpty ||
+                                  (venue['addressDistrict'] ?? '').isNotEmpty)
+                                Text(
+                                  '${venue['addressCity'] ?? ''}${(venue['addressCity'] ?? '').isNotEmpty && (venue['addressDistrict'] ?? '').isNotEmpty ? ', ' : ''}${venue['addressDistrict'] ?? ''}',
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: _VenueDetailSpacing.sectionGap),
+
+                    // ── Contact Section ────────────────────────────────────────
+                    const _SectionHeader(title: 'Contact'),
+                    const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                    if ((venue['ownerPhone'] as String?)?.isNotEmpty == true)
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.phone_outlined,
+                            size: 20,
+                            color: colorScheme.primary,
+                          ),
+                          const SizedBox(width: _VenueDetailSpacing.subSectionGap),
+                          Text(
+                            venue['ownerPhone'] as String,
+                            style: textTheme.bodyMedium,
+                          ),
+                        ],
+                      )
+                    else
+                      Text(
+                        'Contact details not available.',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    const SizedBox(height: _VenueDetailSpacing.sectionGap),
+
+                    // ── Amenities Section ──────────────────────────────────────
+                    const _SectionHeader(title: 'Amenities'),
+                    const SizedBox(height: _VenueDetailSpacing.smallGap),
+                    Wrap(
+                      spacing: _VenueDetailSpacing.subSectionGap,
+                      runSpacing: _VenueDetailSpacing.subSectionGap,
+                      children: (venue['amenities'] as List).map((a) {
+                        final amenity = a.toString();
+                        return _AmenityChip(label: amenity);
+                      }).toList(),
+                    ),
+                    const SizedBox(height: _VenueDetailSpacing.sectionGap),
+
+                    // ── Reviews Section ──────────────────────────────────────────
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const _SectionHeader(title: 'Reviews'),
+                        TextButton.icon(
+                          onPressed: _showWriteReviewSheet,
+                          icon: const Icon(Icons.edit_outlined, size: 16),
+                          label: const Text('Write a Review'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: colorScheme.primary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            textStyle: textTheme.labelMedium?.copyWith(
+                              fontWeight: AppFontWeights.semiBold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                    _buildReviews(venue),
+                    const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -703,7 +720,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
             padding: EdgeInsets.only(
               bottom: entry.key == reviews.take(3).length - 1
                   ? 0
-                  : _VenueDetailSpacing.elementGap,
+                  : _VenueDetailSpacing.subSectionGap,
             ),
             child: _ReviewCard(entry.value),
           );
@@ -721,7 +738,7 @@ class _MetaChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
+    final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -746,7 +763,7 @@ class _AmenityChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
+    final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -771,26 +788,18 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
+    final theme = Theme.of(context);
     return Text(
       title,
       style: theme.textTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.w600,
+        fontWeight: AppFontWeights.semiBold,
       ),
     );
   }
 }
 
-class _SectionDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Divider(
-      color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-      height: 1,
-    );
-  }
-}
+
+
 
 
 
@@ -801,7 +810,7 @@ class _ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
+    final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final textTheme = theme.textTheme;
     final rating = (r['rating'] as num?)?.toDouble() ?? 0;
@@ -824,7 +833,7 @@ class _ReviewCard extends StatelessWidget {
             authorInitial,
             style: textTheme.bodyMedium?.copyWith(
               color: colorScheme.primary,
-              fontWeight: FontWeight.w600,
+              fontWeight: AppFontWeights.semiBold,
             ),
           ),
         ),
@@ -843,7 +852,7 @@ class _ReviewCard extends StatelessWidget {
                       author,
                       overflow: TextOverflow.ellipsis,
                       style: textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+                        fontWeight: AppFontWeights.semiBold,
                       ),
                     ),
                   ),
@@ -877,7 +886,7 @@ class _ReviewCard extends StatelessWidget {
                     rating.toStringAsFixed(1),
                     style: textTheme.labelMedium?.copyWith(
                       color: colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: AppFontWeights.semiBold,
                     ),
                   ),
                 ],
@@ -937,11 +946,15 @@ class _VenueCoverCarousel extends StatelessWidget {
       children: [
         // ── Page view with images ─────────────────────────────────────────
         if (hasImages)
-          PageView.builder(
-            controller: pageController,
-            onPageChanged: onPageChanged,
-            itemCount: imageUrls.length,
-            itemBuilder: (context, index) {
+          ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(
+              scrollbars: false,
+            ),
+            child: PageView.builder(
+              controller: pageController,
+              onPageChanged: onPageChanged,
+              itemCount: imageUrls.length,
+              itemBuilder: (context, index) {
               final url = imageUrls[index];
               return Image.network(
                 url,
@@ -975,6 +988,7 @@ class _VenueCoverCarousel extends StatelessWidget {
                 ),
               );
             },
+            ),
           )
         else
           // No images — show placeholder
@@ -1033,7 +1047,7 @@ class _VenueCoverCarousel extends StatelessWidget {
                     '${currentPage + 1} / ${imageUrls.length}',
                     style: textTheme.labelSmall?.copyWith(
                       color: Colors.white.withValues(alpha: 0.9),
-                      fontWeight: FontWeight.w600,
+                      fontWeight: AppFontWeights.semiBold,
                     ),
                   ),
                 ],

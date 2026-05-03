@@ -138,6 +138,7 @@ class PlayerFriendsService {
     try {
       final response = await _client.put(
         ApiConfig.acceptFriendRequestEndpoint(friendshipId),
+        data: const <String, dynamic>{},
       );
 
       return FriendRequestResult.fromMap(_asMap(_unwrap(response.data)));

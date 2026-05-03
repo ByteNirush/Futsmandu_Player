@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/design_system/app_spacing.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
-import '../../shared/widgets/empty_state.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
+import '../../shared/widgets/enhanced_empty_state.dart';
 import '../../shared/widgets/futs_card.dart';
 import '../../shared/widgets/status_badge.dart';
 import 'data/models/payment_models.dart';
@@ -84,7 +84,7 @@ class PaymentHistoryScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
-        title: Text('Payment History', style: AppText.h2),
+        title: Text('Payment History', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: AppFontWeights.bold)),
         elevation: 0,
         backgroundColor: AppColors.bgPrimary,
         scrolledUnderElevation: 0,
@@ -104,10 +104,10 @@ class PaymentHistoryScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.error_outline, size: 48, color: AppColors.red),
+              const Icon(Icons.error_outline, size: 48, color: AppColors.red),
               const SizedBox(height: AppSpacing.sm),
               Text(error.toString(),
-                  style: AppText.body, textAlign: TextAlign.center),
+                  style: AppTypography.body(context, Theme.of(context).colorScheme), textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.md),
               ElevatedButton(
                 onPressed: () => ref
@@ -121,11 +121,8 @@ class PaymentHistoryScreen extends ConsumerWidget {
         data: (payments) {
           if (payments.isEmpty) {
             return const Center(
-              child: EmptyState(
-                icon: Icons.wallet_outlined,
-                title: 'No Payments Yet',
-                subtitle:
-                    'Book a court to make your first payment here will appear',
+              child: EmptyStateWidget(
+                type: EmptyStateType.emptyCart,
               ),
             );
           }
@@ -187,13 +184,14 @@ class _PaymentHistoryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(venueName,
-                        style: AppText.bodySm
-                            .copyWith(fontWeight: AppTextStyles.semiBold),
+                        style: AppTypography.body(context, Theme.of(context).colorScheme).copyWith(
+                            fontSize: 14 * AppTypographyScale.fromContext(context),
+                            fontWeight: AppFontWeights.semiBold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                     const SizedBox(height: 2),
                     Text('$courtName • $startTime',
-                        style: AppText.label,
+                        style: AppTypography.textTheme(Theme.of(context).colorScheme).labelMedium,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                   ],
@@ -204,8 +202,9 @@ class _PaymentHistoryCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text('NPR $amount',
-                      style: AppText.bodySm.copyWith(
-                          fontWeight: AppTextStyles.semiBold, color: AppColors.green)),
+                      style: AppTypography.body(context, Theme.of(context).colorScheme).copyWith(
+                          fontSize: 14 * AppTypographyScale.fromContext(context),
+                          fontWeight: AppFontWeights.semiBold, color: AppColors.green)),
                   const SizedBox(height: 2),
                   StatusBadge(
                     label: statusLabel,
@@ -221,7 +220,7 @@ class _PaymentHistoryCard extends StatelessWidget {
               Icon(Icons.calendar_today_outlined,
                   size: 14, color: AppColors.txtDisabled),
               const SizedBox(width: 6),
-              Text(formatDate(bookingDate), style: AppText.label),
+              Text(formatDate(bookingDate), style: AppTypography.textTheme(Theme.of(context).colorScheme).labelMedium),
               const Spacer(),
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -234,7 +233,7 @@ class _PaymentHistoryCard extends StatelessWidget {
                 ),
                 child: Text(gatewayLabel,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      fontWeight: AppTextStyles.semiBold,
+                      fontWeight: AppFontWeights.semiBold,
                       color: AppColors.txtDisabled,
                     )),
               ),

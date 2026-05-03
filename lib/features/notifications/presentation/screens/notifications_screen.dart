@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:futsmandu_design_system/core/theme/app_radius.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 
 import '../../../../core/design_system/app_spacing.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text.dart';
-import '../../../../shared/widgets/empty_state.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart';
+import '../../../../shared/widgets/enhanced_empty_state.dart';
 import '../../data/models/player_notification_models.dart';
 import '../../data/services/player_notifications_service.dart';
 import '../providers/notifications_controller.dart';
@@ -122,9 +123,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       appBar: AppBar(
-        title: Text('Notifications', style: AppText.h2),
+        title: const Text('Notifications'),
         backgroundColor: AppColors.bgPrimary,
-        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -141,8 +141,8 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 : _markAllRead,
             child: state.isMarkingAllRead
                 ? const SizedBox(
-                    width: 16,
-                    height: 16,
+                    width: AppSpacing.md,
+                    height: AppSpacing.md,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Text('Mark all read'),
@@ -164,7 +164,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
               padding: const EdgeInsets.all(AppSpacing.xs),
               decoration: BoxDecoration(
                 color: AppColors.red.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppRadius.small,
                 border: Border.all(color: AppColors.red.withValues(alpha: 0.4)),
               ),
               child: Row(
@@ -172,7 +172,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                   Expanded(
                     child: Text(
                       state.errorMessage!,
-                      style: AppText.bodySm.copyWith(color: AppColors.red),
+                      style: AppTypography.body(context, Theme.of(context).colorScheme).copyWith(color: AppColors.red),
                     ),
                   ),
                   TextButton(
@@ -199,9 +199,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                           Text(
                             state.errorMessage!,
                             textAlign: TextAlign.center,
-                            style: AppText.bodySm.copyWith(color: AppColors.red),
+                            style: AppTypography.body(context, Theme.of(context).colorScheme).copyWith(color: AppColors.red),
                           ),
-                          const SizedBox(height: AppSpacing.xs2),
+                          const SizedBox(height: AppSpacing.xl),
                           ElevatedButton(
                             onPressed: controller.loadInitial,
                             child: const Text('Retry'),
@@ -218,11 +218,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                     child: ListView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       children: const [
-                        SizedBox(height: 120),
-                        EmptyState(
-                          icon: Icons.notifications_off_outlined,
-                          title: 'All caught up',
-                          subtitle: 'No new notifications',
+                        SizedBox(height: 80),
+                        EmptyStateWidget(
+                          type: EmptyStateType.noNotifications,
                         ),
                       ],
                     ),
@@ -294,43 +292,43 @@ class _NotificationTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: AppSpacing.xl + 4,
+              height: AppSpacing.xl + 4,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: iconColor.withValues(alpha: 0.12),
               ),
               child: Icon(
                 iconFor(type),
-                size: 22,
+                size: AppSpacing.md - 2,
                 color: iconColor,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     item.title,
-                    style: AppText.body.copyWith(
+                    style: AppTypography.body(context, Theme.of(context).colorScheme).copyWith(
                       fontWeight:
-                          isRead ? AppTextStyles.regular : AppTextStyles.semiBold,
+                          isRead ? AppFontWeights.regular : AppFontWeights.semiBold,
                       color:
                           isRead ? AppColors.txtDisabled : AppColors.txtPrimary,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppSpacing.xxs),
                   Text(
                     item.body,
-                    style: AppText.bodySm,
+                    style: AppTypography.body(context, Theme.of(context).colorScheme).copyWith(fontSize: 14 * AppTypographyScale.fromContext(context)),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     item.timeAgo,
-                    style: AppText.label,
+                    style: AppTypography.caption(context, Theme.of(context).colorScheme),
                   ),
                 ],
               ),
@@ -338,9 +336,9 @@ class _NotificationTile extends StatelessWidget {
             if (!isRead)
               Container(
                 margin: const EdgeInsets.only(top: AppSpacing.sm),
-                width: 9,
-                height: 9,
-                decoration: BoxDecoration(
+                width: AppSpacing.sm - 7,
+                height: AppSpacing.sm - 7,
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   color: AppColors.green,
                 ),

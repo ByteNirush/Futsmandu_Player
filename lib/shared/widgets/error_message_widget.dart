@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:futsmandu_design_system/core/theme/app_radius.dart';
+
+import '../../core/design_system/app_spacing.dart';
 
 class ErrorMessageWidget extends StatelessWidget {
   final String message;
@@ -23,10 +26,10 @@ class ErrorMessageWidget extends StatelessWidget {
     final fgColor = foregroundColor ?? theme.colorScheme.onErrorContainer;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppRadius.medium,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -36,7 +39,7 @@ class ErrorMessageWidget extends StatelessWidget {
             color: fgColor,
             size: 20,
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Text(
               message,
@@ -45,7 +48,7 @@ class ErrorMessageWidget extends StatelessWidget {
           ),
           if (isDismissible)
             Padding(
-              padding: const EdgeInsets.only(left: 8),
+              padding: const EdgeInsets.only(left: AppSpacing.xs),
               child: GestureDetector(
                 onTap: onDismiss,
                 child: Icon(

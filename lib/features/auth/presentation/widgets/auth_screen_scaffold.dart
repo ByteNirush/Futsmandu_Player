@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/design_system/app_spacing.dart';
-import '../../../../shared/widgets/app_logo.dart';
+import 'package:futsmandu_design_system/components/common/app_logo.dart';
 
 class AuthScreenScaffold extends StatelessWidget {
   const AuthScreenScaffold({
@@ -9,7 +9,7 @@ class AuthScreenScaffold extends StatelessWidget {
     required this.child,
     this.showAppBar = false,
     this.logoTopSpacing = AppSpacing.lg,
-    this.logoSize = 72,
+    this.logoSize = 100,
   });
 
   final Widget child;

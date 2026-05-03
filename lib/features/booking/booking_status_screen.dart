@@ -3,22 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/design_system/app_spacing.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import 'data/services/player_booking_service.dart';
 import 'presentation/providers/booking_repository_provider.dart';
 
-class SlotHoldScreen extends ConsumerStatefulWidget {
-  const SlotHoldScreen({super.key});
+class BookingStatusScreen extends ConsumerStatefulWidget {
+  const BookingStatusScreen({super.key});
 
   @override
-  ConsumerState<SlotHoldScreen> createState() => _SlotHoldScreenState();
+  ConsumerState<BookingStatusScreen> createState() => _BookingStatusScreenState();
 }
 
-class _SlotHoldScreenState extends ConsumerState<SlotHoldScreen>
+class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
-  bool _isHolding = true;
+  bool _isProcessing = true;
   String? _errorMessage;
 
   @override
@@ -30,24 +30,32 @@ class _SlotHoldScreenState extends ConsumerState<SlotHoldScreen>
     )..repeat();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _holdAndContinue();
+      _createBookingAndContinue();
     });
   }
 
-  Future<void> _holdAndContinue() async {
+  Future<void> _createBookingAndContinue() async {
     final rawArgs = ModalRoute.of(context)?.settings.arguments;
     final args = rawArgs is Map ? rawArgs.cast<String, dynamic>() : null;
 
     final courtId = (args?['courtId'] as String?) ?? '';
     final bookingDate = (args?['bookingDate'] as String?) ?? '';
     final startTime = (args?['startTime'] as String?) ?? '';
-    final bookingMode = (args?['bookingMode'] as String?) ?? 'solo';
-    final bookingType = bookingMode == 'full' ? 'FULL' : 'FLEX';
+    final bookingType = (args?['bookingType'] as String?) ?? 'FULL_TEAM';
+    final rawMaxPlayers = args?['maxPlayers'];
+    final maxPlayers = rawMaxPlayers is int
+      ? rawMaxPlayers
+      : int.tryParse(rawMaxPlayers?.toString() ?? '');
+    final rawMyPlayers = args?['myPlayers'];
+    final myPlayers = rawMyPlayers is int
+      ? rawMyPlayers
+      : int.tryParse(rawMyPlayers?.toString() ?? '');
+    final friendIds = (args?['friendIds'] as List?)?.whereType<String>().toList();
 
     if (courtId.isEmpty || bookingDate.isEmpty || startTime.isEmpty) {
       if (!mounted) return;
       setState(() {
-        _isHolding = false;
+        _isProcessing = false;
         _errorMessage = 'Missing booking details. Please reselect your slot.';
       });
       return;
@@ -55,38 +63,60 @@ class _SlotHoldScreenState extends ConsumerState<SlotHoldScreen>
 
     if (!mounted) return;
     setState(() {
-      _isHolding = true;
+      _isProcessing = true;
       _errorMessage = null;
     });
 
     try {
-      final heldBooking = await ref.read(bookingRepositoryProvider).holdSlot(
+      final playersNeeded = (maxPlayers != null && myPlayers != null)
+          ? maxPlayers - myPlayers
+          : null;
+
+      // Backend expects: currentPlayerCount = 1 (booking admin) + auto-added friends
+      final currentPlayerCount = 1 + (friendIds?.length ?? 0);
+
+      final bookingRecord = await ref.read(bookingRepositoryProvider).createBooking(
             courtId: courtId,
             date: bookingDate,
             startTime: startTime,
             bookingType: bookingType,
+            maxPlayers: maxPlayers,
+            currentPlayerCount: currentPlayerCount,
+            playersNeeded: playersNeeded,
+            friendIds: friendIds,
           );
 
       if (!mounted) return;
+      // Bypass payment: treat held booking as optimistically confirmed in UI.
+      // Pass a `verification` object with `bypassed: true` so the
+      // BookingConfirmScreen displays appropriate messaging.
       Navigator.pushReplacementNamed(
         context,
-        '/payment',
+        '/booking-confirm',
         arguments: {
           ...?args,
-          'heldBooking': heldBooking.toMap(),
+          'bookingRecord': bookingRecord.toMap(),
+          'verification': {
+            'bypassed': true,
+            'payment': {'status': 'BYPASSED'},
+            'confirmed': {},
+            'matchGroup': bookingRecord.matchGroupId.isNotEmpty
+                ? {'id': bookingRecord.matchGroupId}
+                : {},
+          },
         },
       );
     } on BookingApiException catch (e) {
       if (!mounted) return;
       setState(() {
-        _isHolding = false;
+        _isProcessing = false;
         _errorMessage = e.message;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _isHolding = false;
-        _errorMessage = 'Unable to hold slot right now. Please try again.';
+        _isProcessing = false;
+        _errorMessage = 'Unable to create booking right now. Please try again.';
       });
     }
   }
@@ -102,7 +132,7 @@ class _SlotHoldScreenState extends ConsumerState<SlotHoldScreen>
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
       body: Center(
-        child: _isHolding
+        child: _isProcessing
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -128,20 +158,20 @@ class _SlotHoldScreenState extends ConsumerState<SlotHoldScreen>
                             );
                           },
                         ),
-                        Center(
-                          child: Icon(Icons.lock_clock_outlined,
+                        const Center(
+                          child: Icon(Icons.check_circle_outline,
                               size: 48, color: AppColors.green),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 32),
-                  Text('Securing your slot...',
-                      style: AppText.h1, textAlign: TextAlign.center),
+                  Text('Finalizing your booking...',
+                      style: AppTypography.heading(context, Theme.of(context).colorScheme), textAlign: TextAlign.center),
                   const SizedBox(height: 8),
                   Text(
-                    'Acquiring booking lock from server.',
-                    style: AppText.bodySm,
+                    'Just a moment while we process your request.',
+                    style: AppTypography.caption(context, Theme.of(context).colorScheme),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 48),
@@ -153,16 +183,16 @@ class _SlotHoldScreenState extends ConsumerState<SlotHoldScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.error_outline, size: 48, color: AppColors.red),
+                    const Icon(Icons.error_outline, size: 48, color: AppColors.red),
                     const SizedBox(height: AppSpacing.sm),
                     Text(
-                      _errorMessage ?? 'Unable to hold slot.',
-                      style: AppText.body,
+                      _errorMessage ?? 'Unable to create booking.',
+                      style: AppTypography.body(context, Theme.of(context).colorScheme),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: AppSpacing.md),
                     ElevatedButton(
-                      onPressed: _holdAndContinue,
+                      onPressed: _createBookingAndContinue,
                       child: const Text('Retry'),
                     ),
                   ],
@@ -226,7 +256,7 @@ class _PulsingDotsState extends State<_PulsingDots>
             width: 8,
             height: 8,
             margin: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.green,
             ),

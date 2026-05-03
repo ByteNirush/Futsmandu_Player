@@ -193,8 +193,6 @@ class BookingHistoryController extends AsyncNotifier<BookingHistoryState> {
         return 'COMPLETED';
       case 'Cancelled':
         return 'CANCELLED';
-      case 'Held':
-        return 'HELD';
       default:
         return null;
     }

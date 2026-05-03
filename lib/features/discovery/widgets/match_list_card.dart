@@ -4,7 +4,7 @@ import 'package:futsmandu_design_system/core/theme/app_typography.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../../../core/mock/mock_data.dart';
-import '../../../core/theme/app_colors.dart';
+import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import '../../../core/design_system/app_spacing.dart';
 import '../../matches/data/models/player_match_models.dart';
 import '../../../shared/widgets/futs_card.dart';
@@ -31,6 +31,8 @@ class MatchListCard extends StatelessWidget {
 
     // Spot color
     final int spotsLeft = match.spotsLeft;
+    final int playersNeeded = match.playersNeeded;
+    final int slotsAvailable = match.slotsAvailable;
     final spotColor = spotsLeft == 1
         ? AppColors.error
         : spotsLeft <= 3
@@ -108,7 +110,7 @@ class MatchListCard extends StatelessWidget {
                       ),
                       const SizedBox(width: AppSpacing.xs),
                       StatusBadge(
-                        label: '$spotsLeft left',
+                        label: '$slotsAvailable slots',
                         color: spotColor,
                       ),
                     ],
@@ -119,6 +121,15 @@ class MatchListCard extends StatelessWidget {
                     style: AppTypography.textTheme(
                       Theme.of(context).colorScheme,
                     ).bodySmall?.copyWith(color: AppColors.txtDisabled),
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    'Need $playersNeeded players  |  $slotsAvailable slots available',
+                    style: AppTypography.textTheme(
+                      Theme.of(context).colorScheme,
+                    ).labelMedium?.copyWith(color: AppColors.txtDisabled),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: AppSpacing.sm),
 

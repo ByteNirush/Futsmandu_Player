@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text.dart';
+import 'package:futsmandu_design_system/core/theme/app_radius.dart';
+import 'package:futsmandu_design_system/core/theme/app_typography.dart';
+
+import 'package:futsmandu_design_system/core/theme/app_colors.dart';
 import '../../core/design_system/app_spacing.dart';
 
 class FilterChipRow extends StatefulWidget {
@@ -25,34 +27,38 @@ class _FilterChipRowState extends State<FilterChipRow> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
+        horizontal: AppSpacing.xxs,
       ),
       child: Row(
         children: widget.options.map((option) {
           final isSelected = option == widget.selected;
           return Padding(
-            padding: const EdgeInsets.only(right: AppSpacing.xs),
+            padding: const EdgeInsets.only(right: AppSpacing.xxs),
             child: GestureDetector(
               onTap: () => widget.onSelected(option),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.xs,
+                  horizontal: AppSpacing.xs,
+                  vertical: AppSpacing.xxs, // Use design system spacing
                 ),
                 decoration: BoxDecoration(
                   color: isSelected ? AppColors.green : AppColors.bgElevated,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: AppRadius.medium, // Use design system radius
                   border: Border.all(
                     color: isSelected ? AppColors.green : AppColors.borderClr,
                   ),
                 ),
                 child: Text(
                   option,
-                  style: AppText.bodySm.copyWith(
-                    color: isSelected ? AppColors.bgPrimary : AppColors.txtPrimary,
-                    fontWeight: isSelected ? AppTextStyles.semiBold : AppTextStyles.regular,
-                  ),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: isSelected
+                            ? AppColors.bgPrimary
+                            : AppColors.txtPrimary,
+                        fontWeight: isSelected
+                            ? AppFontWeights.semiBold
+                            : AppFontWeights.regular,
+                      ),
                 ),
               ),
             ),

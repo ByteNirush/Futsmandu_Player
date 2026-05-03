@@ -5,7 +5,8 @@ class ApiConfig {
   static const String baseUrl = String.fromEnvironment(
     'FUTSMANDU_API_BASE_URL',
     defaultValue: 'http://localhost:3001',
-    // defaultValue: 'http://192.168.18.104:3001',
+    // defaultValue: 'http://192.168.18.103:3001',
+    // defaultValue: 'http://192.168.139.3:3001/',
   ); 
   static const String apiPrefix = '/api/v1/player';
   static const String authEndpoint = '$apiPrefix/auth';
@@ -78,7 +79,7 @@ class ApiConfig {
   static const String tonightMatchesEndpoint = '$matchesEndpoint/tonight';
   static const String tomorrowMatchesEndpoint = '$matchesEndpoint/tomorrow';
   static const String weekendMatchesEndpoint = '$matchesEndpoint/weekend';
-    static const String openMatchesEndpoint = matchesEndpoint;
+    static const String openMatchesEndpoint = '$matchesEndpoint/open';
 
   static String invitePreviewEndpoint(String token) =>
       '$inviteEndpoint/$token/preview';
