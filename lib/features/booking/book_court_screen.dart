@@ -31,7 +31,7 @@ class BookCourtScreen extends StatefulWidget {
 }
 
 class _BookCourtScreenState extends State<BookCourtScreen> {
-  static const double _stepColumnWidth = 36;
+  static const double _stepColumnWidth = 5;
 
   final PlayerVenuesService _venuesService = PlayerVenuesService.instance;
 
@@ -342,6 +342,12 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
     }
   }
 
+  void _goToStep(int step) {
+    if (step < _currentStep) {
+      setState(() => _currentStep = step);
+    }
+  }
+
   // Booking type getters — single source of truth for labels and API value.
   String get _apiBookingType => _isFullBooking ? 'FULL_TEAM' : 'PARTIAL_TEAM';
 
@@ -422,74 +428,78 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
             final isCompleted = i < _currentStep;
             final isLast = i == _stepTitles.length - 1;
 
-            return Row(
-              key: ValueKey('step_$i'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: _stepColumnWidth,
-                  child: Column(
-                    children: [
-                      _StepCircle(
-                        number: i + 1,
-                        isActive: isActive,
-                        isCompleted: isCompleted,
-                      ),
-                      if (!isLast)
-                        Container(
-                          width: 2,
-                          height: isActive ? 200 : (isCompleted ? 60 : 40),
-                          margin: const EdgeInsets.symmetric(vertical: 4),
-                          color: isCompleted
-                              ? colorScheme.primary
-                              : colorScheme.outlineVariant
-                                  .withValues(alpha: 0.35),
+            return GestureDetector(
+              onTap: isCompleted ? () => _goToStep(i) : null,
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                key: ValueKey('step_$i'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: _stepColumnWidth,
+                    child: Column(
+                      children: [
+                        _StepCircle(
+                          number: i + 1,
+                          isActive: isActive,
+                          isCompleted: isCompleted,
                         ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 5),
-                        child: Text(
-                          _stepTitles[i],
-                          style: textTheme.titleMedium?.copyWith(
-                            color: isActive || isCompleted
-                                ? colorScheme.onSurface
-                                : colorScheme.onSurfaceVariant,
-                            fontWeight: isActive
-                                ? AppFontWeights.semiBold
-                                : AppFontWeights.medium,
+                        if (!isLast)
+                          Container(
+                            width: 2,
+                            height: isActive ? 200 : (isCompleted ? 60 : 40),
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            color: isCompleted
+                                ? colorScheme.primary
+                                : colorScheme.outlineVariant
+                                    .withValues(alpha: 0.35),
                           ),
-                        ),
-                      ),
-                      if (isCompleted) ...[
-                        const SizedBox(height: AppSpacing.xs),
-                        _buildStepSummary(i, colorScheme, textTheme),
-                        const SizedBox(height: AppSpacing.md),
-                      ] else if (isActive) ...[
-                        const SizedBox(height: AppSpacing.sm),
-                        _buildStepContent(i, colorScheme, textTheme),
-                        const SizedBox(height: AppSpacing.sm),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FutsButton(
-                            label: i == 3 ? 'Confirm Booking' : 'Continue',
-                            onPressed: _canAdvance() ? _advance : null,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                      ] else ...[
-                        const SizedBox(height: AppSpacing.md),
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            _stepTitles[i],
+                            style: textTheme.titleMedium?.copyWith(
+                              color: isActive || isCompleted
+                                  ? colorScheme.onSurface
+                                  : colorScheme.onSurfaceVariant,
+                              fontWeight: isActive
+                                  ? AppFontWeights.semiBold
+                                  : AppFontWeights.medium,
+                            ),
+                          ),
+                        ),
+                        if (isCompleted) ...[
+                          const SizedBox(height: AppSpacing.xs),
+                          _buildStepSummary(i, colorScheme, textTheme),
+                          const SizedBox(height: AppSpacing.md),
+                        ] else if (isActive) ...[
+                          const SizedBox(height: AppSpacing.sm),
+                          _buildStepContent(i, colorScheme, textTheme),
+                          const SizedBox(height: AppSpacing.sm),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FutsButton(
+                              label: i == 3 ? 'Confirm Booking' : 'Continue',
+                              onPressed: _canAdvance() ? _advance : null,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                        ] else ...[
+                          const SizedBox(height: AppSpacing.md),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             );
           }),
         ),
