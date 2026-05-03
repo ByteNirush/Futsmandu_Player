@@ -124,7 +124,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   Text(
                     _errorMessage!,
                     textAlign: TextAlign.center,
-                    style: AppTypography.caption(context, Theme.of(context).colorScheme),
+                    style: AppTypography.caption(
+                        context, Theme.of(context).colorScheme),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   FilledButton(
@@ -143,7 +144,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       backgroundColor: scaffoldBg,
       appBar: AppBar(
         title: Text(
-          'Player Profile',
+          'Profile',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: AppFontWeights.bold,
               ),
@@ -171,15 +172,129 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               // ── Profile Header Card ─────────────────────────────────────
               _PlayerProfileHeader(
                 user: user,
-                onEditProfile: _openEditProfileSheet,
                 onAvatarTap: _pickAndUploadAvatar,
                 isAvatarUploading: _isUploadingAvatar,
                 localAvatarFile: _localAvatarFile,
               ),
 
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.lg),
 
-              // ── Performance Section ────────────────────────────────────
+              Text(
+                'Account',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: AppFontWeights.bold,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              _AccountSection(
+                onManageProfile: _openEditProfileSheet,
+                onShowStats: () => _showStatsSheet(
+                  context: context,
+                  matchesPlayed: matchesPlayed,
+                  won: won,
+                  lost: lost,
+                  draw: draw,
+                  winRate: winRate,
+                  user: user,
+                  score: score,
+                  scoreColor: scoreColor,
+                  scoreLabel: scoreLabel,
+                ),
+                onLogout: () => _showLogoutConfirm(context),
+              ),
+
+              const SizedBox(height: AppSpacing.lg),
+
+              Text(
+                'Preferences',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: AppFontWeights.bold,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              _PreferencesSection(
+                notificationsEnabled: _notificationsEnabled,
+                onNotificationsChanged: (value) {
+                  setState(() => _notificationsEnabled = value);
+                },
+              ),
+
+              const SizedBox(height: AppSpacing.lg),
+
+              Text(
+                'Support',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: AppFontWeights.bold,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              _SupportSection(
+                onSupportTap: () => _showSupportSheet(context),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: () => _showLogoutConfirm(context),
+                  icon: const Icon(Icons.logout_rounded),
+                  label: const Text('Logout'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor:
+                        Theme.of(context).colorScheme.errorContainer,
+                    foregroundColor:
+                        Theme.of(context).colorScheme.onErrorContainer,
+                    minimumSize: const Size.fromHeight(
+                      AppSpacing.buttonHeight,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showStatsSheet({
+    required BuildContext context,
+    required int matchesPlayed,
+    required int won,
+    required int lost,
+    required int draw,
+    required double winRate,
+    required Map<String, dynamic> user,
+    required int score,
+    required Color scoreColor,
+    required String scoreLabel,
+  }) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.lg + MediaQuery.of(ctx).padding.bottom,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Match Statistics',
+                style: Theme.of(ctx).textTheme.titleLarge?.copyWith(
+                      fontWeight: AppFontWeights.bold,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.lg),
               _PerformanceSection(
                 matchesPlayed: matchesPlayed,
                 won: won,
@@ -187,50 +302,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                 draw: draw,
                 winRate: winRate,
               ),
-
               const SizedBox(height: AppSpacing.md),
-
-              // ── Reliability Section ────────────────────────────────────
               _ReliabilitySection(
                 user: user,
                 score: score,
                 scoreColor: scoreColor,
                 scoreLabel: scoreLabel,
               ),
-
-              const SizedBox(height: AppSpacing.md),
-
-              // ── Quick Actions Section ─────────────────────────────────
-              const ProfileSectionHeader(
-                title: 'Quick Actions',
-                subtitle: 'Access your bookings and account features.',
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              _QuickActionsList(
-                onEditProfile: _openEditProfileSheet,
-              ),
-
-              const SizedBox(height: AppSpacing.md),
-
-              // ── Preferences Section ───────────────────────────────────
-              _PreferencesSection(
-                notificationsEnabled: _notificationsEnabled,
-                onNotificationsChanged: (value) {
-                  setState(() => _notificationsEnabled = value);
-                },
-                onSupportTap: () => _showSupportSheet(context),
-              ),
-
-              const SizedBox(height: AppSpacing.md),
-
-              // ── Account Section ────────────────────────────────────────
-              _AccountSection(
-                onLogout: () => _showLogoutConfirm(context),
-              ),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -311,9 +393,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   Text(
                     'Edit Profile',
                     style: Theme.of(ctx).textTheme.titleMedium?.copyWith(
-                      fontWeight: AppFontWeights.bold,
-                      color: colorScheme.onSurface,
-                    ),
+                          fontWeight: AppFontWeights.bold,
+                          color: colorScheme.onSurface,
+                        ),
                   ),
                   const SizedBox(height: AppSpacing.md),
                   TextField(
@@ -342,9 +424,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                   Text(
                     'Preferred Roles',
                     style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurface,
-                      fontWeight: AppFontWeights.medium,
-                    ),
+                          color: colorScheme.onSurface,
+                          fontWeight: AppFontWeights.medium,
+                        ),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Wrap(
@@ -519,6 +601,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       });
     } on ProfileApiException catch (e) {
       if (!mounted) return;
+      if (e.statusCode == 404) {
+        await _loadCachedProfile(silent: silent);
+        return;
+      }
       if (!silent) setState(() => _errorMessage = e.message);
     } catch (_) {
       if (!mounted) return;
@@ -526,6 +612,43 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     } finally {
       if (mounted && !silent) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _loadCachedProfile({bool silent = false}) async {
+    final cachedUser = await PlayerAuthStorageService.instance.getUser();
+    if (!mounted) return;
+
+    if (cachedUser == null) {
+      if (!silent) {
+        setState(() {
+          _errorMessage = 'User not found';
+          _user = _fallbackUser;
+        });
+      }
+      return;
+    }
+
+    final mapped = Map<String, dynamic>.from(_fallbackUser)
+      ..addAll({
+        'id': cachedUser['id']?.toString() ?? '',
+        'name': _string(cachedUser['name']),
+        'email': _string(cachedUser['email']),
+        'phone': _string(cachedUser['phone']),
+        'handle': _buildHandle(
+              name: _string(cachedUser['name']),
+              email: _string(cachedUser['email']),
+            ) ??
+            '',
+        'avatarUrl': _string(
+          cachedUser['profile_image_url'] ?? cachedUser['avatarUrl'],
+        ),
+      });
+
+    if (!mounted) return;
+    setState(() {
+      _user = mapped;
+      _errorMessage = null;
+    });
   }
 
   Map<String, dynamic> _mapProfile(PlayerProfile raw) {
@@ -593,7 +716,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Theme.of(context).colorScheme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg)),
         title: Text(
           'Log Out',
           style: tt.titleMedium?.copyWith(
@@ -644,14 +768,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
 
 class _PlayerProfileHeader extends StatelessWidget {
   final Map<String, dynamic> user;
-  final VoidCallback onEditProfile;
   final VoidCallback onAvatarTap;
   final bool isAvatarUploading;
   final XFile? localAvatarFile;
 
   const _PlayerProfileHeader({
     required this.user,
-    required this.onEditProfile,
     required this.onAvatarTap,
     required this.isAvatarUploading,
     this.localAvatarFile,
@@ -722,235 +844,108 @@ class _PlayerProfileHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
-    final handle = user['handle'] as String? ?? '';
-    final preferredRoles = (user['preferredRoles'] is List)
-        ? (user['preferredRoles'] as List).whereType<String>().toList()
-        : <String>[];
-
-    return Container(
-      width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: cs.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.sm, AppSpacing.sm, AppSpacing.sm, AppSpacing.sm,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          // ── Avatar with camera button ─────────────────────
+          GestureDetector(
+            onTap: onAvatarTap,
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Avatar with camera button ─────────────────────
-                    GestureDetector(
-                      onTap: onAvatarTap,
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Container(
-                            width: 72,
-                            height: 72,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: cs.primary.withValues(alpha: 0.2),
-                                width: 2.5,
-                              ),
-                            ),
-                            child: _buildAvatarContent(72, cs),
-                          ),
-                          // Camera badge
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              width: 24,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                color: isAvatarUploading
-                                    ? cs.surfaceContainerHighest
-                                    : cs.primary,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: cs.surface, width: 2),
-                              ),
-                              child: isAvatarUploading
-                                  ? Center(
-                                      child: SizedBox(
-                                        width: 10,
-                                        height: 10,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: cs.onSurfaceVariant,
-                                        ),
-                                      ),
-                                    )
-                                  : Icon(
-                                      Icons.camera_alt_rounded,
-                                      color: cs.onPrimary,
-                                      size: 12,
-                                    ),
-                            ),
-                          ),
-                        ],
-                      ),
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: cs.primary.withValues(alpha: 0.2),
+                      width: 2.5,
                     ),
-                    const SizedBox(width: AppSpacing.sm),
-                    // ── Player info ────────────────────────────────────
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  (user['name'] as String?)?.isNotEmpty == true
-                                      ? user['name'] as String
-                                      : 'Player',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: tt.titleLarge?.copyWith(
-                                    fontWeight: AppFontWeights.bold,
-                                    color: cs.onSurface,
-                                  ),
-                                ),
-                              ),
-                              if (user['isVerified'] == true) ...[
-                                const SizedBox(width: AppSpacing.xs),
-                                Icon(
-                                  Icons.verified_rounded,
-                                  size: 18,
-                                  color: cs.primary,
-                                ),
-                              ],
-                            ],
-                          ),
-                          if (handle.isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              handle,
-                              style: tt.bodySmall?.copyWith(
-                                color: cs.primary,
-                                fontWeight: AppFontWeights.medium,
-                              ),
-                            ),
-                          ],
-                          if (user['email'] != null &&
-                              (user['email'] as String).isNotEmpty) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              user['email'] as String,
-                              style: tt.bodySmall?.copyWith(
+                  ),
+                  child: _buildAvatarContent(64, cs),
+                ),
+                // Camera badge
+                Positioned(
+                  bottom: -4,
+                  right: -4,
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: isAvatarUploading
+                          ? cs.surfaceContainerHighest
+                          : cs.primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: cs.surface, width: 2),
+                    ),
+                    child: isAvatarUploading
+                        ? Center(
+                            child: SizedBox(
+                              width: 10,
+                              height: 10,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
                                 color: cs.onSurfaceVariant,
                               ),
                             ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                // ── Status & role chips ──────────────────────────────────
-                if (user['skillLevel'] != null ||
-                    user['eloRating'] != null ||
-                    preferredRoles.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Wrap(
-                    spacing: AppSpacing.xs,
-                    runSpacing: AppSpacing.xs,
-                    children: [
-                      if (user['skillLevel'] != null)
-                        _PlayerChip(
-                          icon: Icons.sports_soccer_outlined,
-                          label: user['skillLevel'] as String,
-                          foreground: cs.onSurface,
-                          background: cs.surfaceContainerHighest,
-                        ),
-                      if (user['eloRating'] != null)
-                        _PlayerChip(
-                          icon: Icons.emoji_events_outlined,
-                          label: 'ELO ${user['eloRating']}',
-                          foreground: cs.onSurface,
-                          background: cs.surfaceContainerHighest,
-                        ),
-                      for (final role in preferredRoles)
-                        _PlayerChip(
-                          icon: Icons.person_outline_rounded,
-                          label: role[0].toUpperCase() + role.substring(1),
-                          foreground: cs.primary,
-                          background: cs.primary.withValues(alpha: 0.08),
-                        ),
-                    ],
-                  ),
-                ],
-                // ── Edit Profile Button ──────────────────────────────────
-                const SizedBox(height: AppSpacing.sm),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: onEditProfile,
-                    icon: const Icon(Icons.edit_outlined, size: 16),
-                    label: const Text('Edit Profile'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: cs.onSurface,
-                      side: BorderSide(color: cs.outlineVariant),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.lg),
-                      ),
-                    ),
+                          )
+                        : Icon(
+                            Icons.camera_alt_rounded,
+                            color: cs.onPrimary,
+                            size: 12,
+                          ),
                   ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlayerChip extends StatelessWidget {
-  const _PlayerChip({
-    required this.icon,
-    required this.label,
-    required this.foreground,
-    required this.background,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color foreground;
-  final Color background;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 13, color: foreground),
-          const SizedBox(width: AppSpacing.xs),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: foreground,
-                  fontWeight: AppFontWeights.semiBold,
+          const SizedBox(width: AppSpacing.md),
+          // ── Player info ────────────────────────────────────
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        (user['name'] as String?)?.isNotEmpty == true
+                            ? user['name'] as String
+                            : 'Player',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: tt.titleMedium?.copyWith(
+                          fontWeight: AppFontWeights.bold,
+                          color: cs.onSurface,
+                        ),
+                      ),
+                    ),
+                    if (user['isVerified'] == true) ...[
+                      const SizedBox(width: AppSpacing.xs),
+                      Icon(
+                        Icons.verified_rounded,
+                        size: 16,
+                        color: cs.primary,
+                      ),
+                    ],
+                  ],
                 ),
+                if (user['email'] != null &&
+                    (user['email'] as String).isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    user['email'] as String,
+                    style: tt.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ),
@@ -1157,93 +1152,79 @@ class _InfoChip extends StatelessWidget {
 // Quick Actions — clean list layout with only functional items
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _QuickActionsList extends StatelessWidget {
-  final VoidCallback onEditProfile;
+class _AccountSection extends StatelessWidget {
+  final VoidCallback onManageProfile;
+  final VoidCallback onShowStats;
+  final VoidCallback onLogout;
 
-  const _QuickActionsList({
-    required this.onEditProfile,
+  const _AccountSection({
+    required this.onManageProfile,
+    required this.onShowStats,
+    required this.onLogout,
   });
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final tt = Theme.of(context).textTheme;
-
-    final actions = [
-      (Icons.edit_outlined, 'Edit Profile', null, onEditProfile),
-      (Icons.calendar_month_rounded, 'My Bookings', '/bookings', null as VoidCallback?),
-      (Icons.group_outlined, 'Friends', '/friends', null as VoidCallback?),
-    ];
-
     return AppCard(
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          for (int i = 0; i < actions.length; i++) ...[
-            if (i > 0) const Divider(height: 1),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: i == 0
-                    ? const BorderRadius.vertical(top: Radius.circular(AppRadius.lg))
-                    : i == actions.length - 1
-                        ? const BorderRadius.vertical(bottom: Radius.circular(AppRadius.lg))
-                        : BorderRadius.zero,
-                onTap: () {
-                  final action = actions[i];
-                  if (action.$4 != null) {
-                    action.$4!();
-                  } else if (action.$3 != null) {
-                    Navigator.pushNamed(context, action.$3!);
-                  }
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: AppSpacing.xs2,
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: cs.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                        ),
-                        child: Icon(actions[i].$1, size: 18, color: cs.primary),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          actions[i].$2,
-                          style: tt.bodyMedium?.copyWith(
-                            fontWeight: AppFontWeights.medium,
-                            color: cs.onSurface,
-                          ),
-                        ),
-                      ),
-                      Icon(
-                        Icons.chevron_right_rounded,
-                        size: 20,
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
+          SettingsTile(
+            icon: Icons.person_outline_rounded,
+            title: 'Manage Profile',
+            trailing: Icon(Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            onTap: onManageProfile,
+          ),
+          const Divider(height: 1),
+          SettingsTile(
+            icon: Icons.bar_chart_rounded,
+            title: 'Match Statistics',
+            trailing: Icon(Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            onTap: onShowStats,
+          ),
         ],
       ),
     );
   }
 }
 
+class _SupportSection extends StatelessWidget {
+  final VoidCallback onSupportTap;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Avatar source picker sheet
-// ─────────────────────────────────────────────────────────────────────────────
+  const _SupportSection({required this.onSupportTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: [
+          SettingsTile(
+            icon: Icons.help_outline_rounded,
+            title: 'Help Center',
+            trailing: Icon(Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            onTap: onSupportTap,
+          ),
+          const Divider(height: 1),
+          SettingsTile(
+            icon: Icons.info_outline_rounded,
+            title: 'About Us',
+            trailing: Icon(Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            onTap: () {},
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _AvatarSourceSheet extends StatelessWidget {
   const _AvatarSourceSheet();
@@ -1276,8 +1257,8 @@ class _AvatarSourceSheet extends StatelessWidget {
           Text(
             'Update Profile Photo',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: AppFontWeights.bold,
-            ),
+                  fontWeight: AppFontWeights.bold,
+                ),
           ),
           const SizedBox(height: AppSpacing.xs2),
           _SourceTile(
@@ -1329,8 +1310,8 @@ class _SourceTile extends StatelessWidget {
               Text(
                 label,
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: AppFontWeights.medium,
-                ),
+                      fontWeight: AppFontWeights.medium,
+                    ),
               ),
             ],
           ),
@@ -1415,7 +1396,9 @@ class _PerformanceSection extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
-              Divider(height: 1, color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+              Divider(
+                  height: 1,
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
               const SizedBox(height: AppSpacing.sm),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1423,15 +1406,15 @@ class _PerformanceSection extends StatelessWidget {
                   Text(
                     'Win Progress',
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                   ),
                   Text(
                     '${(winRate * 100).round()}%',
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: AppColors.green,
-                      fontWeight: AppFontWeights.semiBold,
-                    ),
+                          color: AppColors.green,
+                          fontWeight: AppFontWeights.semiBold,
+                        ),
                   ),
                 ],
               ),
@@ -1442,7 +1425,8 @@ class _PerformanceSection extends StatelessWidget {
                   value: winRate,
                   minHeight: 7,
                   backgroundColor: AppColors.green.withValues(alpha: 0.12),
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.green),
+                  valueColor:
+                      const AlwaysStoppedAnimation<Color>(AppColors.green),
                 ),
               ),
             ],
@@ -1497,16 +1481,20 @@ class _ReliabilitySection extends StatelessWidget {
                       children: [
                         Text(
                           '$score',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: scoreColor,
-                            fontWeight: AppFontWeights.bold,
-                          ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                color: scoreColor,
+                                fontWeight: AppFontWeights.bold,
+                              ),
                         ),
                         Text(
                           '/100',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                         ),
                       ],
                     ),
@@ -1531,10 +1519,11 @@ class _ReliabilitySection extends StatelessWidget {
                         const SizedBox(width: AppSpacing.xs),
                         Text(
                           scoreLabel,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: scoreColor,
-                            fontWeight: AppFontWeights.bold,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: scoreColor,
+                                    fontWeight: AppFontWeights.bold,
+                                  ),
                         ),
                       ],
                     ),
@@ -1546,8 +1535,8 @@ class _ReliabilitySection extends StatelessWidget {
                               ? 'Improve attendance to avoid account limits.'
                               : 'Current score may impact booking eligibility.',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                     ),
                     const SizedBox(height: AppSpacing.xs2),
                     Wrap(
@@ -1580,138 +1569,79 @@ class _ReliabilitySection extends StatelessWidget {
 class _PreferencesSection extends StatelessWidget {
   final bool notificationsEnabled;
   final ValueChanged<bool> onNotificationsChanged;
-  final VoidCallback onSupportTap;
 
   const _PreferencesSection({
     required this.notificationsEnabled,
     required this.onNotificationsChanged,
-    required this.onSupportTap,
   });
 
-  static String _themeModeLabel(ThemeMode mode) {
-    switch (mode) {
-      case ThemeMode.system:
-        return 'System';
-      case ThemeMode.light:
-        return 'Light';
-      case ThemeMode.dark:
-        return 'Dark';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const ProfileSectionHeader(
-          title: 'Preferences',
-          subtitle: 'Tune how the player workspace behaves.',
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        AppCard(
-          padding: EdgeInsets.zero,
-          child: AnimatedBuilder(
-            animation: ThemeProvider.instance,
-            builder: (context, _) {
-              final themeMode = ThemeProvider.instance.themeMode;
-              return Column(
-                children: [
-                  SettingsTile(
-                    icon: Icons.notifications_outlined,
-                    title: 'Notifications',
-                    subtitle: 'Booking alerts and account updates',
-                    trailing: Switch.adaptive(
-                      value: notificationsEnabled,
-                      onChanged: onNotificationsChanged,
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  SettingsTile(
-                    icon: Icons.brightness_6_outlined,
-                    title: 'Theme',
-                    subtitle: _themeModeLabel(themeMode),
-                    trailing: ToggleButtons(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      constraints: const BoxConstraints(
-                        minHeight: 36,
-                        minWidth: 44,
-                      ),
-                      isSelected: [
-                        themeMode == ThemeMode.light,
-                        themeMode == ThemeMode.dark,
-                      ],
-                      onPressed: (index) {
-                        ThemeProvider.instance.setThemeMode(
-                          index == 0 ? ThemeMode.light : ThemeMode.dark,
-                        );
-                      },
-                      children: const [
-                        Icon(Icons.light_mode_outlined, size: 18),
-                        Icon(Icons.dark_mode_outlined, size: 18),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  SettingsTile(
-                    icon: Icons.help_outline_rounded,
-                    title: 'Help & Support',
-                    subtitle: 'See FAQs or contact the support team',
-                    trailing: Icon(
-                      Icons.chevron_right_rounded,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                    onTap: onSupportTap,
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AccountSection extends StatelessWidget {
-  final VoidCallback onLogout;
-
-  const _AccountSection({required this.onLogout});
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const ProfileSectionHeader(
-          title: 'Account',
-          subtitle: 'Manage access to this player workspace.',
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: onLogout,
-            icon: Icon(Icons.logout_rounded, size: 18, color: colorScheme.error),
-            label: Text(
-              'Logout',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: colorScheme.error,
-                fontWeight: AppFontWeights.semiBold,
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: AnimatedBuilder(
+        animation: ThemeProvider.instance,
+        builder: (context, _) {
+          final themeMode = ThemeProvider.instance.themeMode;
+          return Column(
+            children: [
+              SettingsTile(
+                icon: Icons.notifications_outlined,
+                title: 'Notifications',
+                trailing: Switch.adaptive(
+                  value: notificationsEnabled,
+                  onChanged: onNotificationsChanged,
+                ),
               ),
-            ),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: colorScheme.error.withValues(alpha: 0.4)),
-              minimumSize: const Size.fromHeight(AppSpacing.buttonHeight),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.lg),
+              const Divider(height: 1),
+              SettingsTile(
+                icon: Icons.language_outlined,
+                title: 'Language',
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('English',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
+                    const SizedBox(width: AppSpacing.xs),
+                    Icon(Icons.arrow_forward_ios_rounded,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ],
+                ),
+                onTap: () {},
               ),
-            ),
-          ),
-        ),
-      ],
+              const Divider(height: 1),
+              SettingsTile(
+                icon: Icons.brightness_6_outlined,
+                title: 'Theme',
+                trailing: ToggleButtons(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  constraints: const BoxConstraints(
+                    minHeight: 36,
+                    minWidth: 44,
+                  ),
+                  isSelected: [
+                    themeMode == ThemeMode.light,
+                    themeMode == ThemeMode.dark,
+                  ],
+                  onPressed: (index) {
+                    ThemeProvider.instance.setThemeMode(
+                      index == 0 ? ThemeMode.light : ThemeMode.dark,
+                    );
+                  },
+                  children: const [
+                    Icon(Icons.light_mode_outlined, size: 18),
+                    Icon(Icons.dark_mode_outlined, size: 18),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
