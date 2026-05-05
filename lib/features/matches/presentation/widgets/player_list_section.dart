@@ -1,28 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 
-/// Unified "Players" section — one player per row, with an Add button for admins.
-///
-/// Replaces:
-/// - `_buildSlotVisualization` (avatar grid)
-/// - `_buildConfirmedPlayersList` (duplicate player list)
-/// - Scattered player count displays
+/// Unified "Players" section — compact boxed rows with add/remove actions.
 class PlayerListSection extends StatelessWidget {
   final List<Map<String, dynamic>> members;
   final int maxPlayers;
   final int slotsAvailable;
+  final int offlinePlayersCount;
   final bool isAdmin;
   final bool isSubmitting;
   final VoidCallback? onAddFriend;
+  final Function(String userId)? onRemovePlayer;
+  final Function(String userId)? onViewProfile;
 
   const PlayerListSection({
     super.key,
     required this.members,
     required this.maxPlayers,
     required this.slotsAvailable,
+    required this.offlinePlayersCount,
     required this.isAdmin,
     required this.isSubmitting,
     this.onAddFriend,
+    this.onRemovePlayer,
+    this.onViewProfile,
   });
 
   @override
@@ -34,182 +35,202 @@ class PlayerListSection extends StatelessWidget {
     final confirmedCount = confirmed.length;
     final progress = maxPlayers > 0 ? confirmedCount / maxPlayers : 0.0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Section header with Add button
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Icon(Icons.people_alt_rounded,
-                  size: 18, color: scheme.primary),
-            ),
-            const SizedBox(width: AppSpacing.xxl),
-            Expanded(
-              child: Text(
-                'Players',
-                style: tt.titleMedium?.copyWith(
-                  fontWeight: AppFontWeights.bold,
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: scheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
+                child: Icon(Icons.people_alt_rounded, size: 18, color: scheme.primary),
               ),
-            ),
-            // Player count badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: (progress >= 1.0 ? AppColors.green : AppColors.amber)
-                    .withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppRadius.pill),
-              ),
-              child: Text(
-                '$confirmedCount/$maxPlayers',
-                style: tt.labelSmall?.copyWith(
-                  color: progress >= 1.0 ? AppColors.green : AppColors.amber,
-                  fontWeight: AppFontWeights.bold,
-                ),
-              ),
-            ),
-            // Add button (admin only, when slots available)
-            if (isAdmin && slotsAvailable > 0) ...[
-              const SizedBox(width: AppSpacing.lg),
-              _AddPlayerButton(
-                isSubmitting: isSubmitting,
-                onTap: onAddFriend,
-              ),
-            ],
-          ],
-        ),
-
-        const SizedBox(height: AppSpacing.sm),
-
-        // Progress bar with enhanced styling
-        Container(
-          height: 8,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            color: scheme.surfaceContainerHighest,
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 8,
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                progress >= 1.0 ? AppColors.green : scheme.primary,
-              ),
-            ),
-          ),
-        ),
-
-        const SizedBox(height: AppSpacing.lg),
-
-        // Player list — one per row
-        if (confirmed.isEmpty)
-          _EmptyPlayersHint(slotsAvailable: slotsAvailable)
-        else
-          Container(
-            decoration: BoxDecoration(
-              color: scheme.surface,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              border: Border.all(
-                color: scheme.outlineVariant.withValues(alpha: 0.3),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              children: confirmed.asMap().entries.map((entry) {
-                final index = entry.key;
-                final member = entry.value;
-                final isLast = index == confirmed.length - 1;
-                return _PlayerRow(
-                  member: member,
-                  showDivider: !isLast,
-                );
-              }).toList(),
-            ),
-          ),
-
-        // Spots open indicator with enhanced styling
-        if (slotsAvailable > 0) ...[
-          const SizedBox(height: AppSpacing.lg),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.amber.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-              border: Border.all(
-                color: AppColors.amber.withValues(alpha: 0.2),
-                width: 1,
-              ),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.hourglass_empty_rounded,
-                    size: 16, color: AppColors.amber),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    '$slotsAvailable spot${slotsAvailable == 1 ? '' : 's'} open — waiting for players',
-                    style: tt.bodySmall?.copyWith(
-                      color: AppColors.amber,
-                      fontWeight: AppFontWeights.medium,
+              const SizedBox(width: AppSpacing.xxl),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Players',
+                      style: tt.titleMedium?.copyWith(
+                        fontWeight: AppFontWeights.bold,
+                      ),
                     ),
+                    if (offlinePlayersCount > 0)
+                      Text(
+                        'Includes $offlinePlayersCount offline players',
+                        style: tt.labelSmall?.copyWith(
+                          color: AppColors.textSecondary(),
+                          fontWeight: AppFontWeights.medium,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: (progress >= 1.0 ? AppColors.green : scheme.primary)
+                      .withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Text(
+                  '$confirmedCount/$maxPlayers',
+                  style: tt.labelSmall?.copyWith(
+                    color: progress >= 1.0 ? AppColors.green : scheme.primary,
+                    fontWeight: AppFontWeights.bold,
                   ),
                 ),
+              ),
+              if (isAdmin && slotsAvailable > 0) ...[
+                const SizedBox(width: AppSpacing.lg),
+                _AddPlayerButton(
+                  isSubmitting: isSubmitting,
+                  onTap: onAddFriend,
+                ),
               ],
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            height: 8,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              color: scheme.surfaceContainerHighest,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 8,
+                backgroundColor: Colors.transparent,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  progress >= 1.0 ? AppColors.green : scheme.primary,
+                ),
+              ),
             ),
           ),
+          const SizedBox(height: AppSpacing.md),
+          if (confirmed.isEmpty && offlinePlayersCount == 0)
+            _EmptyPlayersHint(slotsAvailable: slotsAvailable)
+          else
+            Column(
+              children: [
+                ...confirmed.asMap().entries.map((entry) {
+                  final member = entry.value;
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: _PlayerRow(
+                      member: member,
+                      canRemove: isAdmin && member['isAdmin'] != true,
+                      onRemove: onRemovePlayer,
+                      onTap: onViewProfile,
+                    ),
+                  );
+                }),
+                ...List.generate(offlinePlayersCount, (index) {
+                  return const Padding(
+                    padding: EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: _ReservedRow(),
+                  );
+                }),
+              ],
+            ),
+          if (slotsAvailable > 0) ...[
+            const SizedBox(height: AppSpacing.md),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: scheme.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                border: Border.all(
+                  color: scheme.primary.withOpacity(0.2),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.hourglass_empty_rounded,
+                      size: 16, color: scheme.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '$slotsAvailable spot${slotsAvailable == 1 ? '' : 's'} open — waiting for players',
+                      style: tt.bodySmall?.copyWith(
+                        color: scheme.primary,
+                        fontWeight: AppFontWeights.medium,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
 
-// ─── Player Row ───────────────────────────────────────────────────────────────
-
 class _PlayerRow extends StatelessWidget {
   final Map<String, dynamic> member;
-  final bool showDivider;
+  final bool canRemove;
+  final Function(String userId)? onRemove;
+  final Function(String userId)? onTap;
 
-  const _PlayerRow({required this.member, required this.showDivider});
+  const _PlayerRow({
+    required this.member,
+    required this.canRemove,
+    this.onRemove,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final tt = AppTypography.textTheme(scheme);
 
+    final id = member['id']?.toString() ?? '';
     final name = member['name']?.toString() ?? 'Unknown';
     final avatarUrl = member['avatarUrl']?.toString() ?? '';
     final skillLevel = member['skillLevel']?.toString() ?? '';
     final position = member['position']?.toString() ?? '';
-    final isAdmin = member['isAdmin'] == true;
+    final isAdminMember = member['isAdmin'] == true;
     final joinedAt = member['joinedAt']?.toString() ?? '';
     final bookingTime = _formatBookingTime(joinedAt);
-
     final initials = name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?';
 
-    return Column(
-      children: [
-        Padding(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: id.isNotEmpty ? () => onTap?.call(id) : null,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Container(
           padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: scheme.outlineVariant.withOpacity(0.28),
+              width: 1,
+            ),
           ),
           child: Row(
             children: [
-              // Avatar
               Stack(
                 children: [
                   CircleAvatar(
-                    radius: 22,
-                    backgroundColor: isAdmin
-                        ? AppColors.amber.withValues(alpha: 0.15)
+                    radius: 21,
+                    backgroundColor: isAdminMember
+                        ? scheme.primary.withOpacity(0.15)
                         : scheme.surfaceContainerHighest,
                     backgroundImage:
                         avatarUrl.isNotEmpty ? NetworkImage(avatarUrl) : null,
@@ -217,14 +238,15 @@ class _PlayerRow extends StatelessWidget {
                         ? Text(
                             initials,
                             style: tt.titleSmall?.copyWith(
-                              color:
-                                  isAdmin ? AppColors.amber : scheme.onSurface,
+                              color: isAdminMember
+                                  ? scheme.primary
+                                  : scheme.onSurface,
                               fontWeight: AppFontWeights.bold,
                             ),
                           )
                         : null,
                   ),
-                  if (isAdmin)
+                  if (isAdminMember)
                     Positioned(
                       right: 0,
                       bottom: 0,
@@ -232,23 +254,21 @@ class _PlayerRow extends StatelessWidget {
                         width: 16,
                         height: 16,
                         decoration: BoxDecoration(
-                          color: AppColors.amber,
+                          color: scheme.primary,
                           shape: BoxShape.circle,
                           border: Border.all(color: scheme.surface, width: 2),
                         ),
                         child: Icon(Icons.star_rounded,
-                            size: 10, color: scheme.surface),
+                            size: 10, color: scheme.onPrimary),
                       ),
                     ),
                 ],
               ),
-
-              const SizedBox(width: AppSpacing.lg),
-
-              // Name + meta
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       children: [
@@ -262,13 +282,24 @@ class _PlayerRow extends StatelessWidget {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (isAdmin) ...[
+                        if (isAdminMember) ...[
                           const SizedBox(width: 6),
-                          Text(
-                            '· Admin',
-                            style: tt.labelSmall?.copyWith(
-                              color: AppColors.amber,
-                              fontWeight: AppFontWeights.semiBold,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: scheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(AppRadius.xxs),
+                            ),
+                            child: Text(
+                              'ADMIN',
+                              style: tt.labelSmall?.copyWith(
+                                color: scheme.primary,
+                                fontWeight: AppFontWeights.bold,
+                                fontSize: 10,
+                              ),
                             ),
                           ),
                         ],
@@ -290,9 +321,12 @@ class _PlayerRow extends StatelessWidget {
                         if (skillLevel.isNotEmpty &&
                             skillLevel != 'All' &&
                             bookingTime.isNotEmpty)
-                          Text(' · ',
-                              style: tt.labelSmall
-                                  ?.copyWith(color: AppColors.textSecondary())),
+                          Text(
+                            ' · ',
+                            style: tt.labelSmall?.copyWith(
+                              color: AppColors.textSecondary(),
+                            ),
+                          ),
                         if (bookingTime.isNotEmpty)
                           Text(
                             'Joined $bookingTime',
@@ -305,12 +339,20 @@ class _PlayerRow extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // Position tag
-              if (position.isNotEmpty && position != '—')
+              if (canRemove)
+                IconButton(
+                  onPressed: () => onRemove?.call(id),
+                  icon: Icon(
+                    Icons.remove_circle_outline_rounded,
+                    color: scheme.error.withOpacity(0.7),
+                    size: 20,
+                  ),
+                  visualDensity: VisualDensity.compact,
+                  tooltip: 'Remove Player',
+                )
+              else if (position.isNotEmpty && position != '—')
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: scheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(AppRadius.sm),
@@ -326,13 +368,7 @@ class _PlayerRow extends StatelessWidget {
             ],
           ),
         ),
-        if (showDivider)
-          Divider(
-            height: 1,
-            indent: AppSpacing.xxl + 44 + AppSpacing.xxl, // avatar width + gaps
-            color: scheme.outlineVariant.withValues(alpha: 0.4),
-          ),
-      ],
+      ),
     );
   }
 
@@ -354,8 +390,6 @@ class _PlayerRow extends StatelessWidget {
   }
 }
 
-// ─── Skill Dot ────────────────────────────────────────────────────────────────
-
 class _SkillDot extends StatelessWidget {
   final String skillLevel;
   const _SkillDot({required this.skillLevel});
@@ -375,8 +409,6 @@ class _SkillDot extends StatelessWidget {
     );
   }
 }
-
-// ─── Add Player Button ────────────────────────────────────────────────────────
 
 class _AddPlayerButton extends StatelessWidget {
   final bool isSubmitting;
@@ -417,8 +449,6 @@ class _AddPlayerButton extends StatelessWidget {
   }
 }
 
-// ─── Empty State ──────────────────────────────────────────────────────────────
-
 class _EmptyPlayersHint extends StatelessWidget {
   final int slotsAvailable;
   const _EmptyPlayersHint({required this.slotsAvailable});
@@ -428,14 +458,22 @@ class _EmptyPlayersHint extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final tt = AppTypography.textTheme(scheme);
 
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: scheme.outlineVariant.withOpacity(0.28),
+          width: 1,
+        ),
+      ),
       child: Center(
         child: Column(
           children: [
             Icon(Icons.group_add_rounded,
                 size: 32, color: AppColors.textDisabled()),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             Text(
               'No players yet',
               style: tt.bodyMedium?.copyWith(
@@ -452,6 +490,90 @@ class _EmptyPlayersHint extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ReservedRow extends StatelessWidget {
+  const _ReservedRow();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final tt = AppTypography.textTheme(scheme);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: scheme.outlineVariant.withOpacity(0.28),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withOpacity(0.4),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: scheme.outlineVariant.withOpacity(0.2),
+                width: 1,
+              ),
+            ),
+            child: Icon(
+              Icons.person_outline_rounded,
+              size: 20,
+              color: AppColors.textDisabled(),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Reserved Spot',
+                  style: tt.bodyMedium?.copyWith(
+                    color: AppColors.textSecondary(),
+                    fontWeight: AppFontWeights.medium,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Offline player',
+                  style: tt.labelSmall?.copyWith(
+                    color: AppColors.textDisabled(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Text(
+              'SECURED',
+              style: tt.labelSmall?.copyWith(
+                color: AppColors.textDisabled(),
+                fontWeight: AppFontWeights.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

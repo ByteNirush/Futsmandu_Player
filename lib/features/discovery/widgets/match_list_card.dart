@@ -2,7 +2,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-import '../../../core/mock/mock_data.dart';
 import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../matches/data/models/player_match_models.dart';
 import '../../../shared/widgets/futs_card.dart';
@@ -88,7 +87,7 @@ class MatchListCard extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: AppSpacing.lg),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,7 +102,10 @@ class MatchListCard extends StatelessWidget {
                               : match.venueName,
                           style: AppTypography.textTheme(
                             Theme.of(context).colorScheme,
-                          ).titleSmall?.copyWith(fontWeight: AppFontWeights.semiBold),
+                          ).titleMedium?.copyWith(
+                            fontWeight: AppFontWeights.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -114,96 +116,61 @@ class MatchListCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.xs),
+                  const SizedBox(height: 2),
                   Text(
                     match.courtName,
                     style: AppTypography.textTheme(
                       Theme.of(context).colorScheme,
-                    ).bodySmall?.copyWith(color: AppColors.txtDisabled),
+                    ).bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      height: 1.2,
+                    ),
                   ),
-                  const SizedBox(height: AppSpacing.xs),
+                  const SizedBox(height: 4),
                   Text(
                     'Need $playersNeeded players  |  $slotsAvailable slots available',
                     style: AppTypography.textTheme(
                       Theme.of(context).colorScheme,
-                    ).labelMedium?.copyWith(color: AppColors.txtDisabled),
+                    ).labelSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Info Chips
-                  Wrap(
-                    spacing: 16,
-                    runSpacing: 8,
-                    children: [
-                      _InfoChip(Icons.access_time_outlined, match.time),
-                      _InfoChip(Icons.location_on_outlined, match.distance),
-                      _InfoChip(Icons.bolt_rounded, match.skillLevel,
-                          color: skillColor),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
+                  const SizedBox(height: AppSpacing.md),
 
                   // Footer Row: Friends Profile + Price
-                  Row(
-                    children: [
-                      if (friendsCount > 0)
-                        Expanded(
-                          child: Row(
-                            children: [
-                              ...List.generate(
-                                math.min(2, friendsCount),
-                                (i) => Align(
-                                  alignment: Alignment
-                                      .centerLeft, // Fixes left-overflow of avatars
-                                  widthFactor: 0.65,
-                                  child: CircleAvatar(
-                                    radius: 10,
-                                    backgroundColor: AppColors.bgElevated,
-                                    child: Text(
-                                      MockData.friends.length > i
-                                          ? MockData.friends[i]['name'][0]
-                                          : '?',
-                                      style: AppTypography.textTheme(
-                                        Theme.of(context).colorScheme,
-                                      ).labelSmall?.copyWith(
-                                        color: AppColors.txtDisabled,
-                                        fontWeight: AppFontWeights.semiBold,
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                  if (friendsCount > 0)
+                    Row(
+                      children: [
+                        ...List.generate(
+                          math.min(2, friendsCount),
+                          (i) => Align(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: 0.65,
+                            child: CircleAvatar(
+                              radius: 10,
+                              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              child: Icon(
+                                Icons.person,
+                                size: 12,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
                               ),
-                              const SizedBox(width: AppSpacing.sm),
-                              Flexible(
-                                child: Text(
-                                  '+$friendsCount friends',
-                                  style: AppTypography.textTheme(
-                                    Theme.of(context).colorScheme,
-                                  ).labelMedium?.copyWith(
-                                    color: AppColors.success,
-                                    fontWeight: AppFontWeights.semiBold,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        )
-                      else
-                        const Spacer(),
-                      Text(
-                        'NPR ${match.priceNpr}',
-                        style: AppTypography.textTheme(
-                          Theme.of(context).colorScheme,
-                        ).titleSmall?.copyWith(
-                          color: AppColors.success,
-                          fontWeight: AppFontWeights.semiBold,
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Text(
+                          '+$friendsCount friends',
+                          style: AppTypography.textTheme(
+                            Theme.of(context).colorScheme,
+                          ).labelMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: AppFontWeights.semiBold,
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),

@@ -111,6 +111,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
       role: AppRole.player,
       showAppBar: true,
       allowScroll: false,
+      showAccentStrip: false,
       child: AuthCard(
         role: AppRole.player,
         title: 'Verify Account',

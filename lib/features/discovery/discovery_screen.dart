@@ -157,12 +157,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
             ),
 
           Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.lg,
-              AppSpacing.sm,
-              AppSpacing.lg,
-              0,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageHorizontal),
             child: TextField(
               controller: _searchController,
               onChanged: (value) {
@@ -210,20 +205,20 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                   borderSide: BorderSide.none,
                 ),
                 contentPadding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.lg,
-                  vertical: AppSpacing.sm,
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.xs,
                 ),
                 isDense: true,
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageHorizontal),
             child: Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.xs,
+                horizontal: AppSpacing.md,
+                vertical: AppSpacing.xxs,
               ),
               decoration: BoxDecoration(
                 color: scheme.surfaceContainerLowest,
@@ -298,7 +293,7 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
             ),
           ),
 
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xs),
 
           // MATCH LIST
           Expanded(
@@ -316,16 +311,16 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                         'list_$safeTabIndex$_searchQuery',
                       ),
                       padding: EdgeInsets.fromLTRB(
-                        AppSpacing.lg,
-                        AppSpacing.sm,
-                        AppSpacing.lg,
+                        AppSpacing.pageHorizontal,
+                        AppSpacing.xs,
+                        AppSpacing.pageHorizontal,
                         MediaQuery.of(context).padding.bottom +
                             kNavBarHeight +
-                            20,
+                            AppSpacing.lg,
                       ),
                       itemCount: matches.length,
                       separatorBuilder: (_, __) =>
-                          const SizedBox(height: AppSpacing.lg),
+                          const SizedBox(height: AppSpacing.md),
                       itemBuilder: (ctx, i) =>
                           MatchListCard(match: matches[i], index: i),
                     ),

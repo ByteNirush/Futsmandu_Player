@@ -44,10 +44,6 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen>
     final maxPlayers = rawMaxPlayers is int
       ? rawMaxPlayers
       : int.tryParse(rawMaxPlayers?.toString() ?? '');
-    final rawMyPlayers = args?['myPlayers'];
-    final myPlayers = rawMyPlayers is int
-      ? rawMyPlayers
-      : int.tryParse(rawMyPlayers?.toString() ?? '');
     final friendIds = (args?['friendIds'] as List?)?.whereType<String>().toList();
 
     if (courtId.isEmpty || bookingDate.isEmpty || startTime.isEmpty) {
@@ -66,25 +62,26 @@ class _BookingStatusScreenState extends ConsumerState<BookingStatusScreen>
     });
 
     try {
-      // Backend has a strict check: currentPlayerCount MUST equal 1 (admin) + friendIds.length.
-      // To support "offline" players (myPlayers > 1), we map the excess offline players
-      // by reducing the app-managed maxPlayers and playersNeeded counts.
-      final offlineCount = (myPlayers ?? 1) - 1;
-      final apiMaxPlayers = (maxPlayers != null) ? maxPlayers - offlineCount : null;
+      // Backend schema: currentPlayerCount = admin (1) + friendIds
+      // playersNeeded = maxPlayers - currentPlayerCount
       final apiCurrentPlayerCount = 1 + (friendIds?.length ?? 0);
-      final apiPlayersNeeded = (apiMaxPlayers != null)
-          ? apiMaxPlayers - apiCurrentPlayerCount
+      final apiPlayersNeeded = (maxPlayers != null)
+          ? maxPlayers - apiCurrentPlayerCount
           : null;
+
+      // User description (no offline players metadata)
+      final userDescription = (args?['description'] as String?) ?? '';
 
       final bookingRecord = await ref.read(bookingRepositoryProvider).createBooking(
             courtId: courtId,
             date: bookingDate,
             startTime: startTime,
             bookingType: bookingType,
-            maxPlayers: apiMaxPlayers,
+            maxPlayers: maxPlayers,
             currentPlayerCount: apiCurrentPlayerCount,
             playersNeeded: apiPlayersNeeded,
             friendIds: friendIds,
+            description: userDescription.isNotEmpty ? userDescription : null,
           );
 
       if (!mounted) return;

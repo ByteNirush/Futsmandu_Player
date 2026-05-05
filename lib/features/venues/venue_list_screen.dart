@@ -938,7 +938,7 @@ class _VenueCardImage extends StatelessWidget {
                   Text(
                     rating.toStringAsFixed(1),
                     style: textTheme.labelSmall?.copyWith(
-                      color: colorScheme.onPrimary,
+                      color: AppColors.onPrimary,
                       fontWeight: AppFontWeights.bold,
                     ),
                   ),
@@ -960,13 +960,13 @@ class _VenueCardImage extends StatelessWidget {
                     Icon(
                       Icons.verified_rounded,
                       size: 12,
-                      color: colorScheme.onPrimary,
+                      color: AppColors.onPrimary,
                     ),
                     const SizedBox(width: AppSpacing.xs),
                     Text(
                       'Verified',
                       style: textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onPrimary,
+                        color: AppColors.onPrimary,
                         fontWeight: AppFontWeights.semiBold,
                       ),
                     ),

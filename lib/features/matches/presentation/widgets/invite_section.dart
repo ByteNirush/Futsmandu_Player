@@ -28,7 +28,7 @@ class InviteSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: scheme.primary.withValues(alpha: 0.1),
+                color: scheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: Icon(Icons.link_rounded, size: 18, color: scheme.primary),
@@ -46,7 +46,7 @@ class InviteSection extends StatelessWidget {
             color: scheme.surface,
             borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.3),
+              color: scheme.outlineVariant.withOpacity(0.3),
               width: 1,
             ),
           ),
@@ -62,8 +62,8 @@ class InviteSection extends StatelessWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        scheme.primary.withValues(alpha: 0.15),
-                        scheme.primary.withValues(alpha: 0.05),
+                        scheme.primary.withOpacity(0.15),
+                        scheme.primary.withOpacity(0.05),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(AppRadius.md),

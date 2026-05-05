@@ -13,6 +13,7 @@ class MatchInfoStrip extends StatelessWidget {
   final int confirmedCount;
   final int maxPlayers;
   final int slotsAvailable;
+  final int offlinePlayersCount;
 
   const MatchInfoStrip({
     super.key,
@@ -23,6 +24,7 @@ class MatchInfoStrip extends StatelessWidget {
     required this.confirmedCount,
     required this.maxPlayers,
     required this.slotsAvailable,
+    required this.offlinePlayersCount,
   });
 
   @override
@@ -39,75 +41,28 @@ class MatchInfoStrip extends StatelessWidget {
         (isOpen || isPartialTeamBooking) ? AppColors.green : AppColors.textSecondary();
 
     return AppCard(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.xxs, AppSpacing.lg, AppSpacing.lg, AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Address row with enhanced styling
-          if (venueAddress.isNotEmpty)
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: scheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                  ),
-                  child: Icon(Icons.location_on_outlined,
-                      size: 16, color: scheme.primary),
+          // Status + skill + slots row
+          Wrap(
+            spacing: AppSpacing.lg,
+            runSpacing: AppSpacing.md,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              StatusBadge(label: statusLabel, color: statusColor),
+              if (skillLevel.isNotEmpty && skillLevel != '—' && skillLevel.toLowerCase() != 'all')
+                StatusBadge(
+                  label: skillLevel,
+                  color: _skillColor(skillLevel),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(
-                      venueAddress,
-                      style: tt.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary(),
-                        height: 1.4,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-          if (venueAddress.isNotEmpty) const SizedBox(height: AppSpacing.lg),
-
-          // Status + skill + slots row with divider
-          Container(
-            padding: EdgeInsets.only(top: venueAddress.isNotEmpty ? AppSpacing.md : 0),
-            decoration: BoxDecoration(
-              border: venueAddress.isNotEmpty
-                  ? Border(
-                      top: BorderSide(
-                        color: scheme.outlineVariant.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    )
-                  : null,
-            ),
-            child: Wrap(
-              spacing: AppSpacing.lg,
-              runSpacing: AppSpacing.md,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                StatusBadge(label: statusLabel, color: statusColor),
-                if (skillLevel.isNotEmpty && skillLevel != '—' && skillLevel.toLowerCase() != 'all')
-                  StatusBadge(
-                    label: skillLevel,
-                    color: _skillColor(skillLevel),
-                  ),
-                _SlotsChip(
-                  confirmedCount: confirmedCount,
-                  maxPlayers: maxPlayers,
-                  slotsAvailable: slotsAvailable,
-                ),
-              ],
-            ),
+              _SlotsChip(
+                confirmedCount: confirmedCount,
+                maxPlayers: maxPlayers,
+                slotsAvailable: slotsAvailable,
+              ),
+            ],
           ),
         ],
       ),
@@ -138,15 +93,15 @@ class _SlotsChip extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final tt = AppTypography.textTheme(scheme);
     final isFull = slotsAvailable <= 0;
-    final color = isFull ? AppColors.green : AppColors.amber;
+    final color = isFull ? AppColors.green : scheme.primary;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(AppRadius.pill),
         border: Border.all(
-          color: color.withValues(alpha: 0.25),
+          color: color.withOpacity(0.25),
           width: 1,
         ),
       ),

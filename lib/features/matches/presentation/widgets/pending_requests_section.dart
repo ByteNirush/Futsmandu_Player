@@ -31,11 +31,11 @@ class PendingRequestsSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: AppColors.amber.withValues(alpha: 0.1),
+                color: scheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-              child: const Icon(Icons.pending_actions_rounded,
-                  size: 18, color: AppColors.amber),
+              child: Icon(Icons.pending_actions_rounded,
+                  size: 18, color: scheme.primary),
             ),
             const SizedBox(width: AppSpacing.xxl),
             Text('Pending Requests',
@@ -46,12 +46,12 @@ class PendingRequestsSection extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.amber.withValues(alpha: 0.12),
+                color: scheme.primary.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(AppRadius.pill),
               ),
               child: Text('${pendingMembers.length}',
                   style: tt.labelSmall?.copyWith(
-                    color: AppColors.amber,
+                    color: scheme.primary,
                     fontWeight: AppFontWeights.bold,
                   )),
             ),
@@ -117,7 +117,7 @@ class PendingRequestsSection extends StatelessWidget {
                       minimumSize: const Size(0, 34),
                       padding:
                           const EdgeInsets.symmetric(horizontal: 14),
-                      side: BorderSide(color: AppColors.red.withValues(alpha: 0.5)),
+                      side: BorderSide(color: AppColors.red.withOpacity(0.5)),
                     ),
                     child: Text('Reject',
                         style: tt.labelSmall?.copyWith(

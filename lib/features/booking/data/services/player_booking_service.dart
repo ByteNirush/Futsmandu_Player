@@ -66,21 +66,29 @@ class PlayerBookingService {
     int? currentPlayerCount,
     int? playersNeeded,
     List<String>? friendIds,
+    String? description,
   }) async {
     try {
+      final mappedType = bookingType != null && bookingType.isNotEmpty
+          ? _mapBookingTypeToBackend(bookingType)
+          : null;
+
       final response = await _apiClient.post(
         '${ApiConfig.bookingsEndpoint}/hold',
         data: {
           'courtId': courtId,
           'date': date,
           'startTime': startTime,
-          if (bookingType != null && bookingType.isNotEmpty)
-            'bookingType': _mapBookingTypeToBackend(bookingType),
+          if (mappedType != null) 'bookingType': mappedType,
           if (maxPlayers != null) 'maxPlayers': maxPlayers,
           if (currentPlayerCount != null)
             'currentPlayerCount': currentPlayerCount,
           if (playersNeeded != null) 'playersNeeded': playersNeeded,
           if (friendIds != null && friendIds.isNotEmpty) 'friendIds': friendIds,
+          if (description != null && description.isNotEmpty)
+            'description': description,
+          // For PARTIAL bookings, always send SPLIT_EQUAL cost split mode
+          if (mappedType == 'PARTIAL') 'costSplitMode': 'SPLIT_EQUAL',
         },
       );
 
@@ -335,7 +343,8 @@ class PlayerBookingService {
   }
 
   String _toMoney(dynamic value) {
-    return _toInt(value).toString();
+    final amount = _toInt(value);
+    return (amount / 100).toStringAsFixed(0);
   }
 
   String _dateLabel(dynamic rawDate) {

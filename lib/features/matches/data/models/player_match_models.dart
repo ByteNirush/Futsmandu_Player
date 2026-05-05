@@ -61,6 +61,7 @@ class MatchSummary {
   const MatchSummary({
     required this.id,
     required this.matchGroupId,
+    required this.venueId,
     required this.venueName,
     required this.venueImage,
     required this.venueAddress,
@@ -86,10 +87,13 @@ class MatchSummary {
     required this.isAdmin,
     required this.adminId,
     required this.priceNpr,
+    required this.offlinePlayersCount,
+    this.amenities = const [],
   });
 
   final String id;
   final String matchGroupId;
+  final String venueId;
   final String venueName;
   final String venueImage;
   final String venueAddress;
@@ -115,11 +119,14 @@ class MatchSummary {
   final bool isAdmin;
   final String adminId;
   final String priceNpr;
+  final int offlinePlayersCount;
+  final List<String> amenities;
 
   factory MatchSummary.fromMap(Map<String, dynamic> raw) {
     return MatchSummary(
       id: _string(raw['id']),
       matchGroupId: _string(raw['matchGroupId']),
+      venueId: _string(raw['venueId']),
       venueName: _string(raw['venueName']),
       venueImage: _string(raw['venueImage']),
       venueAddress: _string(raw['venueAddress']),
@@ -145,6 +152,8 @@ class MatchSummary {
       isAdmin: raw['isAdmin'] == true,
       adminId: _string(raw['adminId']),
       priceNpr: _string(raw['priceNPR']),
+      offlinePlayersCount: _toInt(raw['offlinePlayersCount']),
+      amenities: _asStringList(raw['amenities']),
     );
   }
 
@@ -152,6 +161,7 @@ class MatchSummary {
     return {
       'id': id,
       'matchGroupId': matchGroupId,
+      'venueId': venueId,
       'venueName': venueName,
       'venueImage': venueImage,
       'venueAddress': venueAddress,
@@ -177,6 +187,8 @@ class MatchSummary {
       'isAdmin': isAdmin,
       'adminId': adminId,
       'priceNPR': priceNpr,
+      'offlinePlayersCount': offlinePlayersCount,
+      'amenities': amenities,
     };
   }
 }
@@ -494,4 +506,9 @@ List<Map<String, dynamic>> _asMapList(dynamic value) {
       .whereType<Map>()
       .map((item) => item.cast<String, dynamic>())
       .toList(growable: false);
+}
+
+List<String> _asStringList(dynamic value) {
+  if (value is! List) return const <String>[];
+  return value.whereType<String>().toList(growable: false);
 }

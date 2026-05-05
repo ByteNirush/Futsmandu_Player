@@ -75,50 +75,79 @@ class MatchHeroHeader extends StatelessWidget {
                 child: Icon(
                   Icons.sports_soccer_rounded,
                   size: 80,
-                  color: scheme.primary.withValues(alpha: 0.5),
+                  color: scheme.primary.withOpacity(0.5),
                 ),
               ),
             ),
 
-          // App Bar overlay
+          // Custom Header Overlay (replacing AppBar for better stability in Stack)
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              iconTheme: IconThemeData(color: scheme.onSurface),
-              title: AnimatedOpacity(
-                duration: const Duration(milliseconds: 180),
-                opacity: showCollapsedTitle ? 1 : 0,
-                child: Text(
-                  venueName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: textTheme.titleMedium,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withOpacity(0.4),
+                    Colors.transparent,
+                  ],
                 ),
               ),
-              actions: [
-                // Refresh button with semi-transparent background
-                IconButton(
-                  style: IconButton.styleFrom(
-                    backgroundColor: scheme.surface.withValues(alpha: 0.62),
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(
+                    children: [
+                      // Back Button
+                      IconButton(
+                        style: IconButton.styleFrom(
+                          backgroundColor: scheme.surface.withOpacity(0.62),
+                        ),
+                        icon: Icon(Icons.arrow_back, color: scheme.onSurface),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      const SizedBox(width: 8),
+                      // Collapsed Title
+                      Expanded(
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 180),
+                          opacity: showCollapsedTitle ? 1 : 0,
+                          child: Text(
+                            venueName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: textTheme.titleMedium?.copyWith(
+                              fontWeight: AppFontWeights.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Refresh button
+                      IconButton(
+                        style: IconButton.styleFrom(
+                          backgroundColor: scheme.surface.withOpacity(0.62),
+                        ),
+                        icon: Icon(Icons.refresh_rounded, color: scheme.onSurface),
+                        onPressed: isRefreshing ? null : onRefresh,
+                      ),
+                      const SizedBox(width: 8),
+                      // Share button
+                      IconButton(
+                        style: IconButton.styleFrom(
+                          backgroundColor: scheme.surface.withOpacity(0.62),
+                        ),
+                        icon: Icon(Icons.share_outlined, color: scheme.onSurface),
+                        onPressed: onShare,
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                   ),
-                  icon: Icon(Icons.refresh_rounded, color: scheme.onSurface),
-                  onPressed: isRefreshing ? null : onRefresh,
                 ),
-                const SizedBox(width: 8),
-                // Share button with semi-transparent background
-                IconButton(
-                  style: IconButton.styleFrom(
-                    backgroundColor: scheme.surface.withValues(alpha: 0.62),
-                  ),
-                  icon: Icon(Icons.share_outlined, color: scheme.onSurface),
-                  onPressed: onShare,
-                ),
-                const SizedBox(width: 16),
-              ],
+              ),
             ),
           ),
         ],
@@ -134,12 +163,16 @@ class MatchHeaderContent extends StatelessWidget {
   final String venueName;
   final String dateLabel;
   final String timeLabel;
+  final String venueAddress;
+  final List<String> amenities;
 
   const MatchHeaderContent({
     super.key,
     required this.venueName,
     required this.dateLabel,
     required this.timeLabel,
+    this.venueAddress = '',
+    this.amenities = const [],
   });
 
   @override
@@ -167,28 +200,110 @@ class MatchHeaderContent extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
+
           // Date and time row
           if (dateLabel.isNotEmpty || timeLabel.isNotEmpty)
-            Row(
-              children: [
-                Icon(
-                  Icons.schedule_rounded,
-                  size: 16,
-                  color: scheme.primary,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  timeLabel.isEmpty
-                      ? dateLabel
-                      : '$dateLabel · $timeLabel',
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
+            _DetailRow(
+              icon: Icons.schedule_rounded,
+              label: timeLabel.isEmpty ? dateLabel : '$dateLabel · $timeLabel',
+              textTheme: textTheme,
+              scheme: scheme,
             ),
+
+          // Location row
+          if (venueAddress.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _DetailRow(
+              icon: Icons.location_on_outlined,
+              label: venueAddress,
+              textTheme: textTheme,
+              scheme: scheme,
+            ),
+          ],
+
+          // Amenities row
+          if (amenities.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: amenities.map((a) => _AmenityTag(label: a)).toList(),
+            ),
+          ],
         ],
       ),
     );
   }
 }
+
+class _DetailRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final TextTheme textTheme;
+  final ColorScheme scheme;
+
+  const _DetailRow({
+    required this.icon,
+    required this.label,
+    required this.textTheme,
+    required this.scheme,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(
+            icon,
+            size: 16,
+            color: scheme.primary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: textTheme.bodyMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AmenityTag extends StatelessWidget {
+  final String label;
+
+  const _AmenityTag({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: scheme.outlineVariant.withOpacity(0.3),
+        ),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+          fontWeight: AppFontWeights.medium,
+        ),
+      ),
+    );
+  }
+}
+

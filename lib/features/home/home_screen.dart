@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import '../chat/chat_screen.dart';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-
 import 'package:futsmandu_design_system/futsmandu_design_system.dart';
-import '../../core/mock/mock_data.dart';
 import '../../core/services/player_auth_storage_service.dart';
 import '../../core/utils/time_formatters.dart';
 import '../../features/booking/data/services/player_booking_service.dart';
@@ -290,7 +290,7 @@ class _MatchMiniCard extends StatelessWidget {
                       Text(
                         match['venueName'] as String? ?? '',
                         style: textTheme.labelLarge?.copyWith(
-                          color: colorScheme.onPrimary,
+                          color: AppColors.onPrimary,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -299,15 +299,15 @@ class _MatchMiniCard extends StatelessWidget {
                           Icon(
                             Icons.access_time,
                             size: 11,
-                            color: colorScheme.onPrimary.withValues(alpha: 0.7),
+                            color: AppColors.onPrimary.withValues(alpha: 0.7),
                           ),
                           const SizedBox(width: AppSpacing.xs),
                           Flexible(
                             child: Text(
                               '${formatClockTime12Hour(match['time'])} · ${match['distance']}',
                               style: textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onPrimary
-                                    .withValues(alpha: 0.7),
+                                color:
+                                    AppColors.onPrimary.withValues(alpha: 0.7),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -318,14 +318,14 @@ class _MatchMiniCard extends StatelessWidget {
                       Text(
                         'Need $playersNeeded players',
                         style: textTheme.labelSmall?.copyWith(
-                          color: colorScheme.onPrimary.withValues(alpha: 0.9),
+                          color: AppColors.onPrimary.withValues(alpha: 0.9),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         '$availableSlots slots available',
                         style: textTheme.labelSmall?.copyWith(
-                          color: colorScheme.onPrimary.withValues(alpha: 0.75),
+                          color: AppColors.onPrimary.withValues(alpha: 0.75),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -376,6 +376,19 @@ class _UpcomingBookingCard extends StatelessWidget {
 
   const _UpcomingBookingCard(this.b);
 
+  String _formatAmount(dynamic amount) {
+    if (amount == null) return '0';
+    if (amount is num) return (amount / 100).toStringAsFixed(0);
+
+    final raw = amount.toString().trim();
+    if (raw.isEmpty) return '0';
+    if (raw.toUpperCase().startsWith('NPR ')) return raw.substring(4).trim();
+
+    final parsed = int.tryParse(raw);
+    if (parsed != null) return (parsed / 100).toStringAsFixed(0);
+    return raw;
+  }
+
   String _formatDate(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return '';
     try {
@@ -394,7 +407,9 @@ class _UpcomingBookingCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
-    final price = b['priceNPR'] ?? b['price'] ?? b['amount'] ?? '0';
+    final price = _formatAmount(
+      b['displayAmount'] ?? b['priceNPR'] ?? b['price'] ?? b['amount'],
+    );
 
     final bookingId = b['bookingId'] as String? ?? b['id'] as String? ?? '';
 
@@ -573,7 +588,7 @@ class _TopFutsalCard extends StatelessWidget {
                       Text(
                         venue['name'] as String? ?? '',
                         style: textTheme.labelLarge?.copyWith(
-                          color: colorScheme.onPrimary,
+                          color: AppColors.onPrimary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -588,8 +603,8 @@ class _TopFutsalCard extends StatelessWidget {
                             child: Text(
                               '${venue['rating']}${venue['distance'] != null && venue['distance'].toString().isNotEmpty ? '  ·  ${venue['distance']}' : ''}',
                               style: textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onPrimary
-                                    .withValues(alpha: 0.9),
+                                color:
+                                    AppColors.onPrimary.withValues(alpha: 0.9),
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -608,6 +623,66 @@ class _TopFutsalCard extends StatelessWidget {
   }
 }
 
+class _QuickActionTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _QuickActionTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.sm,
+          horizontal: AppSpacing.md,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: colorScheme.primaryContainer.withValues(alpha: 0.4),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                size: 22,
+                color: colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.labelSmall?.copyWith(
+                height: 1.1,
+                fontSize: 10,
+                fontWeight: AppFontWeights.medium,
+                color: colorScheme.onSurface,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Home Screen
 // ─────────────────────────────────────────────────────────────────────────────
@@ -620,8 +695,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  Map<String, dynamic> _currentUser =
-      Map<String, dynamic>.from(MockData.currentUser);
+  Map<String, dynamic> _currentUser = {};
   List<Map<String, dynamic>> _topFutsals = [];
   bool _isLoadingFutsals = true;
   String? _futsalsError;
@@ -662,28 +736,24 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
 
       final user = await PlayerAuthStorageService.instance.getUser();
-      final baseUser = Map<String, dynamic>.from(MockData.currentUser);
 
-      if (user != null) {
-        baseUser.addAll(user);
-      }
-
-      // Override with fresh profile data, mapping profileImageUrl to avatarUrl
-      baseUser['name'] = profile.name;
-      baseUser['email'] = profile.email;
-      baseUser['avatarUrl'] = profile.profileImageUrl;
-      baseUser['isVerified'] = profile.isVerified;
-      baseUser['reliabilityScore'] = profile.reliabilityScore;
-      baseUser['eloRating'] = profile.eloRating;
+      // Build user data from profile and auth storage
+      final baseUser = <String, dynamic>{
+        if (user != null) ...user,
+        'name': profile.name,
+        'email': profile.email,
+        'avatarUrl': profile.profileImageUrl,
+        'isVerified': profile.isVerified,
+        'reliabilityScore': profile.reliabilityScore,
+        'eloRating': profile.eloRating,
+      };
 
       setState(() => _currentUser = baseUser);
     } catch (_) {
       // Fallback to auth storage if profile fetch fails
       final user = await PlayerAuthStorageService.instance.getUser();
       if (!mounted || user == null) return;
-      final mergedUser = Map<String, dynamic>.from(MockData.currentUser)
-        ..addAll(user);
-      setState(() => _currentUser = mergedUser);
+      setState(() => _currentUser = user);
     }
   }
 
@@ -1114,6 +1184,80 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           isDense: true,
                         ),
+                      ),
+                    ),
+                  ),
+
+                  // ── Quick Actions section ──────────────────────────────────
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
+                        AppSpacing.lg,
+                        AppSpacing.lg,
+                        0,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Quick Actions',
+                            style: textTheme.titleMedium?.copyWith(
+                              fontWeight: AppFontWeights.semiBold,
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.xxs),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _QuickActionTile(
+                                  icon: Icons.event_note_outlined,
+                                  label: 'My Booking',
+                                  onTap: () => Navigator.pushNamed(
+                                    context,
+                                    '/bookings',
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: _QuickActionTile(
+                                  icon: Icons.people_alt_outlined,
+                                  label: 'Friends',
+                                  onTap: () => Navigator.pushNamed(
+                                    context,
+                                    '/friends',
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: _QuickActionTile(
+                                  icon: Icons.chat_bubble_outline_rounded,
+                                  label: 'Chat',
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const ChatScreen(),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.sm),
+                              Expanded(
+                                child: _QuickActionTile(
+                                  icon: Icons.bar_chart_rounded,
+                                  label: 'Match Stats',
+                                  onTap: () => Navigator.pushNamed(
+                                    context,
+                                    '/profile',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                        ],
                       ),
                     ),
                   ),

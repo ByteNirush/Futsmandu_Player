@@ -28,6 +28,7 @@ class BookingRepository {
     int? currentPlayerCount,
     int? playersNeeded,
     List<String>? friendIds,
+    String? description,
   }) {
     return _service.createBooking(
       courtId: courtId,
@@ -38,6 +39,7 @@ class BookingRepository {
       currentPlayerCount: currentPlayerCount,
       playersNeeded: playersNeeded,
       friendIds: friendIds,
+      description: description,
     );
   }
 

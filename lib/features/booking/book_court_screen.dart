@@ -10,12 +10,6 @@ import '../venues/data/services/player_venues_service.dart';
 import '../friends/data/services/player_friends_service.dart';
 import 'utils/slot_time_filter.dart';
 
-// "Players I have" range (partial team booking)
-const int _kMinMyPlayers = 1;
-const int _kMaxMyPlayers = 9;
-const int _kDefaultMyPlayers = 5;
-// Total team size range
-const int _kMaxTotalPlayers = 10;
 const int _kDefaultTotalPlayers = 10;
 
 class BookCourtScreen extends StatefulWidget {
@@ -47,9 +41,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
 
   // Step 2: Booking Details
   bool _isFullBooking = true;
-  // Partial team: how many players the user already has (1-9)
-  int _myPlayers = _kDefaultMyPlayers;
-  // Partial team: total team size (myPlayers+1 to 22, default 10)
+  // Partial team: total team size (default 10)
   int _totalPlayers = _kDefaultTotalPlayers;
   // Partial team: selected friend IDs to invite
   final Set<String> _selectedFriendIds = <String>{};
@@ -314,8 +306,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
         return _selectedDate != null && _allSelectedSlotsAreVisibleNow();
       case 2:
         return _allSelectedSlotsAreVisibleNow() &&
-            (_isFullBooking ||
-                (_myPlayers >= _kMinMyPlayers && _totalPlayers > _myPlayers));
+            (_isFullBooking || (_totalPlayers > 1 && _selectedFriendIds.isNotEmpty));
       case 3:
         return _selectedDate != null && _allSelectedSlotsAreVisibleNow();
       default:
@@ -348,15 +339,13 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
 
   String get _bookingTypeLabel => _isFullBooking ? 'Full Team' : 'Partial Team';
 
-  int get _playersNeeded => _totalPlayers - _myPlayers;
+  int get _playersNeeded => _totalPlayers - _selectedFriendIds.length - 1;
 
-  int get _totalSecuredPlayers => _myPlayers + _selectedFriendIds.length;
-
-  int get _totalRemainingNeeded => _totalPlayers - _totalSecuredPlayers;
+  int get _totalRemainingNeeded => _totalPlayers - _selectedFriendIds.length - 1;
 
   String get _bookingTypeInfo => _isFullBooking
       ? 'Full court booking — only your team can access this slot.'
-      : 'Open match — you have $_totalSecuredPlayers players, need $_totalRemainingNeeded more to complete a $_totalPlayers-player team.';
+      : 'Open match — you have ${_selectedFriendIds.length + 1} players, need $_totalRemainingNeeded more to complete a $_totalPlayers-player team.';
 
   void _confirmBooking() {
     final venue = _venue;
@@ -386,7 +375,6 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
         'endTime': _selectedSlots.last['endTime'],
         'bookingType': _apiBookingType,
         if (!_isFullBooking) 'maxPlayers': _totalPlayers,
-        if (!_isFullBooking) 'myPlayers': _myPlayers,
         if (!_isFullBooking && _selectedFriendIds.isNotEmpty)
           'friendIds': _selectedFriendIds.toList(),
       },
@@ -446,7 +434,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                         if (!isLast)
                           Container(
                             width: 2,
-                            height: isActive ? 200 : (isCompleted ? 60 : 40),
+                            height: isActive ? 110 : (isCompleted ? 60 : 40),
                             margin: const EdgeInsets.symmetric(vertical: 4),
                             color: isCompleted
                                 ? colorScheme.primary
@@ -478,11 +466,11 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                         if (isCompleted) ...[
                           const SizedBox(height: AppSpacing.sm),
                           _buildStepSummary(i, colorScheme, textTheme),
-                          const SizedBox(height: AppSpacing.xl),
+                          const SizedBox(height: AppSpacing.md),
                         ] else if (isActive) ...[
-                          const SizedBox(height: AppSpacing.lg),
+                          const SizedBox(height: AppSpacing.sm),
                           _buildStepContent(i, colorScheme, textTheme),
-                          const SizedBox(height: AppSpacing.lg),
+                          const SizedBox(height: AppSpacing.sm),
                           SizedBox(
                             width: double.infinity,
                             child: FutsButton(
@@ -490,9 +478,9 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                               onPressed: _canAdvance() ? _advance : null,
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.xl),
+                          const SizedBox(height: AppSpacing.md),
                         ] else ...[
-                          const SizedBox(height: AppSpacing.xl),
+                          const SizedBox(height: AppSpacing.md),
                         ],
                       ],
                     ),
@@ -525,7 +513,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
       case 2:
         final extra = _isFullBooking
             ? ''
-            : '  •  $_totalSecuredPlayers of $_totalPlayers (need $_totalRemainingNeeded more)';
+            : '  •  ${_selectedFriendIds.length + 1} of $_totalPlayers (need $_totalRemainingNeeded more)';
         return Text(
           '$_bookingTypeLabel$extra',
           style: textTheme.bodyMedium?.copyWith(color: colorScheme.primary),
@@ -576,7 +564,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
             onTap: () => setState(() => _selectedCourtIdx = idx),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
                 color: isSelected
                     ? colorScheme.primary.withValues(alpha: 0.12)
@@ -605,7 +593,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                       size: 22,
                     ),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
+                  const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -753,7 +741,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
           ),
         ),
         if (_selectedDate != null) ...[
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(
@@ -772,7 +760,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
               ),
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
           _buildSlotGrid(colorScheme, textTheme),
         ],
       ],
@@ -963,27 +951,70 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
         ),
         if (!_isFullBooking) ...[
           const SizedBox(height: AppSpacing.lg),
-          _PartialTeamPicker(
-            myPlayers: _myPlayers,
-            totalPlayers: _totalPlayers,
-            selectedFriendsCount: _selectedFriendIds.length,
-            onMyPlayersChanged: (v) {
-              setState(() {
-                _myPlayers = v;
-                // Ensure total is always larger than my players
-                if (_totalPlayers <= _myPlayers) {
-                  _totalPlayers = _myPlayers + 1;
-                }
-              });
-            },
-            onTotalPlayersChanged: (v) => setState(() => _totalPlayers = v),
-            colorScheme: colorScheme,
-            textTheme: textTheme,
-          ),
+          _buildTotalPlayersSelector(colorScheme, textTheme),
           const SizedBox(height: AppSpacing.xl),
           _buildFriendSelection(colorScheme, textTheme),
         ],
       ],
+    );
+  }
+
+  Widget _buildTotalPlayersSelector(ColorScheme colorScheme, TextTheme textTheme) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Total Team Size',
+            style: textTheme.titleSmall?.copyWith(
+              fontWeight: AppFontWeights.semiBold,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Choose how many players total for your match',
+            style: textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Text(
+                '$_totalPlayers players',
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: AppFontWeights.bold,
+                  color: colorScheme.primary,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '(${_selectedFriendIds.length} invited + 1 you)',
+                style: textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Slider(
+            value: _totalPlayers.toDouble(),
+            min: 2,
+            max: 10,
+            divisions: 8,
+            label: '$_totalPlayers',
+            onChanged: (v) => setState(() => _totalPlayers = v.toInt()),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1072,7 +1103,7 @@ class _BookCourtScreenState extends State<BookCourtScreen> {
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     child: Text(
-                      '$_totalSecuredPlayers/$_totalPlayers',
+                      '${_selectedFriendIds.length + 1}/$_totalPlayers',
                       style: textTheme.labelSmall?.copyWith(
                         color: colorScheme.primary,
                         fontWeight: AppFontWeights.semiBold,
@@ -1490,239 +1521,6 @@ class _BookingTypeCard extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 // Partial team picker (Step 2)
-// ---------------------------------------------------------------------------
-
-class _PartialTeamPicker extends StatelessWidget {
-  final int myPlayers;
-  final int totalPlayers;
-  final int selectedFriendsCount;
-  final ValueChanged<int> onMyPlayersChanged;
-  final ValueChanged<int> onTotalPlayersChanged;
-  final ColorScheme colorScheme;
-  final TextTheme textTheme;
-
-  const _PartialTeamPicker({
-    required this.myPlayers,
-    required this.totalPlayers,
-    required this.selectedFriendsCount,
-    required this.onMyPlayersChanged,
-    required this.onTotalPlayersChanged,
-    required this.colorScheme,
-    required this.textTheme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _CounterRow(
-          title: 'Players I have',
-          subtitle: 'Number of players already in your team (1–9)',
-          value: myPlayers,
-          min: _kMinMyPlayers,
-          max: _kMaxMyPlayers,
-          onChanged: onMyPlayersChanged,
-          colorScheme: colorScheme,
-          textTheme: textTheme,
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        _CounterRow(
-          title: 'Total team size',
-          subtitle: 'Recommended size for this court',
-          value: totalPlayers,
-          min: myPlayers + 1,
-          max: _kMaxTotalPlayers,
-          onChanged: onTotalPlayersChanged,
-          colorScheme: colorScheme,
-          textTheme: textTheme,
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          decoration: BoxDecoration(
-            color: colorScheme.primary.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.info_outline_rounded,
-                  size: 16, color: colorScheme.primary),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  'Remaining players needed: ${totalPlayers - (myPlayers + selectedFriendsCount)}',
-                  style: textTheme.bodySmall?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: AppFontWeights.semiBold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CounterRow extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final int value;
-  final int min;
-  final int max;
-  final ValueChanged<int> onChanged;
-  final ColorScheme colorScheme;
-  final TextTheme textTheme;
-
-  const _CounterRow({
-    required this.title,
-    required this.subtitle,
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.onChanged,
-    required this.colorScheme,
-    required this.textTheme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(
-          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-        ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: textTheme.bodyMedium
-                      ?.copyWith(fontWeight: AppFontWeights.semiBold),
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  subtitle,
-                  style: textTheme.bodySmall
-                      ?.copyWith(color: colorScheme.onSurfaceVariant),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          _PlayerCountStepper(
-            value: value,
-            min: min,
-            max: max,
-            onChanged: onChanged,
-            colorScheme: colorScheme,
-            textTheme: textTheme,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PlayerCountStepper extends StatelessWidget {
-  final int value;
-  final int min;
-  final int max;
-  final ValueChanged<int> onChanged;
-  final ColorScheme colorScheme;
-  final TextTheme textTheme;
-
-  const _PlayerCountStepper({
-    required this.value,
-    required this.min,
-    required this.max,
-    required this.onChanged,
-    required this.colorScheme,
-    required this.textTheme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _StepperButton(
-          icon: Icons.remove_rounded,
-          enabled: value > min,
-          onTap: () => onChanged(value - 1),
-          colorScheme: colorScheme,
-        ),
-        SizedBox(
-          width: 40,
-          child: Text(
-            '$value',
-            textAlign: TextAlign.center,
-            style: textTheme.titleMedium
-                ?.copyWith(fontWeight: AppFontWeights.semiBold),
-          ),
-        ),
-        _StepperButton(
-          icon: Icons.add_rounded,
-          enabled: value < max,
-          onTap: () => onChanged(value + 1),
-          colorScheme: colorScheme,
-        ),
-      ],
-    );
-  }
-}
-
-class _StepperButton extends StatelessWidget {
-  final IconData icon;
-  final bool enabled;
-  final VoidCallback onTap;
-  final ColorScheme colorScheme;
-
-  const _StepperButton({
-    required this.icon,
-    required this.enabled,
-    required this.onTap,
-    required this.colorScheme,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: enabled
-              ? colorScheme.primary.withValues(alpha: 0.12)
-              : colorScheme.onSurface.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        alignment: Alignment.center,
-        child: Icon(
-          icon,
-          size: 18,
-          color: enabled
-              ? colorScheme.primary
-              : colorScheme.onSurface.withValues(alpha: 0.3),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Review row (Step 3)
 // ---------------------------------------------------------------------------
 
 class _ReviewRow extends StatelessWidget {

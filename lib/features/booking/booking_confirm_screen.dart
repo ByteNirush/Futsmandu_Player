@@ -38,6 +38,15 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
     return 'NPR $normalized';
   }
 
+  String _amountToDisplay(dynamic amount) {
+    if (amount == null) return '';
+    if (amount is num) return (amount / 100).toStringAsFixed(0);
+
+    final parsed = int.tryParse(amount.toString().trim());
+    if (parsed == null) return amount.toString();
+    return (parsed / 100).toStringAsFixed(0);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -134,7 +143,10 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
     final bookingDate = args?['bookingDate']?.toString() ?? '';
     final startTime = args?['startTime']?.toString() ?? '';
     final endTime = args?['endTime']?.toString() ?? '';
-    final totalAmount = bookingRecord['total_amount']?.toString() ?? '';
+    final totalAmount =
+        bookingRecord['displayAmount']?.toString().isNotEmpty == true
+            ? bookingRecord['displayAmount'].toString()
+            : _amountToDisplay(bookingRecord['total_amount']);
     final matchGroup = args?['matchGroup'] is Map
         ? (args?['matchGroup'] as Map).cast<String, dynamic>()
         : const <String, dynamic>{};
@@ -145,13 +157,15 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
     // Extract booking type and player info
     final bookingType = args?['bookingType']?.toString() ?? '';
     final isPartialTeam = bookingType == 'PARTIAL_TEAM';
-    final myPlayers =
-        args?['myPlayers'] is int ? (args!['myPlayers'] as int) : 0;
+    final friendIds =
+        (args?['friendIds'] as List?)?.whereType<String>().toList() ?? [];
+    final currentPlayerCount = 1 + friendIds.length;
     final maxPlayersArg = args?['maxPlayers'];
     final maxPlayers = maxPlayersArg is int
         ? maxPlayersArg
         : int.tryParse(maxPlayersArg?.toString() ?? '') ?? 0;
-    final playersNeeded = (maxPlayers > myPlayers) ? maxPlayers - myPlayers : 0;
+    final playersNeeded =
+        (maxPlayers > currentPlayerCount) ? maxPlayers - currentPlayerCount : 0;
 
     // Effective matchGroupId: prefer the one from polling, fall back to initial
     final effectiveMatchGroupId = (_matchGroupId?.isNotEmpty == true)
@@ -265,7 +279,7 @@ class _BookingConfirmScreenState extends ConsumerState<BookingConfirmScreen>
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'You have $myPlayers player${myPlayers != 1 ? "s" : ""}. '
+                                'You have $currentPlayerCount player${currentPlayerCount != 1 ? "s" : ""} (you + ${friendIds.length} invited). '
                                 '$playersNeeded more needed to complete a team of $maxPlayers.',
                                 style: Theme.of(context).textTheme.bodySmall,
                               ),

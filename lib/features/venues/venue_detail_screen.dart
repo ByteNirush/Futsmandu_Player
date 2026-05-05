@@ -3,12 +3,6 @@ import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../shared/widgets/futs_button.dart';
 import 'data/services/player_venues_service.dart';
 
-class _VenueDetailSpacing {
-  static const double sectionGap = 20;
-  static const double subSectionGap = 16;
-  static const double smallGap = 6;
-}
-
 class VenueDetailScreen extends StatefulWidget {
   const VenueDetailScreen({super.key});
 
@@ -20,8 +14,6 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
   final PlayerVenuesService _venuesService = PlayerVenuesService.instance;
   final ScrollController _detailScrollController = ScrollController();
   late final PageController _pageController;
-
-  static const double _spaceMd = 12;
 
   String? _venueId;
   Map<String, dynamic>? _venue;
@@ -191,9 +183,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         '$rating/5 - ${ratingLabels[rating - 1]}',
                         style: AppTypography.caption(context, sheetColorScheme)
                             .copyWith(
-                              color: AppColors.warning,
-                              fontWeight: AppFontWeights.bold,
-                            ),
+                          color: AppColors.warning,
+                          fontWeight: AppFontWeights.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -374,37 +366,37 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       bottomNavigationBar: SafeArea(
-          top: false,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Container(
-                padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.xl, _spaceMd, AppSpacing.xl, _spaceMd),
-                decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  boxShadow: [
-                    BoxShadow(
-                      color: colorScheme.shadow.withValues(alpha: 0.08),
-                      blurRadius: 16,
-                      offset: const Offset(0, -2),
-                    ),
-                  ],
-                ),
-                child: FutsButton(
-                  label: 'Book Now',
-                  onPressed: () => Navigator.pushNamed(
-                    context,
-                    '/book-court',
-                    arguments: {
-                      ...venue,
-                      'initialCourtIdx': _courtIdx,
-                    },
+        top: false,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Container(
+              padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: colorScheme.surface,
+                boxShadow: [
+                  BoxShadow(
+                    color: colorScheme.shadow.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, -2),
                   ),
+                ],
+              ),
+              child: FutsButton(
+                label: 'Book Now',
+                onPressed: () => Navigator.pushNamed(
+                  context,
+                  '/book-court',
+                  arguments: {
+                    ...venue,
+                    'initialCourtIdx': _courtIdx,
+                  },
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
+      ),
       body: SingleChildScrollView(
         controller: _detailScrollController,
         child: Column(
@@ -421,15 +413,33 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                     isVerified: isVerified,
                     pageController: _pageController,
                     currentPage: _currentImagePage,
-                    onPageChanged: (page) => setState(() => _currentImagePage = page),
+                    onPageChanged: (page) =>
+                        setState(() => _currentImagePage = page),
                   ),
                   Positioned(
                     top: 0,
                     left: 0,
                     right: 0,
                     child: AppBar(
+                      automaticallyImplyLeading: false,
                       backgroundColor: Colors.transparent,
                       elevation: 0,
+                      leadingWidth: 64,
+                      titleSpacing: 0,
+                      leading: Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: IconButton(
+                          style: IconButton.styleFrom(
+                            backgroundColor:
+                                colorScheme.surface.withValues(alpha: 0.62),
+                          ),
+                          icon: Icon(
+                            Icons.arrow_back_rounded,
+                            color: colorScheme.onSurface,
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                      ),
                       iconTheme: IconThemeData(color: colorScheme.onSurface),
                       title: AnimatedOpacity(
                         duration: const Duration(milliseconds: 180),
@@ -444,12 +454,15 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                       actions: [
                         IconButton(
                           style: IconButton.styleFrom(
-                            backgroundColor: colorScheme.surface.withValues(alpha: 0.62),
+                            backgroundColor:
+                                colorScheme.surface.withValues(alpha: 0.62),
                           ),
-                          icon: Icon(Icons.share, color: colorScheme.onSurface),
+                          icon: Icon(Icons.share_outlined,
+                              color: colorScheme.onSurface),
                           onPressed: () {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Share coming soon')),
+                              const SnackBar(
+                                  content: Text('Share coming soon')),
                             );
                           },
                         ),
@@ -460,7 +473,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                 ],
               ),
             ),
-            
+
             // ── Unified Content Container ──────────────────────────────────
             Container(
               decoration: BoxDecoration(
@@ -469,7 +482,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.pageHorizontal,
-                  vertical: AppSpacing.xl,
+                  vertical: AppSpacing.lg,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -488,7 +501,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                   fontWeight: AppFontWeights.semiBold,
                                 ),
                               ),
-                              const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                              const SizedBox(height: AppSpacing.md),
                               Row(
                                 children: [
                                   const Icon(
@@ -531,9 +544,11 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                                           const SizedBox(width: 2),
                                           Text(
                                             'Verified',
-                                            style: textTheme.labelSmall?.copyWith(
+                                            style:
+                                                textTheme.labelSmall?.copyWith(
                                               color: colorScheme.primary,
-                                              fontWeight: AppFontWeights.semiBold,
+                                              fontWeight:
+                                                  AppFontWeights.semiBold,
                                             ),
                                           ),
                                         ],
@@ -548,12 +563,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                    const SizedBox(height: AppSpacing.lg),
 
                     // ── Meta Info Chips ────────────────────────────────────────
                     Wrap(
-                      spacing: _VenueDetailSpacing.subSectionGap,
-                      runSpacing: _VenueDetailSpacing.subSectionGap,
+                      spacing: AppSpacing.md,
+                      runSpacing: AppSpacing.sm,
                       children: [
                         _MetaChip(
                           icon: Icons.sports_soccer_rounded,
@@ -567,12 +582,13 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                       ],
                     ),
 
-                    const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                    const SizedBox(height: AppSpacing.xl),
 
                     // ── About Section ──────────────────────────────────────────
-                    if ((venue['description'] as String?)?.isNotEmpty == true) ...[
+                    if ((venue['description'] as String?)?.isNotEmpty ==
+                        true) ...[
                       const _SectionHeader(title: 'About'),
-                      const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                      const SizedBox(height: AppSpacing.md),
                       Text(
                         venue['description'] as String,
                         style: textTheme.bodyMedium?.copyWith(
@@ -580,12 +596,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           height: 1.6,
                         ),
                       ),
-                      const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                      const SizedBox(height: AppSpacing.xl),
                     ],
 
                     // ── Location Section ───────────────────────────────────────
                     const _SectionHeader(title: 'Location'),
-                    const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                    const SizedBox(height: AppSpacing.md),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -594,7 +610,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           size: 20,
                           color: colorScheme.primary,
                         ),
-                        const SizedBox(width: _VenueDetailSpacing.subSectionGap),
+                        const SizedBox(width: AppSpacing.md),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,11 +634,11 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: _VenueDetailSpacing.sectionGap),
+                    const SizedBox(height: AppSpacing.xl),
 
                     // ── Contact Section ────────────────────────────────────────
                     const _SectionHeader(title: 'Contact'),
-                    const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                    const SizedBox(height: AppSpacing.md),
                     if ((venue['ownerPhone'] as String?)?.isNotEmpty == true)
                       Row(
                         children: [
@@ -631,7 +647,7 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                             size: 20,
                             color: colorScheme.primary,
                           ),
-                          const SizedBox(width: _VenueDetailSpacing.subSectionGap),
+                          const SizedBox(width: AppSpacing.md),
                           Text(
                             venue['ownerPhone'] as String,
                             style: textTheme.bodyMedium,
@@ -645,20 +661,20 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
-                    const SizedBox(height: _VenueDetailSpacing.sectionGap),
+                    const SizedBox(height: AppSpacing.xl),
 
                     // ── Amenities Section ──────────────────────────────────────
                     const _SectionHeader(title: 'Amenities'),
-                    const SizedBox(height: _VenueDetailSpacing.smallGap),
+                    const SizedBox(height: AppSpacing.lg),
                     Wrap(
-                      spacing: _VenueDetailSpacing.subSectionGap,
-                      runSpacing: _VenueDetailSpacing.subSectionGap,
+                      spacing: AppSpacing.xl,
+                      runSpacing: AppSpacing.xl,
                       children: (venue['amenities'] as List).map((a) {
                         final amenity = a.toString();
                         return _AmenityChip(label: amenity);
                       }).toList(),
                     ),
-                    const SizedBox(height: _VenueDetailSpacing.sectionGap),
+                    const SizedBox(height: AppSpacing.xl),
 
                     // ── Reviews Section ──────────────────────────────────────────
                     Row(
@@ -682,9 +698,9 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                    const SizedBox(height: AppSpacing.md),
                     _buildReviews(venue),
-                    const SizedBox(height: _VenueDetailSpacing.subSectionGap),
+                    const SizedBox(height: AppSpacing.xl),
                   ],
                 ),
               ),
@@ -712,13 +728,12 @@ class _VenueDetailScreenState extends State<VenueDetailScreen> {
     }
 
     return Column(
-      children: reviews.take(3).toList().asMap().entries.map(
+      children: reviews.take(2).toList().asMap().entries.map(
         (entry) {
           return Padding(
             padding: EdgeInsets.only(
-              bottom: entry.key == reviews.take(3).length - 1
-                  ? 0
-                  : _VenueDetailSpacing.subSectionGap,
+              bottom:
+                  entry.key == reviews.take(2).length - 1 ? 0 : AppSpacing.md,
             ),
             child: _ReviewCard(entry.value),
           );
@@ -796,11 +811,6 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-
-
-
-
-
 class _ReviewCard extends StatelessWidget {
   final Map<String, dynamic> r;
 
@@ -813,7 +823,8 @@ class _ReviewCard extends StatelessWidget {
     final textTheme = theme.textTheme;
     final rating = (r['rating'] as num?)?.toDouble() ?? 0;
     final String author = (r['author'] as String?) ?? '';
-    final String authorInitial = author.isNotEmpty ? author[0].toUpperCase() : '?';
+    final String authorInitial =
+        author.isNotEmpty ? author[0].toUpperCase() : '?';
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -953,39 +964,39 @@ class _VenueCoverCarousel extends StatelessWidget {
               onPageChanged: onPageChanged,
               itemCount: imageUrls.length,
               itemBuilder: (context, index) {
-              final url = imageUrls[index];
-              return Image.network(
-                url,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return Container(
+                final url = imageUrls[index];
+                return Image.network(
+                  url,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return Container(
+                      color: colorScheme.surfaceContainerHighest,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          value: progress.expectedTotalBytes != null
+                              ? progress.cumulativeBytesLoaded /
+                                  progress.expectedTotalBytes!
+                              : null,
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) => Container(
                     color: colorScheme.surfaceContainerHighest,
                     child: Center(
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        value: progress.expectedTotalBytes != null
-                            ? progress.cumulativeBytesLoaded /
-                                progress.expectedTotalBytes!
-                            : null,
+                      child: Icon(
+                        Icons.image_not_supported_outlined,
+                        size: 48,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: colorScheme.surfaceContainerHighest,
-                  child: Center(
-                    child: Icon(
-                      Icons.image_not_supported_outlined,
-                      size: 48,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
             ),
           )
         else

@@ -6,6 +6,7 @@ import 'package:futsmandu_design_system/futsmandu_design_system.dart';
 import '../../shared/widgets/futs_button.dart';
 import 'data/services/player_match_service.dart';
 import '../friends/data/services/player_friends_service.dart';
+import '../venues/data/services/player_venues_service.dart';
 import 'presentation/widgets/match_hero_header.dart';
 import 'presentation/widgets/match_info_strip.dart';
 import 'presentation/widgets/player_list_section.dart';
@@ -86,7 +87,30 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
 
       if (matchId != null && matchId.isNotEmpty) {
         try {
-          final match = await _matchService.getMatch(matchId);
+          var match = await _matchService.getMatch(matchId);
+          
+          // Fetch venue details if amenities or address are missing
+          final venueId = match['venueId']?.toString() ?? match['venue']?['id']?.toString() ?? '';
+          final amenities = match['amenities'] as List? ?? const [];
+          final address = match['venueAddress']?.toString() ?? '';
+          
+          if (venueId.isNotEmpty && (amenities.isEmpty || address.isEmpty)) {
+            try {
+              final venueDetail = await PlayerVenuesService.instance.getVenueDetail(venueId);
+              match = {
+                ...match,
+                if (address.isEmpty) 'venueAddress': venueDetail['address'] ?? address,
+                if (amenities.isEmpty) 'amenities': venueDetail['amenities'] ?? amenities,
+                'venue': {
+                  ...(match['venue'] as Map? ?? {}),
+                  ...venueDetail,
+                },
+              };
+            } catch (e) {
+              debugPrint('Could not fetch venue details: $e');
+            }
+          }
+
           if (!mounted) return;
           setState(() {
             _match = match;
@@ -214,6 +238,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
       'adminId': raw['adminId']?.toString() ?? '',
       'matchGroupId':
           raw['matchGroupId']?.toString() ?? raw['id']?.toString() ?? '',
+      'venueId': raw['venueId']?.toString() ?? raw['venue']?['id']?.toString() ?? '',
       'inviteToken': raw['inviteToken']?.toString() ?? '',
       'inviteExpiresAt': raw['inviteExpiresAt']?.toString() ?? '',
       'resultWinner': raw['resultWinner']?.toString() ?? '',
@@ -233,6 +258,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
         'court_type': raw['courtType']?.toString() ?? '',
         'surface': raw['courtSurface']?.toString() ?? '',
       },
+      'amenities': (raw['amenities'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[],
     };
   }
 
@@ -411,6 +437,40 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     }
   }
 
+  Future<void> _handleRemovePlayer(String userId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove Player?'),
+        content: const Text('Are you sure you want to remove this player from the match?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.red),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _rejectMember(userId);
+    }
+  }
+
+  void _handleViewProfile(String userId) {
+    if (userId.isEmpty) return;
+    Navigator.pushNamed(
+      context,
+      '/profile/user',
+      arguments: {'userId': userId},
+    );
+  }
+
   Future<void> _showAddFriendBottomSheet() async {
     if (!mounted) return;
     final friends = await PlayerFriendsService.instance.getFriends();
@@ -486,7 +546,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: scheme.outlineVariant.withValues(alpha: 0.5),
+                        color: scheme.outlineVariant.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -613,11 +673,11 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                                                     ? 'Invited'
                                                     : 'Added',
                                             backgroundColor: (isPending
-                                                    ? AppColors.amber
+                                                    ? scheme.primary
                                                     : AppColors.green)
-                                                .withValues(alpha: 0.12),
+                                                .withOpacity(0.12),
                                             foregroundColor: isPending
-                                                ? AppColors.amber
+                                                ? scheme.primary
                                                 : AppColors.green,
                                             textTheme: tt,
                                           )
@@ -625,7 +685,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                                           _AddFriendStatusChip(
                                             icon: Icons.check_rounded,
                                             label: 'Selected',
-                                            backgroundColor: scheme.primary.withValues(alpha: 0.14),
+                                            backgroundColor: scheme.primary.withOpacity(0.14),
                                             foregroundColor: scheme.primary,
                                             textTheme: tt,
                                           )
@@ -653,7 +713,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                                   Divider(
                                       height: 1,
                                       thickness: 1,
-                                      color: scheme.outlineVariant.withValues(alpha: 0.3),
+                                      color: scheme.outlineVariant.withOpacity(0.3),
                                       indent: AppSpacing.xxxl + 56 + AppSpacing.xxxl),
                               ],
                             );
@@ -667,7 +727,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                       color: AppColors.bgSurface,
                       border: Border(
                         top: BorderSide(
-                          color: scheme.outlineVariant.withValues(alpha: 0.35),
+                          color: scheme.outlineVariant.withOpacity(0.35),
                         ),
                       ),
                     ),
@@ -787,8 +847,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
     final dateLabel = match['date']?.toString() ?? '';
     final timeLabel = _displayTimeRange();
     final members = _members;
-    final confirmedCount =
-        members.where((m) => m['status'] == 'confirmed').length;
+    final confirmedCount = (match['memberCount'] is num ? match['memberCount'] as num : 0).toInt();
+    final offlinePlayersCount = (match['offlinePlayersCount'] is num ? match['offlinePlayersCount'] as num : 0).toInt();
     final maxPlayers =
         (match['maxPlayers'] is num ? match['maxPlayers'] as num : 0).toInt();
     final slotsAvailable =
@@ -796,6 +856,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
             .toInt();
     final isPartialTeamBooking = match['isPartialTeamBooking'] == true;
     final skillLevel = match['skillLevel']?.toString() ?? 'All';
+    final amenities = (match['amenities'] as List?)?.map((e) => e.toString()).toList() ?? const <String>[];
 
     return Scaffold(
       backgroundColor: AppColors.bgPrimary,
@@ -826,6 +887,8 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                     venueName: venueName,
                     dateLabel: dateLabel,
                     timeLabel: timeLabel,
+                    venueAddress: venueAddress,
+                    amenities: amenities,
                   ),
 
                   Padding(
@@ -847,6 +910,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                           confirmedCount: confirmedCount,
                           maxPlayers: maxPlayers,
                           slotsAvailable: slotsAvailable,
+                          offlinePlayersCount: offlinePlayersCount,
                         ),
 
                         const SizedBox(height: AppSpacing.xs),
@@ -856,9 +920,12 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> {
                           members: members,
                           maxPlayers: maxPlayers,
                           slotsAvailable: slotsAvailable,
+                          offlinePlayersCount: offlinePlayersCount,
                           isAdmin: _isAdmin,
                           isSubmitting: _isSubmitting,
                           onAddFriend: _showAddFriendBottomSheet,
+                          onRemovePlayer: _handleRemovePlayer,
+                          onViewProfile: _handleViewProfile,
                         ),
 
                         const SizedBox(height: AppSpacing.xl),

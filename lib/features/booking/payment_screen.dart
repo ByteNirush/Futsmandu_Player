@@ -181,8 +181,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
     }
 
     final price = args?['slot']?['price'];
-    if (price is num) return price.toDouble();
-    return double.tryParse(price?.toString() ?? '') ?? 1800.0;
+    if (price is num) return price.toDouble() / 100.0;
+    final parsed = double.tryParse(price?.toString() ?? '');
+    return (parsed != null) ? parsed / 100.0 : 1800.0;
   }
 
   String _bookingId(Map<String, dynamic>? args) {
@@ -407,12 +408,22 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen>
         ? (args?['bookingRecord'] as Map).cast<String, dynamic>()
         : const <String, dynamic>{};
 
-    final totalAmount =
-        bookingRecord['displayAmount']?.toString().isNotEmpty == true
-            ? bookingRecord['displayAmount'].toString()
-            : bookingRecord['total_amount']?.toString() ??
-                args?['slot']?['price']?.toString() ??
-                '1800';
+    // Determine the amount to display
+    String totalAmount;
+    if (bookingRecord['displayAmount']?.toString().isNotEmpty == true) {
+      totalAmount = bookingRecord['displayAmount'].toString();
+    } else if (bookingRecord['total_amount'] != null) {
+      totalAmount = bookingRecord['total_amount'].toString();
+    } else {
+      // Fallback to slot price — convert from paisa (NPR × 100) to NPR
+      final slotPrice = args?['slot']?['price'];
+      if (slotPrice is num) {
+        totalAmount = (slotPrice / 100.0).toStringAsFixed(0);
+      } else {
+        final parsed = double.tryParse(slotPrice?.toString() ?? '');
+        totalAmount = parsed != null ? (parsed / 100.0).toStringAsFixed(0) : '1800';
+      }
+    }
     final amountLabel = _formattedAmountLabel(totalAmount);
 
     final selectedCourtName = args?['venue']?['courts'] is List &&

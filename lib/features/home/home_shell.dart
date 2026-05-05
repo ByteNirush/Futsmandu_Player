@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'home_screen.dart';
+import '../chat/chat_screen.dart';
 import '../discovery/discovery_screen.dart';
-import '../friends/friends_screen.dart';
 import '../profile/profile_screen.dart';
 import '../venues/venue_list_screen.dart';
 
@@ -28,11 +28,11 @@ class _HomeShellState extends State<HomeShell> {
     _NavItem(
         icon: Icons.sports_soccer_outlined,
         activeIcon: Icons.sports_soccer_rounded,
-      label: 'Venues'),
+        label: 'Venues'),
     _NavItem(
-        icon: Icons.people_alt_outlined,
-        activeIcon: Icons.people_alt_rounded,
-        label: 'Friends'),
+        icon: Icons.chat_bubble_outline_rounded,
+        activeIcon: Icons.chat_bubble_rounded,
+        label: 'Chat'),
     _NavItem(
         icon: Icons.explore_outlined,
         activeIcon: Icons.explore_rounded,
@@ -57,27 +57,24 @@ class _HomeShellState extends State<HomeShell> {
         children: const [
           HomeScreen(),
           VenueListScreen(),
-          FriendsScreen(),
+          ChatScreen(),
           DiscoveryScreen(),
           ProfileScreen(),
         ],
       ),
-      bottomNavigationBar: NavigationBarTheme(
-        data: const NavigationBarThemeData(height: kNavBarHeight),
-        child: NavigationBar(
-          selectedIndex: _index,
-          onDestinationSelected: _onTap,
-          height: kNavBarHeight,
-          destinations: _navItems
-              .map(
-                (item) => NavigationDestination(
-                  icon: Icon(item.icon),
-                  selectedIcon: Icon(item.activeIcon),
-                  label: item.label,
-                ),
-              )
-              .toList(),
-        ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _index,
+        onDestinationSelected: _onTap,
+        height: kNavBarHeight,
+        destinations: _navItems
+            .map(
+              (item) => NavigationDestination(
+                icon: Icon(item.icon),
+                selectedIcon: Icon(item.activeIcon),
+                label: item.label,
+              ),
+            )
+            .toList(),
       ),
     );
   }
@@ -98,4 +95,3 @@ class _NavItem {
     required this.label,
   });
 }
-

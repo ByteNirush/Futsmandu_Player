@@ -194,6 +194,7 @@ class PlayerMatchService {
     try {
       final response = await _client.put(
         ApiConfig.approveMatchMemberEndpoint(matchId, userId),
+        data: {},
       );
       final data = _unwrap(response.data);
       return data is Map
@@ -211,6 +212,7 @@ class PlayerMatchService {
     try {
       final response = await _client.put(
         ApiConfig.rejectMatchMemberEndpoint(matchId, userId),
+        data: {},
       );
       final data = _unwrap(response.data);
       return data is Map
@@ -425,13 +427,31 @@ class PlayerMatchService {
       ? _string(raw['fill_status'])
       : (slotsAvailable == 0 ? 'FULL' : 'OPEN');
     final costSplitMode = _string(raw['cost_split_mode']);
-    final description = _string(raw['description']);
+    String description = _string(raw['description']);
+    
+    // Parse offline players metadata
+    int offlineCount = 0;
+    if (description.startsWith('[OFFLINE:')) {
+      final endIdx = description.indexOf(']');
+      if (endIdx != -1) {
+        final countStr = description.substring(9, endIdx);
+        offlineCount = int.tryParse(countStr) ?? 0;
+        description = description.substring(endIdx + 1).trim();
+      }
+    }
+
     final isPartialTeamBooking =
       costSplitMode.isNotEmpty || description.isNotEmpty || 
       raw['booking_type'] == 'PARTIAL_TEAM' || raw['booking_type'] == 'PARTIAL';
 
+    final trueMaxPlayers = maxPlayers + offlineCount;
+    final trueConfirmedCount = confirmedCount + offlineCount;
+    final trueSlotsAvailable = (trueMaxPlayers - trueConfirmedCount).clamp(0, trueMaxPlayers);
+    final truePlayersNeeded = playersNeeded; // playersNeeded was already calculated as (maxPlayers - confirmedCount) which is the same as (trueMaxPlayers - trueConfirmedCount)
+
     return {
       'id': _string(raw['id']),
+      'venueId': _string(venue['id']),
       'venueName': _string(venue['name']),
       'venueImage': _string(venue['cover_image_url']),
       'venueAddress': _string(venue['address']),
@@ -442,11 +462,13 @@ class PlayerMatchService {
       'matchDate': _string(raw['match_date']),
       'time': _string(raw['start_time']),
       'endTime': _string(raw['end_time']),
-        'spotsLeft': slotsAvailable,
-        'maxPlayers': maxPlayers,
-        'memberCount': confirmedCount,
-        'slotsAvailable': slotsAvailable,
-        'playersNeeded': playersNeeded,
+      'spotsLeft': trueSlotsAvailable,
+      'maxPlayers': trueMaxPlayers,
+      'memberCount': trueConfirmedCount,
+      'slotsAvailable': trueSlotsAvailable,
+      'playersNeeded': truePlayersNeeded,
+      'offlinePlayersCount': offlineCount,
+      'amenities': _asStringList(venue['amenities']),
       'skillLevel': _skillLabel(raw['skill_filter']),
       'skillFilter': _string(raw['skill_filter']),
       'distance': _string(venue['distance']).isNotEmpty
@@ -644,11 +666,28 @@ class PlayerMatchService {
       ? _string(raw['fillStatus'])
       : (normalizedSpotsLeft == 0 ? 'FULL' : 'OPEN');
     final costSplitMode = _string(raw['costSplitMode']);
-    final description = _string(raw['description']);
+    String description = _string(raw['description']);
+
+    // Parse offline players metadata
+    int offlineCount = 0;
+    if (description.startsWith('[OFFLINE:')) {
+      final endIdx = description.indexOf(']');
+      if (endIdx != -1) {
+        final countStr = description.substring(9, endIdx);
+        offlineCount = int.tryParse(countStr) ?? 0;
+        description = description.substring(endIdx + 1).trim();
+      }
+    }
+
     final isPartialTeamBooking =
       costSplitMode.isNotEmpty || description.isNotEmpty || 
       raw['bookingType'] == 'PARTIAL_TEAM' || raw['booking_type'] == 'PARTIAL_TEAM' ||
       raw['bookingType'] == 'PARTIAL' || raw['booking_type'] == 'PARTIAL';
+
+    final trueMaxPlayers = maxPlayers + offlineCount;
+    final trueMemberCount = memberCount + offlineCount;
+    final trueSpotsLeft = (trueMaxPlayers - trueMemberCount).clamp(0, trueMaxPlayers);
+    final truePlayersNeeded = playersNeeded;
     final venueLat = _toDouble(raw['venueLat']) != 0
         ? _toDouble(raw['venueLat'])
         : _toDouble(venue['latitude']);
@@ -667,6 +706,7 @@ class PlayerMatchService {
     return {
       'id': id,
       'matchGroupId': id,
+      'venueId': _string(venue['id']),
       'venueName': venueName,
       'venueImage': venueImage,
       'venueAddress': venueAddress,
@@ -679,11 +719,13 @@ class PlayerMatchService {
       'matchDate': matchDate,
       'time': startTime,
       'endTime': endTime,
-      'spotsLeft': normalizedSpotsLeft,
-      'maxPlayers': maxPlayers,
-      'memberCount': memberCount,
-      'slotsAvailable': normalizedSpotsLeft,
-      'playersNeeded': playersNeeded,
+      'spotsLeft': trueSpotsLeft,
+      'maxPlayers': trueMaxPlayers,
+      'memberCount': trueMemberCount,
+      'slotsAvailable': trueSpotsLeft,
+      'playersNeeded': truePlayersNeeded,
+      'offlinePlayersCount': offlineCount,
+      'amenities': _asStringList(venue['amenities']),
       'skillLevel': _skillLabel(skillFilter),
       'skillFilter': skillFilter,
       'distance': distance,
@@ -691,7 +733,9 @@ class PlayerMatchService {
       'costSplitMode': costSplitMode,
       'description': description,
       'isPartialTeamBooking': isPartialTeamBooking,
-      'friendsIn': 0,
+      'friendsIn': _toInt(raw['friends_in']) > 0
+          ? _toInt(raw['friends_in'])
+          : _toInt(raw['friendsIn']),
       'isOpen': true,
         'isAdmin': (_string(raw['admin_id']).isNotEmpty
             ? _string(raw['admin_id'])
@@ -748,4 +792,9 @@ class PlayerMatchService {
   }
 
   double _degToRad(double deg) => deg * (pi / 180);
+
+  List<String> _asStringList(dynamic value) {
+    if (value is! List) return const <String>[];
+    return value.whereType<String>().toList(growable: false);
+  }
 }
